@@ -1,0 +1,133 @@
+{
+  "id": "the-red-kite",
+  "title": "The Red Kite",
+  "subtitle": "An original narrated picture story",
+  "duration": 96,
+  "video": "/media/the-red-kite.mp4",
+  "poster": "/media/the-red-kite.jpg",
+  "scenes": [
+    {
+      "id": "the-cupboard",
+      "start": 0,
+      "end": 22,
+      "label": "An old kite"
+    },
+    {
+      "id": "made-together",
+      "start": 22,
+      "end": 58,
+      "label": "Something worth keeping"
+    },
+    {
+      "id": "another-chance",
+      "start": 58,
+      "end": 96,
+      "label": "Another chance"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "t1",
+      "start": 1,
+      "end": 9,
+      "speaker": "Narrator",
+      "text": "Maya brings a torn red kite to her grandfather Arun's kitchen table."
+    },
+    {
+      "id": "t2",
+      "start": 11,
+      "end": 20,
+      "speaker": "Narrator",
+      "text": "She found it in a cupboard. Can we buy a new one? Maya asks."
+    },
+    {
+      "id": "t3",
+      "start": 22,
+      "end": 33,
+      "speaker": "Narrator",
+      "text": "We could, Arun says. But I made this one with your mother when she was your age."
+    },
+    {
+      "id": "t4",
+      "start": 35,
+      "end": 44,
+      "speaker": "Narrator",
+      "text": "Maya looks at the crooked wooden frame. Now she understands why Arun kept the old kite."
+    },
+    {
+      "id": "t5",
+      "start": 46,
+      "end": 56,
+      "speaker": "Narrator",
+      "text": "I thought the tear meant it was finished, she says. Arun points to a piece of yellow paper."
+    },
+    {
+      "id": "t6",
+      "start": 58,
+      "end": 68,
+      "speaker": "Narrator",
+      "text": "A patch can give it another chance, he says. Would you like to help me mend it?"
+    },
+    {
+      "id": "t7",
+      "start": 70,
+      "end": 79,
+      "speaker": "Narrator",
+      "text": "Maya takes the paper. Together, they plan where the patch should go, one corner at a time."
+    },
+    {
+      "id": "t8",
+      "start": 81,
+      "end": 92,
+      "speaker": "Narrator",
+      "text": "When it flies again, Maya says, it will have a little bit of both of us."
+    }
+  ],
+  "facts": [
+    {
+      "id": "f-setting",
+      "available_at": 0,
+      "text": "Maya and Arun sit at a kitchen table with a torn red kite, a spool of string and yellow paper."
+    },
+    {
+      "id": "f-family",
+      "available_at": 9,
+      "text": "Arun is Maya's grandfather."
+    },
+    {
+      "id": "f-found",
+      "available_at": 20,
+      "text": "Maya found the kite in a cupboard and asks about buying a new one."
+    },
+    {
+      "id": "f-history",
+      "available_at": 33,
+      "text": "Arun made this kite with Maya's mother when her mother was Maya's current age."
+    },
+    {
+      "id": "f-value",
+      "available_at": 44,
+      "text": "Maya understands that Arun kept the kite because of its connection to her mother."
+    },
+    {
+      "id": "f-tear",
+      "available_at": 56,
+      "text": "Maya thought the tear meant the kite was finished; Arun points to yellow paper."
+    },
+    {
+      "id": "f-invite",
+      "available_at": 68,
+      "text": "Arun suggests a patch and invites Maya to mend the kite with him."
+    },
+    {
+      "id": "f-plan",
+      "available_at": 79,
+      "text": "Maya and Arun plan the repair together."
+    },
+    {
+      "id": "f-new-memory",
+      "available_at": 92,
+      "text": "Maya says that when the kite flies again it will have a little bit of both of them. The story does not show it flying."
+    }
+  ]
+}

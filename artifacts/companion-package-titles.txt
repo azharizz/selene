@@ -1,0 +1,202 @@
+vpm: 'package': no info available (Indicated resource not found )
+vpm: 'ids:': no info available (Indicated resource not found )
+id:           com.selene.tv
+title: 
+	value: SELENE
+	direction: ltr
+version:      0.1.0
+id:           com.amazon.dev.shell
+title: 
+	value: Developer Shell Service
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.adep
+title: 
+	value: AmazonAdep
+	direction: ltr
+version:      1.1.2
+id:           com.amazon.diode
+title: 
+	value: diode
+	direction: ltr
+version:      1.0.5070.0
+id:           com.amazon.aplext.alert.10.service
+title: 
+	value: Alexa Alerts Extension Service Package
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.kcp.media_focus_manager
+title: 
+	value: KeplerMediaFocusManager
+	direction: ltr
+version:      1.0.0.0
+id:           com.amazon.miracast_sink
+title: 
+	value: Miracast Sink App
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.ffr.token.task
+title: 
+	value: FFR token task
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.accessoryconfig.service
+title: 
+	value: AccessoryConfig Service Application Package
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.kepler.tvlaunchdelegate
+title: 
+	value: TV Launch Delegate for Vega OS
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.a11y_tutorial
+title: 
+	value: a11y assistive technology tutorial
+	direction: ltr
+version:      1.0.1
+id:           com.amazon.textbanner
+title: 
+	value: text banner accessibility UI app
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.livedeviceservice
+title: 
+	value: FireTv Live Device Service
+	direction: ltr
+version:      0.1.26144
+id:           com.amazon.tv.systemui.volume_panel
+title: 
+	value: Volume Panel for VegaTV SystemUI
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.kcp.target_navigator
+title: 
+	value: KeplerTargetNavigator
+	direction: ltr
+version:      1.0.0.0
+id:           com.amazon.kcp.client_component
+title: 
+	value: KeplerControllerClientComponent
+	direction: ltr
+version:      1.0.0.0
+id:           com.amazon.kcp.account_login
+title: 
+	value: KeplerMediaAccountLogin
+	direction: ltr
+version:      1.0.0.0
+id:           com.amazon.device_name_sync
+title: 
+	value: Device Name Sync Service
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.kcp
+title: 
+	value: KeplerControllerPlatform Middleware
+	direction: ltr
+version:      1.0.0.0
+id:           com.amazon.rdm.service
+title: 
+	value: RDM Service Application Package
+	direction: ltr
+version:      1.0.1
+id:           com.amazon.map.service
+title: 
+	value: MAP service
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.identity.lwa
+title: 
+	value: Login-With-Amazon Native Service
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.recommendation.service
+title: 
+	value: Recommendation Service Application Package
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.iap.core
+title: 
+	value: AFXIAPTVUIComponents
+	direction: ltr
+version:      1.0_kcli.235945.0
+id:           com.amazon.kmc
+title: 
+	value: KeplerMediaControls
+	direction: ltr
+version:      BRAZIL_PACKAGE_VERSION
+id:           com.amazon.silverstone
+title: 
+	value: Virtual Keyboard Service
+	direction: ltr
+version:      2.0.0-862503d
+id:           com.amazon.tv.developer.dataservice
+title: 
+	value: Alberto Service
+	direction: ltr
+version:      0.1.16549
+id:           com.amazon.accessibility.tts.service
+title: 
+	value: Accessibility TTS Service Application Package
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.arol
+title: 
+	value: KEPLER APL Runtime
+	direction: ltr
+version:      1.0.2
+id:           com.amazon.alexawebapi
+title: 
+	value: Alexa Web API For Games
+	direction: ltr
+version:      0.1.0
+id:           com.amazon.keplerlauncherapp
+title: 
+	value: Kepler Register App
+	direction: ltr
+version:      2.0.114789.0
+id:           com.amazon.admanager.service
+title: 
+	value: Admanager Service Application Package
+	direction: ltr
+version:      1.0.9
+id:           com.amazon.hdmi.certificate
+title: 
+	value: HDMI Certificate Application
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.otad.ux
+title: 
+	value: OTA Update Daemon UX
+	direction: ltr
+version:      1.6.0
+id:           com.amazon.kepler.keyvault.service
+title: 
+	value: Amazon KeyVault Service
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.otad
+title: 
+	value: OTA Update Daemon
+	direction: ltr
+version:      1.5.1
+id:           com.amazon.mediametrics.service
+title: 
+	value: Media metrics service app
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.webview
+title: 
+	value: Webview
+	direction: ltr
+version:      144.0.9999
+id:           com.amazon.kepler.pcon
+title: 
+	value: Parental Controls (PCON) Service for Vega OS
+	direction: ltr
+version:      1.0.0
+id:           com.amazon.notification.renderer
+title: 
+	value: Notification Renderer Service Package for VegaTV SystemUI
+	direction: ltr
+version:      1.0.0

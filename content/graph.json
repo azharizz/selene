@@ -1,0 +1,69 @@
+[
+  {
+    "id": "g-family",
+    "title_id": "the-red-kite",
+    "scene_id": null,
+    "available_at": 9,
+    "subject": "Arun",
+    "relation": "connects to",
+    "object": "Maya",
+    "explanation": "Arun is Maya's grandfather.",
+    "evidence_ids": [
+      "f-family"
+    ],
+    "validated": true
+  },
+  {
+    "id": "g-kite-history",
+    "title_id": "the-red-kite",
+    "scene_id": null,
+    "available_at": 33,
+    "subject": "The red kite",
+    "relation": "connects to",
+    "object": "Maya's mother",
+    "explanation": "Arun made this kite with Maya's mother when she was Maya's age.",
+    "evidence_ids": [
+      "f-history"
+    ],
+    "validated": true
+  },
+  {
+    "id": "g-soccer-offside",
+    "title_id": "*",
+    "scene_id": null,
+    "available_at": 0,
+    "scope": "general",
+    "subject": "offside rule",
+    "relation": "explains",
+    "object": "attacker position when a teammate plays the ball",
+    "explanation": "A player is offside when, at the moment a teammate plays the ball, the player is nearer the goal line than both the ball and the second-last opponent; being in that position alone is not an offence.",
+    "evidence_ids": ["g-soccer-offside"],
+    "validated": true
+  },
+  {
+    "id": "g-offside-practice",
+    "title_id": "offside-practice",
+    "scene_id": "the-pass",
+    "available_at": 14,
+    "scope": "scene",
+    "subject": "the blue attacker",
+    "relation": "explains",
+    "object": "the offside position in the practice",
+    "explanation": "At the pass in this authored practice, the blue attacker is nearer the goal line than both the ball and the second-last red defender.",
+    "evidence_ids": ["soccer-pass"],
+    "validated": true
+  },
+  {
+    "id": "g-offside-involvement",
+    "title_id": "offside-practice",
+    "scene_id": "the-rule",
+    "available_at": 22,
+    "scope": "scene",
+    "subject": "offside position",
+    "relation": "explains",
+    "object": "active involvement in play",
+    "explanation": "An offside position alone is not an offence; the player must become involved in active play.",
+    "evidence_ids": ["soccer-position"],
+    "validated": true
+  }
+]

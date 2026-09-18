@@ -1,0 +1,139 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #f6f2e9; background: #101714; color-scheme: dark; font-synthesis: none;
+  --ink: #f6f2e9; --muted: #c5ccc6; --accent: #e8bb70; --surface: #182421;
+}
+* {box-sizing: border-box}
+html, body, #root {margin: 0; width: 100%; height: 100%; overflow: hidden}
+h1, h2, h3, p {margin: 0}
+p {line-height: 1.4; overflow-wrap: break-word}
+h1 {font-size: clamp(44px, 4.5vw, 86px); line-height: 1.05; font-weight: 500}
+h2 {font-size: clamp(26px, 2.1vw, 42px); line-height: 1.25; font-weight: 500; overflow-wrap: break-word}
+h3 {font-size: clamp(26px, 2vw, 40px); line-height: 1.3; font-weight: 500}
+button, textarea, select {font: inherit}
+button {
+  color: var(--ink); background: #25352e; border: 2px solid #637267; border-radius: 6px;
+  padding: .55em .8em; font-size: clamp(19px, 1.58vw, 32px); line-height: 1.25;
+  cursor: pointer; min-height: 48px; max-width: 100%; text-align: center;
+}
+button.primary, button[aria-pressed=true] {background: var(--ink); color: #17211b; border-color: var(--ink)}
+button:focus, textarea:focus, select:focus {outline: 4px solid var(--accent); outline-offset: 5px}
+button:disabled {opacity: .5; cursor: not-allowed}
+button:hover {border-color: var(--accent)}
+button.secondary {margin-top: 26px; background: transparent}
+textarea {
+  resize: none; width: 100%; background: #101714; color: var(--ink); border: 2px solid #6a7b6e;
+  border-radius: 4px; padding: 14px 20px; line-height: 1.4; font-size: clamp(21px, 1.6vw, 32px);
+}
+textarea::placeholder {color: var(--muted)}
+select {background: #101714; color: var(--ink); padding: 8px; border: 2px solid #637267; max-width: 100%}
+.app {height: 100%; position: relative; background: #101714; font-size: clamp(20px, 1.6vw, 32px)}
+video {width: 100%; height: 100%; object-fit: contain; display: block}
+.wordmark {font-size: clamp(20px, 1.5vw, 30px); font-weight: 600; letter-spacing: .16em}
+.small, .eyebrow {font-size: clamp(18px, 1.35vw, 27px); color: var(--muted)}
+.eyebrow {margin-bottom: 14px; color: var(--accent)}
+.muted {color: var(--muted)}
+.actions {display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 24px}
+.welcome {
+  position: absolute; inset: 0; padding: 5%; display: flex; flex-direction: column; justify-content: space-between;
+  background: linear-gradient(90deg, #0c1611fa 0%, #0c1611f0 33%, #0c16114d 68%, transparent 100%);
+}
+.welcome-copy {width: 65%; padding-bottom: 2%; max-height: 85%; overflow: auto; padding-right: 12px}
+.welcome-copy > p {margin-top: 20px}
+.welcome-copy > .eyebrow {margin-top: 0}
+.welcome-copy .actions {margin-top: 36px}
+.welcome-copy .small {margin-top: 26px}
+.quiet-control {position: absolute; bottom: 5%; right: 5%; background: #101714f0; font-size: clamp(18px, 1.35vw, 27px)}
+.player-controls {position: absolute; bottom: 0; left: 0; right: 0; padding: 30px 5% 4%; background: #14201bf5}
+.player-heading {display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; color: var(--muted)}
+.player-heading > div {display: flex; align-items: center; gap: 28px; color: var(--ink)}
+.player-heading h2 {font-size: clamp(24px, 1.8vw, 36px)}
+.player-heading > span {font-size: clamp(19px, 1.4vw, 28px)}
+.progress {height: 5px; background: #506256; margin-bottom: 26px}
+.progress span {display: block; height: 100%; background: var(--accent)}
+.transport {display: flex; align-items: center; gap: 24px}
+.transport .actions {gap: 14px; margin-top: 0}
+.time {font-variant-numeric: tabular-nums; font-size: clamp(19px, 1.4vw, 28px); white-space: nowrap}
+.captions {position: absolute; bottom: 8%; left: 17%; right: 17%; text-align: center; background: #101714ef; padding: 14px 24px; border-radius: 4px; font-size: clamp(24px, 2.05vw, 41px); line-height: 1.35}
+.captions.raised {bottom: 32%}
+.captions.over-intervention {top: 5%; bottom: auto}
+.sheet {position: absolute; left: 5%; right: 5%; bottom: 5%; max-height: 90%; overflow: auto; padding: 34px 40px; background: var(--surface); scrollbar-gutter: stable}
+.sheet > p {margin-top: 20px; max-width: 65ch}
+.sheet-head {display: flex; align-items: center; justify-content: space-between; gap: 32px; margin-bottom: 26px}
+.sheet-head > div {max-width: 75%}
+.sheet-head > button {flex-shrink: 0}
+.need-row {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin: 24px 0 28px}
+.need-row label {display: flex; gap: 12px; align-items: center}
+.request-row {display: grid; grid-template-columns: 18% 1fr; align-items: center; gap: 28px}
+.suggestions {margin-top: 24px}
+.suggestions .small {max-width: 30em}
+.sheet-foot {display: flex; align-items: center; justify-content: space-between; gap: 28px; margin-top: 28px; border-top: 1px solid #5f7063; padding-top: 24px}
+.sheet-foot > p {max-width: 30em; font-size: clamp(19px, 1.4vw, 28px); color: var(--muted)}
+.sheet-foot .actions {margin: 0; flex-shrink: 0; max-width: 60%}
+.loading-panel {position: absolute; bottom: 5%; left: 5%; right: 5%; background: var(--surface); padding: 34px 40px; display: flex; align-items: center; justify-content: space-between; gap: 32px}
+.loading-panel p {margin-top: 12px; color: var(--muted)}
+.moment {position: absolute; background: var(--surface); left: 5%; right: 5%; bottom: 5%; padding: 24px 32px}
+.moment header {display: flex; align-items: center; flex-wrap: wrap; gap: 24px; font-size: clamp(18px, 1.35vw, 27px); color: var(--muted)}
+.moment header > span:last-child {margin-left: auto}
+.moment-content {display: grid; grid-template-columns: 1fr 1.1fr; gap: 32px; align-items: center; margin: 18px 0 20px; min-height: 0}
+.answer {min-width: 0}
+.answer h2 {font-size: clamp(24px, 1.85vw, 37px); line-height: 1.35}
+.visual {aspect-ratio: 16/9; min-width: 0; width: 100%; max-height: 32vh}
+.visual iframe {border: 0; width: 100%; height: 100%; display: block; pointer-events: none}
+.visual-fallback {height: 100%; display: flex; flex-direction: column; gap: 20px; justify-content: center; padding: 24px; color: var(--muted); line-height: 1.4; border-left: 1px solid #637267}
+.moment.compact {max-height: 58%; overflow: auto; scrollbar-gutter: stable}
+.moment.full {inset: 5%; padding: 32px 42px; display: flex; flex-direction: column; overflow: auto}
+.moment.full .moment-content {flex: 1; gap: 48px}
+.moment.full .visual {max-height: 55vh}
+.moment.full .answer h2 {font-size: clamp(26px, 2.1vw, 42px)}
+.moment footer {margin-top: auto; flex-shrink: 0}
+.choice-hint {font-size: clamp(19px, 1.4vw, 28px); color: var(--muted); padding: 0 0 18px}
+.audio-status {padding-top: 16px}
+.voice-row {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 20px}
+.mirror-panel {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 18px; padding: 18px; border: 1px solid #637267; color: var(--muted)}
+.mirror-panel p {flex-basis: 100%; margin: 0}
+.mirror-panel code {color: var(--accent); overflow-wrap: anywhere}
+.private-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 28px; align-items: center; font-size: clamp(22px, 1.5vw, 30px); color: var(--muted)}
+.private-heading span:last-child {margin-left: auto}
+.private-app .moment.full {top: 15%}
+.private-error {position: absolute; left: 5%; right: 5%; bottom: 5%; padding: 18px; background: var(--surface); color: #ffd0ac}
+.life-question {margin-top: 26px; padding-top: 24px; border-top: 1px solid #637267}
+.life-question > p:first-child {color: var(--accent); margin-bottom: 12px}
+.life-question .small {margin-top: 18px}
+.life-sheet {bottom: 10%; padding: 42px}
+.life-sheet > p {margin: 20px 0}
+.companion-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 30px; align-items: center; font-size: clamp(20px, 1.5vw, 30px); color: var(--muted)}
+.companion-heading > span:nth-child(2) {flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis}
+.companion-heading > span:last-child {white-space: nowrap}
+.companion-app .sheet {max-height: 78%}
+.companion-app .context-note {margin: 24px 0 16px}
+.companion-app .moment.full {top: 15%}
+[role=alert] {color: #ffd0ac; margin-top: 20px}
+@media (max-width: 1100px) {
+  .sheet {padding: 22px}
+  .sheet-head {margin-bottom: 15px}
+  .need-row {margin: 16px 0; gap: 12px}
+  .sheet-foot {margin-top: 18px; padding-top: 18px; flex-wrap: wrap}
+  .sheet-foot .actions {max-width: 100%}
+  .actions {gap: 12px}
+  .transport {flex-wrap: wrap}
+  .player-controls {padding-top: 20px}
+  .player-heading > div {gap: 14px}
+  .moment {padding: 18px 22px}
+  .moment-content {gap: 20px}
+  .welcome-copy {width: 80%}
+  .moment.full {padding: 25px}
+  .captions.raised {bottom: 38%}
+  .captions.over-intervention {bottom: auto}
+}
+@media (max-height: 650px) {
+  .sheet-head {margin-bottom: 12px}
+  .need-row {margin: 12px 0}
+  .suggestions {margin-top: 15px}
+  .sheet-foot {margin-top: 16px; padding-top: 16px}
+  .moment-content {margin: 12px 0}
+  .moment.compact {max-height: 65%}
+  .life-question {margin-top: 14px; padding-top: 14px}
+  .life-question .small {margin-top: 12px}
+}
+@media (prefers-reduced-motion: reduce) {* {scroll-behavior: auto}}
