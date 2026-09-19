@@ -1,13 +1,15 @@
 import {
+  PlayerSession,
+} from '@amazon-devices/react-native-kepler';
+import {
   AudioFocusMode,
   ErrorCode,
   PlayerMediaOps,
-  PlayerSession,
   PlayerState,
   PlayerTrackRating,
   PlayerRepeatMode,
   PlayerShuffleMode,
-} from '@amazon-devices/react-native-kepler';
+} from '@amazon-devices/react-native-kepler/Libraries/PlayerSession/api/PlayerSessionTypes';
 
 export type BrowserPlayerState = {
   state: 'playing' | 'paused' | 'buffering' | 'stopped';

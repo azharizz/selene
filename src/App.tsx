@@ -26,12 +26,22 @@ export const App = () => {
 class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () => void}, {failed: boolean; attempt: number}> {
   state = {failed: false, attempt: 0};
   private frame = React.createRef<React.ElementRef<typeof WebView>>();
+  private backSubscription: {remove: () => void} | null = null;
   private player = new OwnPlayerSession(message => {
     this.frame.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message',{source:window,origin:location.origin,data:${JSON.stringify(message).replace(/</g, '\\u003c')}}));true;`);
   });
 
-  componentDidMount() {this.player.start();}
-  componentWillUnmount() {this.player.stop();}
+  componentDidMount() {
+    this.player.start();
+    this.backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      this.props.onCompanion();
+      return true;
+    });
+  }
+  componentWillUnmount() {
+    this.backSubscription?.remove();
+    this.player.stop();
+  }
   private message = (event: {nativeEvent: {url: string; data: string}}) => {
     if (!isOwnPlayerUrl(event.nativeEvent.url)) return;
     const data = event.nativeEvent.data;
@@ -46,28 +56,29 @@ class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () =>
   render() {
     const {failed, attempt} = this.state;
     return <View style={styles.container}>
-      {failed ? <View style={styles.error}>
+      <WebView ref={this.frame} key={attempt} style={styles.webview} source={{uri: appUrl}}
+        hasTVPreferredFocus allowsDefaultMediaControl javaScriptEnabled
+        mediaPlaybackRequiresUserAction mixedContentMode="never"
+        onShouldStartLoadWithRequest={event => isOwnPlayerUrl(event.url) || event.url === 'about:blank' || event.url === 'about:srcdoc'}
+        onMessage={this.message}
+        onCloseWindow={() => this.setState({failed: true})}
+        onLoad={() => {this.props.onReady(); this.player.requestState();}}
+        onError={() => {this.props.onReady(); this.setState({failed: true});}}
+        onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.props.onReady(); this.setState({failed: true});}}}
+      />
+      {failed && <View style={styles.error}>
         <Text style={styles.title}>SELENE could not connect</Text>
         <Text style={styles.copy}>Start the SELENE service and connect this device, then try again.</Text>
         <Button label="Try again" preferred onPress={() => this.setState({failed: false, attempt: attempt + 1})} />
         <Button label="Back to playback apps" onPress={this.props.onCompanion} />
-      </View> : <WebView ref={this.frame} key={attempt} style={styles.webview} source={{uri: appUrl}}
-        hasTVPreferredFocus allowSystemKeyEvents allowsDefaultMediaControl javaScriptEnabled
-        mediaPlaybackRequiresUserAction mixedContentMode="never"
-        onShouldStartLoadWithRequest={event => isOwnPlayerUrl(event.url) || event.url === 'about:blank' || event.url === 'about:srcdoc'}
-        onMessage={this.message}
-        onCloseWindow={() => BackHandler.exitApp()}
-        onLoad={() => {this.props.onReady(); this.player.requestState();}}
-        onError={() => {this.props.onReady(); this.setState({failed: true});}}
-        onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.props.onReady(); this.setState({failed: true});}}}
-      />}
+      </View>}
     </View>;
   }
 }
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: '#101714'},
   webview: {flex: 1, backgroundColor: '#101714'},
-  error: {flex: 1, padding: 96, justifyContent: 'center', gap: 32},
+  error: {position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, padding: 96, justifyContent: 'center', gap: 32, backgroundColor: '#101714'},
   title: {fontSize: 48, color: '#f6f2e9'},
   copy: {fontSize: 32, color: '#c5ccc6'},
 });

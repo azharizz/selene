@@ -72,6 +72,8 @@ test('host policy wins and unsafe visual becomes answer-only fallback', () => {
   assert.equal(checked.intervention.playback, 'keep_watching');
   assert.equal(checked.visual.status, 'fallback'); assert.equal(checked.visual.svg, '');
   assert.ok(checked.answer); assert.equal(validResponse(checked), true);
+  const oversized = result(); oversized.visual.description = 'x'.repeat(241);
+  assert.equal(validateMoment(oversized, request).visual.status, 'fallback');
 });
 test('fabricated citations, changed recipients and stale context fail closed', () => {
   const oversized = result(); oversized.answer = 'x'.repeat(561);

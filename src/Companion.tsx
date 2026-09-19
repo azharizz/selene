@@ -115,8 +115,9 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
           : clients.length ? 'Playback apps were found, but none shared an active session. Start a title, then check again.'
             : 'No shared playback apps found. Open your viewing app, start a title, then check again.';
       this.setState({sessions, message});
-    } catch {
-      if (this.current(revision)) this.setState({message: 'Playback discovery is unavailable on this device. You can check again.'});
+    } catch (error) {
+      if (error instanceof Error) console.warn(`[SELENE] playback discovery unavailable: ${error.message}`);
+      if (this.current(revision)) this.setState({message: 'Shared playback discovery is unavailable in this Vega runtime. Open a supported playback app and check again, or use the original story demo.'});
     } finally {
       if (this.current(revision)) {this.pending = false; this.setState({busy: false});}
     }

@@ -64,6 +64,18 @@ id = "com.amazon.audio.stream"
 [[wants.service]]
 id = "com.amazon.audio.control"
 
+# Required for the native PlayerSession used by WebView media controls
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+
+# Required for remote button events
+[[wants.service]]
+id = "com.amazon.inputd.service"
+
+# Required by the Vega app-session notifier used by WebView lifecycle handling
+[[wants.service]]
+id = "com.amazon.lcm.app.session.notifier.service"
+
 # To enable accessibility support for your app, we recommend you add the UCC service with the Service Registrar
 [[wants.service]]
 id = "com.amazon.kepler.ucc.publisher"

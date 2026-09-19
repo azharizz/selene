@@ -21,6 +21,6 @@ jest.mock('@amazon-devices/react-native-kepler', () => ({
 describe('App', () => {
   it('keeps the companion available when the native SDK is unavailable in Jest', async () => {
     const {getByText} = render(<App />);
-    await waitFor(() => expect(getByText('Playback discovery is unavailable on this device. You can check again.')).toBeTruthy());
+    await waitFor(() => expect(getByText(/Shared playback discovery is unavailable in this Vega runtime/)).toBeTruthy());
   });
 });

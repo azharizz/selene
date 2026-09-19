@@ -159,8 +159,7 @@ class App extends React.Component<Bundle, State> {
     player.currentTime = Math.max(0, Math.min(this.props.story.duration, player.currentTime + by));
   };
   private start = (session: 'family' | 'solo') => {
-    this.setState({session, started: true, controls: false, error: ''});
-    this.play();
+    this.setState({session, started: true, controls: false, error: ''}, this.play);
   };
   private openAsk = () => {
     this.voice.stop();
@@ -311,7 +310,7 @@ class App extends React.Component<Bundle, State> {
     const full = paused && screen === 'moment';
     const needsChoice = moment?.intervention.playback === 'offer_choice' && choice === 'unspecified';
     return <main ref={this.surface} tabIndex={-1} className={`app ${full ? 'exploring' : ''}`}>
-      <video ref={this.video} src={background ? undefined : story.video} poster={story.poster} playsInline preload="metadata" disableRemotePlayback
+      <video ref={this.video} src={started && !background ? story.video : undefined} poster={story.poster} playsInline preload="metadata" disableRemotePlayback
         onLoadedMetadata={() => {if (this.video.current && this.resumeAt > 0) {this.video.current.currentTime = this.resumeAt; this.resumeAt = 0;} this.postPlayerState(true);}}
         onTimeUpdate={() => {this.setState({position: this.video.current?.currentTime ?? 0}); this.postPlayerState();}}
         onPlay={() => {this.playbackRevision++; this.setState({paused: false, started: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';}}
