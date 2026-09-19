@@ -25,11 +25,6 @@ function positionSeconds(state: MediaSessionState) {
   return position.seconds + position.nanoseconds / 1e9;
 }
 
-function currentSnapshot(snapshot: Snapshot, state: MediaSessionState) {
-  const atSeconds = positionSeconds(state);
-  return atSeconds === null ? snapshot : {...snapshot, at_seconds: atSeconds};
-}
-
 // Native client ownership stays here: discovery never sends a playback command.
 export class Companion extends React.Component<{onDemo: () => void; onReady: () => void}, State> {
   state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, message: 'Find an app that shares its playback session with SELENE.'};
@@ -40,6 +35,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   private appState?: NativeEventSubscription;
   private frame = React.createRef<React.ElementRef<typeof WebView>>();
   private subscription: ISubscription | null = null;
+  private momentRevision = 0;
   private playbackVersion = 0;
   private observedStatus = '';
 
@@ -57,7 +53,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     this.disconnect();
   }
   private release() {this.stopObserving(); this.clients.forEach(client => client.destroy()); this.clients = [];}
-  private stopObserving() {this.subscription?.unsubscribe(); this.subscription = null;}
+  private stopObserving() {this.momentRevision++; this.subscription?.unsubscribe(); this.subscription = null;}
   private observed(state: MediaSessionState) {
     if (this.observedStatus !== state.playbackState.playbackStatus) {this.playbackVersion++; this.observedStatus = state.playbackState.playbackStatus;}
     return playback(state, this.playbackVersion, Boolean(this.subscription));
@@ -65,23 +61,23 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   private publish(data: object) {
     this.frame.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message',{source:window,origin:location.origin,data:${JSON.stringify(data).replace(/</g, '\\u003c')}}));true;`);
   }
-  private watch = async (session: Session, snapshot: Snapshot) => {
+  private watch = async (session: Session) => {
+    const revision = this.momentRevision;
     try {
       const subscription = await session.client.addListener({onStateChanged: states => {
-        const previousSnapshot = this.state.snapshot;
-        if (!this.mounted || !previousSnapshot || previousSnapshot.session_id !== snapshot.session_id) return;
+        if (!this.mounted || revision !== this.momentRevision || !this.state.snapshot) return;
         const state = states.find(value => value.id.id === session.state.id.id);
         if (!state) return;
         if (!sameMedia(state, session.state)) {this.disconnect('The viewing app changed content. Select its current session to ask again.'); return;}
-        const nextSnapshot = currentSnapshot(previousSnapshot, state);
-        this.setState({selected: {...session, state}, snapshot: nextSnapshot});
-        this.publish({type: 'selene:provider', snapshot: nextSnapshot, playback: this.observed(state)});
+        this.setState({selected: {...session, state}});
+        this.publish({type: 'selene:provider', playback: this.observed(state)});
       }});
-      if (!this.mounted || this.state.snapshot?.session_id !== snapshot.session_id) {subscription.unsubscribe(); return;}
+      if (!this.mounted || revision !== this.momentRevision || !this.state.snapshot) {subscription.unsubscribe(); return;}
       this.subscription = subscription;
+      if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)});
     } catch {
       // A provider may not support change notifications. Explicit controls still re-read its state.
-      if (this.state.snapshot?.session_id === snapshot.session_id) this.subscription = null;
+      if (revision === this.momentRevision) this.subscription = null;
     }
   };
   private current(revision: number) {return this.mounted && revision === this.revision;}
@@ -140,7 +136,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
       if (this.current(revision)) {
         const title = metadata?.title ?? '';
         this.setState({selected: {...session, state}, title, message: 'Ask about this moment. If the app does not share scene details, add the dialogue or describe what you saw.'});
-        return {session: {...session, state}, title, revision};
+        return {session: {...session, state}, title, providerName: metadata?.mediaProviderInfo?.name ?? '', revision};
       }
     } catch {
       if (this.current(revision)) this.setState({selected: null, title: '', message: 'This session is no longer readable. Check for playback apps again.'});
@@ -190,18 +186,17 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     if (!this.state.selected) return;
     const found = await this.select(this.state.selected);
     if (!found || !this.current(found.revision)) return;
-    const {session, title} = found;
-    const position = session.state.playbackState.position?.position;
+    const {session, title, providerName} = found;
+    const position = positionSeconds(session.state);
     const media = session.state.mediaInfo?.id;
-    if (!position || !media?.contentId || !media.catalogName || !Number.isFinite(position.seconds) || position.seconds < 0 || !Number.isFinite(position.nanoseconds) || position.nanoseconds < 0 || position.nanoseconds > 999999999) {
+    if (position === null || !media?.contentId || !media.catalogName) {
       this.setState({message: 'This app has not supplied the content identity and playback position needed to select a moment.'});
       return;
     }
-    const metadata = await session.client.getMetadata(media).catch(() => null);
     const snapshot = {package_id: session.packageId, session_id: session.state.id.id, catalog_name: media.catalogName,
-      content_id: media.contentId, title: metadata?.title ?? title, provider_name: metadata?.mediaProviderInfo?.name ?? '', at_seconds: position.seconds + position.nanoseconds / 1e9};
+      content_id: media.contentId, title, provider_name: providerName, at_seconds: position};
     this.observedStatus = session.state.playbackState.playbackStatus; this.playbackVersion = 0;
-    this.setState({snapshot}, () => {void this.watch(session, snapshot);});
+    this.setState({snapshot}, () => {void this.watch(session);});
   };
   private closeMoment = () => {
     this.revision++; this.pending = false; this.stopObserving();
@@ -216,15 +211,14 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     if (message.action === 'cancel') {this.revision++; this.pending = false; this.setState({busy: false}); return;}
     if (!['play', 'pause', 'refresh'].includes(message.action) || !Number.isSafeInteger(message.id)) return;
     if (message.expected_revision !== undefined && !Number.isSafeInteger(message.expected_revision)) return;
-    const snapshot = this.state.snapshot;
-    if (!snapshot) return;
-    const reported = await this.command(message.action, message.expected_revision);
-    if (!this.mounted || this.state.snapshot !== snapshot) return;
+    const momentRevision = this.momentRevision;
+    const pending = this.command(message.action, message.expected_revision);
+    const revision = this.revision;
+    const reported = await pending;
+    if (!this.current(revision) || this.momentRevision !== momentRevision || !this.state.snapshot) return;
     const reply = {type: 'selene:playback', id: message.id,
-      snapshot: reported ? currentSnapshot(snapshot, reported) : snapshot,
       playback: reported ? this.observed(reported) : null,
       error: reported ? '' : 'The selected session changed or could not be confirmed. Close this moment and check the playback app.'};
-    if (reported) this.setState({snapshot: reply.snapshot});
     // SDK bridge delivers data to React state. Generated visual code has no access to it.
     this.publish(reply);
   };
@@ -236,6 +230,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
       injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};true;`}
       onShouldStartLoadWithRequest={event => [momentUrl, 'about:blank', 'about:srcdoc'].includes(event.url)}
       onMessage={event => {void this.bridge(event.nativeEvent.data, event.nativeEvent.url);}}
+      onLoad={() => {if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)});}}
       onCloseWindow={this.closeMoment}
       onError={() => {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}
       onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}} />;

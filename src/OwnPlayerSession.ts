@@ -18,6 +18,7 @@ export type BrowserPlayerState = {
 };
 type Bridge = (message: object) => void;
 
+// eslint-disable-next-line no-bitwise -- Vega represents supported operations as a bitmask.
 const supportedMediaOps = PlayerMediaOps ? PlayerMediaOps.PLAYER_MEDIA_OP_PLAY |
   PlayerMediaOps.PLAYER_MEDIA_OP_PAUSE |
   PlayerMediaOps.PLAYER_MEDIA_OP_SEEK_TO |
@@ -42,8 +43,8 @@ export class OwnPlayerSession {
         onPlay: () => this.bridge({type: 'selene:native-player', action: 'play'}),
         onPause: () => this.bridge({type: 'selene:native-player', action: 'pause'}),
         onStop: () => this.bridge({type: 'selene:native-player', action: 'stop'}),
-        onRewind: seconds => this.bridge({type: 'selene:native-player', action: 'seek', by_ms: -Math.max(0, seconds) * 1000}),
-        onFastForward: seconds => this.bridge({type: 'selene:native-player', action: 'seek', by_ms: Math.max(0, seconds) * 1000}),
+        onRewind: seconds => this.bridge({type: 'selene:native-player', action: 'seek', position_ms: -Math.max(0, seconds) * 1000, relative: true}),
+        onFastForward: seconds => this.bridge({type: 'selene:native-player', action: 'seek', position_ms: Math.max(0, seconds) * 1000, relative: true}),
         onStartOver: () => this.bridge({type: 'selene:native-player', action: 'start_over'}),
         onSeekTo: (positionMs, relative) => this.bridge({type: 'selene:native-player', action: 'seek', position_ms: positionMs, relative}),
         onRequestPlayerPlaybackStateInfo: () => this.bridge({type: 'selene:native-player', action: 'request_state'}),

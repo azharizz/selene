@@ -19,12 +19,13 @@ function instance(locator) {
 }
 function endpoint() {
   const calls = [];
+  let listener;
   let state = {id: {id: 7}, mediaInfo: {id: {contentId: 'current', catalogName: 'test'}}, playbackState: {playbackStatus: 'PLAYING', position: {position: {seconds: 125, nanoseconds: 500000000}}}, capabilities: {actions: [{name: 'PLAY'}, {name: 'PAUSE'}]}, controls: []};
-  return {calls, change: () => {state = {...state, mediaInfo: {id: {contentId: 'changed', catalogName: 'test'}}};}, client: {
+  return {calls, notify: () => listener?.onStateChanged([state]), change: () => {state = {...state, mediaInfo: {id: {contentId: 'changed', catalogName: 'test'}}};}, client: {
     getEndpointPackageId: () => ({id: 'test.provider'}),
     getSessionState: async id => {calls.push(['read', id?.id]); return [state];},
     getMetadata: async () => ({title: 'Current title', mediaProviderInfo: {name: 'Test Provider'}, description: 'Future story details are deliberately ignored'}),
-    addListener: async () => ({unsubscribe: () => calls.push(['unsubscribe'])}),
+    addListener: async value => {listener = value; return {unsubscribe: () => calls.push(['unsubscribe'])};},
     pause: async id => {calls.push(['pause', id.id]); state = {...state, playbackState: {playbackStatus: 'PAUSED'}};},
     play: async id => calls.push(['play', id.id]), destroy: () => calls.push(['destroy']),
   }};
@@ -47,6 +48,61 @@ test('native discovery is read-only; commands target selected session and report
   assert.equal(app.state.selected, null);
   app.componentWillUnmount();
   assert.equal(provider.calls.at(-1)[0], 'destroy');
+});
+
+test('provider notifications during a command do not discard its bridge reply', async () => {
+  const provider = endpoint();
+  const app = instance({getMediaControlEndpoints: async () => [provider.client]});
+  await app.scan(); await app.select(app.state.sessions[0]); await app.openMoment();
+  await new Promise(resolve => setImmediate(resolve));
+  const replies = []; app.publish = message => replies.push(message);
+  const read = provider.client.getSessionState;
+  provider.client.getSessionState = async id => {provider.notify(); return read(id);};
+  const {appUrl} = JSON.parse(await readFile('src/config.json', 'utf8'));
+  await app.bridge(JSON.stringify({id: 1, action: 'refresh'}), `${appUrl.replace(/\/$/, '')}/?companion=1`);
+  assert.equal(replies.filter(message => message.type === 'selene:playback' && message.id === 1).length, 1);
+  app.componentWillUnmount();
+});
+
+test('metadata finishing after cancellation cannot reopen a moment', async () => {
+  const provider = endpoint();
+  const app = instance({getMediaControlEndpoints: async () => [provider.client]});
+  await app.scan(); await app.select(app.state.sessions[0]);
+  const read = provider.client.getMetadata;
+  let finish;
+  provider.client.getMetadata = () => new Promise(resolve => {finish = resolve;});
+  const opening = app.openMoment();
+  while (!finish) await new Promise(resolve => setImmediate(resolve));
+  app.disconnect(); finish(await read()); await opening;
+  assert.equal(app.state.snapshot, null);
+});
+
+test('late notifications from a closed provider cannot invalidate a new provider with the same session number', async () => {
+  const old = endpoint(), next = endpoint();
+  next.client.getEndpointPackageId = () => ({id: 'another.provider'});
+  const app = instance({getMediaControlEndpoints: async () => [old.client, next.client]});
+  await app.scan(); await app.select(app.state.sessions[0]); await app.openMoment();
+  await new Promise(resolve => setImmediate(resolve));
+  app.closeMoment(); await app.select(app.state.sessions[1]); await app.openMoment();
+  old.change(); old.notify();
+  assert.equal(app.state.snapshot.package_id, 'another.provider');
+  app.componentWillUnmount();
+});
+
+test('own-player native rewind and forward use the web player relative seek contract', async () => {
+  let callbacks;
+  const messages = [];
+  const code = await build({entryPoints: ['src/OwnPlayerSession.ts'], bundle: true, write: false, platform: 'node', format: 'cjs', plugins: [{name: 'player-session-boundary', setup(builder) {
+    builder.onResolve({filter: /^@amazon-devices\/react-native-kepler$/}, () => ({path: 'player', namespace: 'boundary'}));
+    builder.onLoad({filter: /.*/, namespace: 'boundary'}, () => ({contents: 'export const PlayerSession=globalThis.player; export const AudioFocusMode={AUDIO_FOCUS_NONE:0}; export const ErrorCode={},PlayerMediaOps={},PlayerState={},PlayerTrackRating={},PlayerRepeatMode={},PlayerShuffleMode={};'}));
+  }}]});
+  const context = {module: {exports: {}}, player: {create: () => true, setPlayerSessionCallback: value => {callbacks = value;}, destroy() {}}};
+  vm.runInNewContext(code.outputFiles[0].text, context);
+  const player = new context.module.exports.OwnPlayerSession(message => messages.push(message));
+  player.start(); callbacks.onRewind(10); callbacks.onFastForward(20);
+  assert.equal(messages[1].position_ms, -10000); assert.equal(messages[1].relative, true);
+  assert.equal(messages[2].position_ms, 20000); assert.equal(messages[2].relative, true);
+  player.stop();
 });
 test('empty endpoints and failed discovery are distinct; late clients are destroyed', async () => {
   const empty = instance({getMediaControlEndpoints: async () => []});
@@ -82,6 +138,7 @@ test('companion help uses the selected provider position and releases its foregr
   assert.equal(JSON.stringify(app.state.snapshot).includes('Future story details'), false);
   assert.equal(provider.calls.some(([action]) => action === 'pause' || action === 'play'), false);
   app.closeMoment();
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(app.state.snapshot, null);
   assert.equal(provider.calls.filter(([action]) => action === 'unsubscribe').length, 1);
   app.componentWillUnmount();

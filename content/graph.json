@@ -36,7 +36,8 @@
     "subject": "offside rule",
     "relation": "explains",
     "object": "attacker position when a teammate plays the ball",
-    "explanation": "A player is offside when, at the moment a teammate plays the ball, the player is nearer the goal line than both the ball and the second-last opponent; being in that position alone is not an offence.",
+    "explanation": "An offside position requires the head, body or feet to extend into the opponents' half and beyond both the ball and the second-last opponent toward their goal. Hands and arms do not count. The position is judged when a teammate plays or touches the ball; it becomes an offence only through active involvement. Receiving directly from a goal kick, throw-in or corner kick is exempt.",
+    "source_url": "https://www.theifab.com/laws/latest/offside/",
     "evidence_ids": ["g-soccer-offside"],
     "validated": true
   },

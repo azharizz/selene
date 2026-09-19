@@ -53,6 +53,7 @@ export function companionContext(snapshot, detail = '', sceneAnswer = '') {
 export function connections(at, query = '', memory, context = sceneContext(at)) {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   return [...graph, ...generalGraph, ...(memory?.connections ?? [])].filter(g => g.validated &&
+    (g.scope !== 'general' || !terms.length || score(g) > 0) &&
     (g.scope === 'general' || g.title_id === context.content_id) &&
     (g.scope === 'general' || g.available_at <= at) &&
     (g.scope === 'general' || !g.scene_id || g.scene_id === context.scene_id))

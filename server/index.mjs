@@ -19,21 +19,28 @@ const mime = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; char
 // Sessions and viewer answers are ephemeral. Only model-reviewed general graph concepts use the separate bounded graph store.
 const active = new Set();
 const sessions = new Map();
+function closeMirror(session) {
+  for (const client of session?.mirror?.clients ?? []) client.end('data: {"type":"closed"}\n\n');
+  if (session) session.mirror = null;
+}
 function endSession(id) {
   const session = sessions.get(id);
   session?.controller?.abort();
   if (session) {
     session.memory.responses.clear(); session.memory.connections.length = 0;
-    for (const client of session.mirror?.clients ?? []) client.end();
-    session.mirror = null; session.latestMoment = null; session.latestLanguage = 'English'; session.lifeVisible = false;
+    closeMirror(session);
+    session.latestMoment = null; session.latestLanguage = 'English'; session.lifeVisible = false;
   }
   sessions.delete(id);
 }
 
 function send(res, status, body) {res.writeHead(status, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'}); res.end(JSON.stringify(body));}
 function privateUrl(token) {
-  const base = (process.env.SELENE_PRIVATE_URL ?? process.env.SELENE_APP_URL ?? `http://${hostname}:${port}`).replace(/\/$/, '');
-  return `${base}/?private=${encodeURIComponent(token)}`;
+  const base = process.env.SELENE_PRIVATE_URL ?? process.env.SELENE_APP_URL;
+  if (!base) return null;
+  const url = new URL(base);
+  if (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return null;
+  return `${url.origin}/?private=${encodeURIComponent(token)}`;
 }
 function mirrorMoment(session, moment) {
   if (session.lifeVisible || !moment?.life_connection) return moment;
@@ -81,12 +88,15 @@ export const server = createServer(async (req, res) => {
       let input;
       try { input = JSON.parse(Buffer.concat(chunks).toString()); } catch { return send(res, 400, {error: 'Invalid JSON'}); }
       if (url.pathname === '/api/session') {
+        const companionSession = input?.mode === 'companion';
+        if ((input?.mode !== undefined && !companionSession) || (companionSession && input.content_id !== undefined)) return send(res, 400, {error: 'Invalid session mode'});
         // ponytail: a local TV relay keeps eight ephemeral sessions; an evicted client can start a fresh session.
         if (sessions.size >= 8) endSession(sessions.keys().next().value);
-        const selectedStory = input?.content_id === undefined ? story : getStory(input.content_id);
-        if (!selectedStory) return send(res, 400, {error: 'Unknown story'});
+        const selectedStory = companionSession ? null : input?.content_id === undefined ? story : getStory(input.content_id);
+        if (!companionSession && !selectedStory) return send(res, 400, {error: 'Unknown story'});
         const id = randomUUID();
-        sessions.set(id, {contentId: selectedStory.id, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', lifeVisible: false});
+        sessions.set(id, {contentId: selectedStory?.id ?? null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', lifeVisible: false});
+        if (companionSession) return send(res, 201, {session_id: id});
         const {facts, ...playerStory} = selectedStory;
         return send(res, 201, {session_id: id, story: playerStory, catalog: stories.map(({id: content_id, title, subtitle, duration, poster}) => ({id: content_id, title, subtitle, duration, poster}))});
       }
@@ -98,21 +108,23 @@ export const server = createServer(async (req, res) => {
       if (url.pathname === '/api/private/pair') {
         const session = sessions.get(req.headers['x-selene-session']);
         if (!session) return send(res, 410, {error: 'This viewing session has ended. Start a new session to continue.'});
-        for (const client of session.mirror?.clients ?? []) client.end();
         const token = randomUUID();
+        const url = privateUrl(token);
+        if (!url) return send(res, 503, {error: 'Private mirroring needs a reachable HTTPS relay address. Continue on this TV.'});
+        closeMirror(session);
         session.mirror = {token, clients: new Set(), latest: session.latestMoment ? mirrorEvent(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage}) : null};
-        return send(res, 201, {url: privateUrl(token)});
+        return send(res, 201, {url});
       }
       if (url.pathname === '/api/private/close') {
         const session = sessions.get(req.headers['x-selene-session']);
         if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
-        for (const client of session.mirror?.clients ?? []) client.end();
-        session.mirror = null;
+        closeMirror(session);
         return send(res, 200, {closed: true});
       }
       if (url.pathname === '/api/private/life') {
         const session = sessions.get(req.headers['x-selene-session']);
         if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
+        if (!session.mirror) return send(res, 409, {error: 'Pair a private mirror before changing its Life Connection visibility.'});
         if (!input || typeof input.visible !== 'boolean') return send(res, 400, {error: 'Life Connection visibility required'});
         session.lifeVisible = input.visible;
         if (session.latestMoment) publishMirror(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage});
@@ -123,6 +135,7 @@ export const server = createServer(async (req, res) => {
       if (!(companion ? validCompanionRequest(input) : validRequest(input))) return send(res, 400, {error: 'Invalid moment request'});
       const session = sessions.get(req.headers['x-selene-session']);
       if (!session) return send(res, 410, {error: 'This viewing session has ended. Start a new session to continue.'});
+      if (companion && session.contentId !== null) return send(res, 409, {error: 'Open a companion viewing session to ask about another app.'});
       const selectedStory = companion ? null : getStory(input.content_id);
       if (!companion && !selectedStory) return send(res, 400, {error: 'Unknown story'});
       if (!companion && session.contentId !== input.content_id) return send(res, 409, {error: 'This story is not the active viewing session.'});
@@ -131,24 +144,30 @@ export const server = createServer(async (req, res) => {
       const controller = new AbortController(); active.add(controller);
       session.controller = controller;
       session.lifeVisible = false;
-      if (session.latestMoment) publishMirror(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage});
+      session.latestMoment = null;
+      if (!input.continuation) session.clarification = null;
+      publishMirror(session, {type: 'ready'});
       res.on('close', () => {if (!res.writableEnded) controller.abort();});
       try {
         let context = companion ? companionContext(input.snapshot, input.scene_detail, input.scene_answer) : sceneContext(input.at_seconds, selectedStory);
-        if (companion && process.env.SELENE_SCENE_CONTEXT_URL) {
-          try {context = await enrichCompanionContext(context, input.snapshot, controller.signal);} catch {context = {...context, scene_source: 'viewer'};}
+        if (input.continuation) {
+          const previous = session.clarification;
+          if (!previous || input.request !== previous.request || input.continuation.request !== input.request || input.continuation.question !== previous.question || context.content_id !== previous.context.content_id || context.provider?.session_id !== previous.context.provider?.session_id || context.at_seconds !== previous.context.at_seconds) return send(res, 409, {error: 'That clarification has ended. Close this response and ask about the moment again.'});
+          // The answer belongs to the original evidence, even if an external feed changes or fails later.
+          context = structuredClone(previous.context);
+        } else if (companion && process.env.SELENE_SCENE_CONTEXT_URL) {
+          try {context = await enrichCompanionContext(context, input.snapshot, controller.signal);} catch {controller.signal.throwIfAborted(); context = {...context, scene_source: 'viewer'};}
         }
         if (companion) {
           const {snapshot, scene_detail, scene_answer, ...request} = input;
           input = {...request, content_id: context.content_id, at_seconds: context.at_seconds};
         }
-        if (input.continuation && (!session.clarification || input.request !== session.clarification.request || input.continuation.request !== input.request || input.continuation.question !== session.clarification.question || context.content_id !== session.clarification.content_id || context.scene_id !== session.clarification.scene_id || input.at_seconds !== session.clarification.at_seconds)) return send(res, 409, {error: 'That clarification has ended. Close this response and ask about the moment again.'});
         if (companion && input.continuation) context.facts.push({id: 'viewer-clarification', source: 'viewer', text: input.continuation.answer});
         const moment = await explain(input, {signal: controller.signal, memory: session.memory, context});
         if (!controller.signal.aborted) {
           session.latestMoment = moment; session.latestLanguage = input.language; session.lifeVisible = false;
           publishMirror(session, {type: 'moment', moment, language: input.language});
-          session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, content_id: context.content_id, scene_id: context.scene_id, at_seconds: input.at_seconds} : null;
+          session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context} : null;
           send(res, 200, moment);
         }
       } finally { active.delete(controller); if (session.controller === controller) session.controller = null; }
@@ -160,8 +179,9 @@ export const server = createServer(async (req, res) => {
       if (!session?.mirror) return send(res, 404, {error: 'This private mirror is closed.'});
       res.writeHead(200, {'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no', 'X-Content-Type-Options': 'nosniff'});
       res.write(`data: ${JSON.stringify(session.mirror.latest ?? {type: 'ready'})}\n\n`);
-      session.mirror.clients.add(res);
-      req.on('close', () => session.mirror?.clients.delete(res));
+      const clients = session.mirror.clients;
+      clients.add(res);
+      res.on('close', () => clients.delete(res));
       return;
     }
     if (!['GET', 'HEAD'].includes(req.method)) return send(res, 405, {error: 'Method not allowed'});
@@ -202,4 +222,4 @@ export const server = createServer(async (req, res) => {
 server.requestTimeout = 0; // No application deadline; the viewer can cancel the provider request.
 server.on('error', error => {console.error(error.code === 'EADDRINUSE' ? `SELENE port ${port} is already in use. Set SELENE_PORT in the parent .env and rebuild.` : 'SELENE could not start.'); process.exitCode = 1;});
 server.listen(port, hostname, () => console.info(`SELENE ready at http://${hostname}:${port}`));
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {for (const c of active) c.abort(); server.close();});
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {for (const id of sessions.keys()) endSession(id); server.close();});

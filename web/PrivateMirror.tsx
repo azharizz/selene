@@ -27,11 +27,17 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     this.stream.onmessage = event => {
       try {
         const value = JSON.parse(event.data) as {type?: string; moment?: MirrorMoment; language?: string; error?: string};
+        this.voice.stop();
+        if (value.type === 'closed') {this.stream?.close(); this.stream = null; this.setState({moment: null, error: 'This private mirror is closed.'}); return;}
+        if (value.type === 'ready') this.setState({moment: null, error: ''});
         if (value.type === 'moment' && value.moment) this.setState({moment: value.moment, language: value.language || 'English', error: ''});
         if (value.error) this.setState({error: value.error});
       } catch {this.setState({error: 'This private mirror sent an unreadable response.'});}
     };
-    this.stream.onerror = () => {if (this.mounted) this.setState({error: 'The private mirror is unavailable. Return to SELENE and pair again.'});};
+    this.stream.onerror = () => {
+      this.voice.stop(); this.stream?.close(); this.stream = null;
+      if (this.mounted) this.setState({moment: null, error: 'The private mirror is unavailable. Return to SELENE and pair again.'});
+    };
     window.addEventListener('keydown', this.key);
     focusPanel(this.root.current);
   }
@@ -50,13 +56,13 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     const {moment, error, voice} = this.state;
     return <main className="app private-app" ref={this.root} tabIndex={-1}>
       <header className="private-heading"><span className="wordmark">SELENE</span><span>Private mirror</span>{moment && <span>At {clock(moment.grounding.at_seconds)}</span>}</header>
-      {!moment && <section className="sheet" data-panel><h1>Waiting for SELENE</h1><p>Your selected Moment Response will appear here. Keep this page open.</p></section>}
+      {!moment && <section className="sheet" data-panel><h1>{error ? 'Private mirror unavailable' : 'Waiting for SELENE'}</h1><p role={error ? 'alert' : undefined}>{error || 'Your selected Moment Response will appear here. Keep this page open.'}</p></section>}
       {moment && <section className="moment full" data-panel>
         <header><span>Private mirror</span><span>At {clock(moment.grounding.at_seconds)}</span></header>
         <div className="moment-content"><div className="answer"><h2>{moment.answer || 'The shared screen is quiet.'}</h2>{moment.life_connection.offered && <p className="small">Life Connection: {moment.life_connection.question}</p>}</div><div className="visual"><Visual visual={moment.visual} /></div></div>
         <footer className="actions">{voice !== 'idle' && <button onClick={() => this.voice.stop()}>Stop reading</button>}{voice === 'idle' && <button disabled={!this.voice.canSpeak} onClick={this.readAloud}>Read aloud on this device</button>}</footer>
       </section>}
-      {error && <p className="private-error" role="alert">{error}</p>}
+      {moment && error && <p className="private-error" role="alert">{error}</p>}
     </main>;
   }
 }

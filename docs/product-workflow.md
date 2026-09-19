@@ -1,6 +1,6 @@
 # PRODUCT.md implementation coverage
 
-Scope: the Vega MVP in [PRODUCT.md](../../PRODUCT.md), plus the latest request for a cross-app assistant. The companion is now the launch surface; the authored story and Offside Practice packages remain available. Third-party request/response code uses genuine provider snapshots and an explicit viewer-detail fallback. An optional licensed scene-context adapter is available when a real endpoint is configured; an overlay inside viewing apps remains unsupported without a platform contract. This is a source-level record, not test evidence. No tests, builds, lint, typechecks, model calls or device probes were run in this pass.
+Scope: the Vega MVP in [PRODUCT.md](../../PRODUCT.md), plus the latest request for a cross-app assistant. The companion is the launch surface; the authored story and Offside Practice packages remain explicit secondary options. Third-party requests use genuine provider snapshots, separate companion sessions and a viewer-detail fallback. An optional scene-context adapter requires an authorized endpoint; overlays inside viewing apps remain unsupported without a platform contract. See [the September 19 code-review results](companion-review.md) for executed checks and remaining gates.
 
 ## Implemented flow
 
@@ -45,4 +45,4 @@ Scope: the Vega MVP in [PRODUCT.md](../../PRODUCT.md), plus the latest request f
 
 ## Testing handoff
 
-The runnable checks in `test/` and `scripts/live-check.mjs` are left for the next phase. Rebuild before evaluating this revision. Cover both the original story flow and selected-provider-to-question-to-visual-to-Life-to-resume flow on the installed Vega app, plus consent changes while a request is pending, clarification at the frozen time, graph reuse after seeking backward, SVG fallback, provider cancellation, unavailable voice, background return, missing provider notifications and native companion session changes. New saved checks cover fractional provider position, listener cleanup and external-context isolation. None has been executed in this pass. Existing artifacts are historical only.
+`test/` now covers companion transport races, immutable moment time, clarification, voice shutdown, session separation, source identity/time/size boundaries, HTTP routes, private stream revocation and SVG safety. These code checks do not prove Vega rendering or provider participation. Device-only gates remain selected-provider discovery, foreground/Back behavior, real captions/audio, voice capability, ten-foot legibility and actual provider controls. No device or browser checks were performed during the September 19 review; saved device artifacts are historical only.

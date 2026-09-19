@@ -74,6 +74,10 @@ test('host policy wins and unsafe visual becomes answer-only fallback', () => {
   assert.ok(checked.answer); assert.equal(validResponse(checked), true);
 });
 test('fabricated citations, changed recipients and stale context fail closed', () => {
+  const oversized = result(); oversized.answer = 'x'.repeat(561);
+  assert.throws(() => validateMoment(oversized, request), /\/answer must NOT have more than 560 characters/);
+  const verbose = result(); verbose.answer = Array(36).fill('word').join(' ');
+  assert.throws(() => validateMoment(verbose, request), /at most 35 words/);
   const future = result(); future.grounding.evidence_ids = ['f-new-memory'];
   assert.throws(() => validateMoment(future, request));
   const stale = result(); stale.grounding.at_seconds = 90;
@@ -99,11 +103,19 @@ test('third-party evidence stays separate from the demo film and is identified a
   assert.deepEqual(context.transcript, []);
   assert.equal(context.facts.find(fact => fact.id === 'viewer-scene-detail').source, 'viewer');
   assert.deepEqual(callTool('get_scene_context', {}, snapshot.at_seconds, createMemory(), context), context);
-  assert.deepEqual(connections(snapshot.at_seconds, '', createMemory(), context), []);
+  assert.ok(connections(snapshot.at_seconds, '', createMemory(), context).every(entry => entry.scope === 'general'));
   const normalized = {...preferences, content_id: context.content_id, at_seconds: snapshot.at_seconds};
   const response = {...quietResponse(normalized, context.scene_id), state: 'response', answer: 'From your description, the flag went up after a forward pass.'};
   response.grounding.evidence_ids = ['viewer-scene-detail'];
   assert.doesNotThrow(() => validateMoment(response, normalized, context));
+  const general = callTool('lookup_connections', {query: 'offside'}, snapshot.at_seconds, createMemory(), context);
+  assert.ok(general.some(entry => entry.id === 'g-soccer-offside'));
+  response.grounding.evidence_ids = ['viewer-scene-detail', 'g-soccer-offside'];
+  response.grounding.graph_ids = ['g-soccer-offside'];
+  response.new_connections = [{scope: 'general', subject: 'viewer account', relation: 'explains', object: 'a play', explanation: 'Discard this private proposal.', evidence_ids: ['not-validated']}];
+  assert.doesNotThrow(() => validateMoment(response, normalized, context));
+  assert.deepEqual(response.new_connections, []);
+  assert.deepEqual(callTool('lookup_connections', {query: 'kite'}, snapshot.at_seconds, createMemory(), context), []);
   response.grounding.evidence_ids = ['f-history'];
   assert.throws(() => validateMoment(response, normalized, context));
   const other = companionContext({...snapshot, package_id: 'another.provider'}, input.scene_detail);

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {render} from '@testing-library/react-native';
+import {render, waitFor} from '@testing-library/react-native';
 import {App} from '../src/App';
 
 jest.mock('@amazon-devices/webview', () => ({
@@ -9,13 +9,18 @@ jest.mock('@amazon-devices/webview', () => ({
 jest.mock('@amazon-devices/react-native-kepler', () => ({
   usePreventHideSplashScreen: jest.fn(),
   useHideSplashScreenCallback: jest.fn(() => jest.fn()),
-  StyleSheet: {create: (styles: unknown) => styles},
+  StyleSheet: {create: (styles: unknown) => styles, flatten: (styles: unknown) => Object.assign({}, ...[styles].flat(Infinity))},
+  AppState: {addEventListener: () => ({remove: jest.fn()})},
   View: 'View',
+  Pressable: 'Pressable',
+  ScrollView: 'ScrollView',
+  Text: 'Text',
+  BackHandler: {exitApp: jest.fn()},
 }));
 
 describe('App', () => {
-  it('renders without crashing', () => {
-    const {toJSON} = render(<App />);
-    expect(toJSON()).toBeTruthy();
+  it('keeps the companion available when the native SDK is unavailable in Jest', async () => {
+    const {getByText} = render(<App />);
+    await waitFor(() => expect(getByText('Playback discovery is unavailable on this device. You can check again.')).toBeTruthy());
   });
 });

@@ -40,7 +40,6 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private control: {id: number; resolve: (value: Playback) => void; reject: (error: Error) => void} | null = null;
   private sequence = 0;
   private sessionId = '';
-  private liveSnapshot: Snapshot | null = null;
   private lastInput: Input | null = null;
   private mounted = false;
   private voice = new Voice(() => null,
@@ -49,7 +48,6 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
 
   componentDidMount() {
     this.mounted = true;
-    this.liveSnapshot = this.state.snapshot;
     window.addEventListener('message', this.receive);
     window.addEventListener('keydown', this.key);
     window.addEventListener('pagehide', this.end);
@@ -83,19 +81,22 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private receive = (event: MessageEvent) => {
     if (event.source !== window || event.origin !== location.origin) return;
     if (event.data?.type === 'selene:provider' && event.data.playback) {
-      if (event.data.snapshot) this.liveSnapshot = event.data.snapshot as Snapshot;
-      this.setState({playback: event.data.playback, ...(event.data.snapshot ? {snapshot: this.liveSnapshot} : {}), ...(event.data.playback.state !== 'paused' ? {lifeStarted: false} : {})});
+      this.reportPlayback(event.data.playback as Playback);
       return;
     }
     if (event.data?.type !== 'selene:playback' || event.data.id !== this.control?.id) return;
     const control = this.control!; this.control = null;
-    if (event.data.snapshot) this.liveSnapshot = event.data.snapshot as Snapshot;
-    this.setState({controlling: false, ...(event.data.snapshot ? {snapshot: this.liveSnapshot} : {})});
+    this.setState({controlling: false});
     if (event.data.error || !event.data.playback) {control.reject(new Error(event.data.error || 'Playback could not be confirmed.')); return;}
     const playback = event.data.playback as Playback;
-    this.setState({playback, ...(playback.state !== 'paused' ? {lifeStarted: false} : {})});
+    this.reportPlayback(playback);
     control.resolve(playback);
   };
+  private reportPlayback(playback: Playback) {
+    if (playback.state !== 'paused' || !playback.observing) this.voice.stop();
+    if (playback.state !== 'paused' && this.state.lifeStarted) void this.setMirrorLife(false);
+    this.setState({playback, lifeStarted: playback.state === 'paused' ? this.state.lifeStarted : false});
+  }
   private command = (action: 'play' | 'pause' | 'refresh', expectedRevision?: number): Promise<Playback> => {
     if (!native || this.control) return Promise.reject(new Error('Playback control is unavailable. Close this moment and check the app.'));
     this.setState({controlling: true});
@@ -113,7 +114,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private choosePause = async () => {
     try {
       await this.pause();
-      if (this.mounted) this.setState({choice: 'pause_to_explore', lifeStarted: Boolean(this.state.moment?.life_connection.offered), error: ''});
+      if (this.mounted) this.setState({choice: 'pause_to_explore', lifeStarted: Boolean(this.state.moment?.life_connection.offered), error: ''}, () => {if (this.state.lifeStarted) void this.setMirrorLife(true);});
     } catch (error) {this.failed(error);}
   };
   private resume = async () => {
@@ -126,28 +127,28 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private failed(error: unknown) {
     if (this.mounted && !(error instanceof DOMException && error.name === 'AbortError')) this.setState({error: error instanceof Error ? error.message : 'This moment is unavailable. Please try again.'});
   }
-  private listen = () => {
+  private listen = async () => {
     if (this.state.voice === 'listening') return this.voice.finishListening();
-    if (this.state.playback.state !== 'paused') {
-      this.setState({error: 'Pause this viewing session before using the microphone so its audio is not captured.'});
-      return;
-    }
-    this.setState({error: ''});
-    this.voice.listen(this.state.language === 'Indonesian' ? 'id-ID' : this.state.language === 'Spanish' ? 'es-ES' : 'en-US', request => {
-      if (this.mounted) this.setState({request});
-    });
+    try {
+      const playback = await this.command('refresh');
+      if (playback.state !== 'paused' || !playback.observing) throw new Error('Voice needs a confirmed pause and live playback updates. Use the remote or keyboard for this session.');
+      if (!this.mounted) return;
+      this.setState({error: ''});
+      this.voice.listen(this.state.language === 'Indonesian' ? 'id-ID' : this.state.language === 'Spanish' ? 'es-ES' : 'en-US', request => {
+        if (this.mounted) this.setState({request});
+      });
+    } catch (error) {this.failed(error);}
   };
-  private readAloud = () => {
+  private readAloud = async () => {
     if (this.state.voice === 'speaking') return this.voice.stop();
-    if (this.state.playback.state !== 'paused') {
-      this.setState({error: 'Pause this viewing session before reading the answer aloud.'});
-      return;
-    }
-    const {moment, lifeStarted, need, language} = this.state;
-    if (!moment) return;
-    this.voice.speak(lifeStarted ? moment.life_connection.question : moment.answer,
-      need === 'Translate' ? (language === 'Indonesian' ? 'id-ID' : language === 'Spanish' ? 'es-ES' : 'en-US') : 'en-US',
-      need === 'Easy to hear');
+    try {
+      const playback = await this.command('refresh');
+      if (playback.state !== 'paused' || !playback.observing) throw new Error('Read aloud needs a confirmed pause and live playback updates. The answer remains on screen.');
+      const {moment, lifeStarted, need, language} = this.state;
+      if (!this.mounted || !moment) return;
+      this.voice.speak(lifeStarted ? moment.life_connection.question : moment.answer,
+        need === 'Translate' ? (language === 'Indonesian' ? 'id-ID' : language === 'Spanish' ? 'es-ES' : 'en-US') : 'en-US', need === 'Easy to hear');
+    } catch (error) {this.failed(error);}
   };
   private openMirror = async () => {
     if (!this.sessionId || !this.state.moment) return;
@@ -168,7 +169,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
     await fetch('/api/private/close', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: '{}'}).catch(() => undefined);
   };
   private openSession = async (signal: AbortSignal) => {
-    const response = await fetch('/api/session', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}', signal});
+    const response = await fetch('/api/session', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({mode: 'companion'}), signal});
     if (!response.ok) throw new Error('The SELENE service could not start a viewing session. Try again.');
     const session = await response.json();
     signal.throwIfAborted();
@@ -176,7 +177,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   };
   private ask = (choice: Choice, life = false) => {
     const {request, detail, need, language, recipient, session, playback, clarifying, moment} = this.state;
-    const snapshot = this.liveSnapshot ?? this.state.snapshot;
+    const snapshot = this.state.snapshot;
     if (!snapshot) return;
     if (clarifying && !request.trim()) {this.setState({error: 'Add the missing detail before sending.'}); return;}
     const previous = clarifying ? this.lastInput : null;
@@ -187,7 +188,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       playback_choice: choice, life_connection: previous?.life_connection ?? life,
       continuation: previous && moment ? {request: previous.request, question: moment.answer, answer: request.trim()} : null,
     };
-    this.deliver(input);
+    return this.deliver(input);
   };
   private deliver = async (input: Input) => {
     this.cancel();
@@ -197,8 +198,8 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
     try {
       const state = input.playback_choice === 'pause_to_explore' ? await this.pause() : await this.command('refresh');
       pending.signal.throwIfAborted();
-      const snapshot = this.liveSnapshot ?? this.state.snapshot;
-      input = {...input, ...(snapshot ? {snapshot} : {}), play_state: state.state}; this.lastInput = input;
+      // Refresh transport and identity without moving the question's spoiler boundary.
+      input = {...input, play_state: state.state}; this.lastInput = input;
       if (!this.sessionId) await this.openSession(pending.signal);
       const send = () => fetch('/api/companion/moment', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: JSON.stringify(input), signal: pending.signal});
       let response = await send();
@@ -266,10 +267,9 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
           {need === 'Translate' && <label>Language <select value={language} onChange={event => this.setState({language: event.target.value as Language})}>{['English', 'Indonesian', 'Spanish'].map(value => <option key={value}>{value}</option>)}</select></label>}
         </div>
         <div className="request-row"><label htmlFor="companion-request">{clarifying ? 'Your answer' : 'Your question'}</label><textarea id="companion-request" rows={2} maxLength={600} value={request} onChange={event => this.setState({request: event.target.value})} /></div>
-        {!clarifying && <div className="actions suggestions"><button onClick={() => this.setState({request: 'What is offside in this play?'})}>What is offside?</button></div>}
         {!clarifying && <><p className="small context-note">Playback apps usually share identity and time, not scene dialogue. If no authorized scene source is available, add the words you heard or describe what you saw. Your question and these details go to SELENE when you send.</p>
           <div className="request-row"><label htmlFor="scene-detail">Scene detail</label><textarea id="scene-detail" rows={2} maxLength={1200} value={detail} onChange={event => this.setState({detail: event.target.value})} placeholder="Dialogue, people or action in this moment…" /></div></>}
-        <div className="voice-row"><button disabled={controlling || playback.state !== 'paused' || !this.voice.Recognition} onClick={this.listen}>{voice === 'listening' ? 'Stop listening' : 'Use microphone'}</button>{!this.voice.Recognition && <span className="small">Microphone unavailable in this WebView. Use the remote or keyboard.</span>}{playback.state !== 'paused' && <span className="small">Pause playback before using the microphone.</span>}</div>
+        <div className="voice-row"><button disabled={controlling || !paused || !playback.observing || !this.voice.Recognition} onClick={this.listen}>{voice === 'listening' ? 'Stop listening' : 'Use microphone'}</button>{!this.voice.Recognition && <span className="small">Microphone unavailable in this WebView. Use the remote or keyboard.</span>}{this.voice.Recognition && !paused && <button disabled={controlling || !playback.can_pause} onClick={this.choosePause}>Pause for microphone</button>}{this.voice.Recognition && !playback.observing && <span className="small">Voice needs live playback updates. Use the remote or keyboard.</span>}</div>
         <div className="sheet-foot"><p>Answers appear silently on this TV. Your viewing app owns playback.</p><div className="actions">
           <button data-initial data-submit disabled={controlling} onClick={() => this.ask('unspecified')}>Send request</button>
           <button disabled={controlling} onClick={() => this.ask('keep_watching')}>Keep watching</button>
@@ -279,18 +279,18 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
         {error && this.lastInput && <button onClick={() => this.deliver(this.lastInput!)}>Retry this request</button>}
       </section>}
       {screen === 'loading' && <section className="loading-panel" data-panel ref={focusPanel}><div><h2>Preparing this moment</h2><p role="status">{controlling ? 'Checking the selected playback session…' : 'Your question stays with the selected moment.'}</p></div><button data-initial onClick={this.back}>Cancel</button></section>}
-      {screen === 'moment' && moment && <section className={`moment ${paused ? 'full' : 'compact'}`} data-panel ref={focusPanel}>
+      {screen === 'moment' && moment && <section className={`moment ${paused && choice === 'pause_to_explore' ? 'full' : 'compact'}`} data-panel ref={focusPanel}>
         <header><span>Selected playback moment</span><span>At {clock(snapshot.at_seconds)} · Last reported: {playback.state}</span></header>
         <div className="moment-content"><div className="answer"><p className="eyebrow">{lifeStarted ? 'Life Connection' : need}</p><h2>{moment.answer}</h2>
           {paused && lifeStarted && moment.life_connection.offered && <div className="life-question"><p>For {name(moment.life_connection.recipient)}</p><h3>{moment.life_connection.question}</h3><p className="small">Your conversation is not recorded. Close or resume when you choose.</p></div>}
         </div><div className="visual"><Visual key={String(paused) + moment.visual.svg} visual={moment.visual} /></div></div>
         <footer className="actions">
           {needsChoice && <button data-initial disabled={controlling} onClick={() => this.setState({choice: 'keep_watching'})}>Keep watching</button>}
-          {!paused && <button disabled={controlling || !playback.can_pause} onClick={this.choosePause}>Pause to explore</button>}
+          {(needsChoice || !paused) && <button disabled={controlling || (!paused && !playback.can_pause)} onClick={this.choosePause}>Pause to explore</button>}
           {paused && playback.can_play && <button className="primary" disabled={controlling} onClick={this.resume}>Resume playback</button>}
           {moment.state === 'clarification' && <button disabled={controlling} onClick={() => this.setState({screen: 'ask', request: '', clarifying: true, error: ''})}>Answer the question</button>}
-          {moment.state === 'response' && !lifeStarted && <button disabled={controlling || (!paused && !playback.can_pause)} onClick={() => this.setState({screen: 'life', error: ''})}>Connect to life</button>}
-          {moment.state === 'response' && this.voice.canSpeak && <button disabled={voice === 'listening' || !paused} onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : paused ? 'Read aloud' : 'Pause to read aloud'}</button>}
+          {moment.state === 'response' && !lifeStarted && <button disabled={controlling || (!paused && !playback.can_pause)} onClick={() => {this.voice.stop(); this.setState({screen: 'life', error: ''});}}>Connect to life</button>}
+          {moment.state === 'response' && this.voice.canSpeak && <button disabled={controlling || voice === 'listening' || !paused || !playback.observing} onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : paused ? 'Read aloud' : 'Pause to read aloud'}</button>}
           {moment.state === 'response' && <button onClick={mirror ? this.stopMirror : this.openMirror}>{mirror ? 'Stop private mirror' : 'Mirror on phone'}</button>}
           <button data-initial={!needsChoice} onClick={this.close}>{paused ? 'Close, stay paused' : 'Close'}</button>
         </footer>

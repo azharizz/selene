@@ -7,7 +7,11 @@ import {appUrl} from './config.json';
 import {OwnPlayerSession, type BrowserPlayerState} from './OwnPlayerSession';
 
 function isOwnPlayerUrl(value: string) {
-  try {const target = new URL(value); const base = new URL(appUrl); return target.origin === base.origin && target.pathname === '/';}
+  try {
+    const target = new URL(value) as unknown as {origin: string; pathname: string};
+    const base = new URL(appUrl) as unknown as {origin: string};
+    return target.origin === base.origin && target.pathname === '/';
+  }
   catch {return false;}
 }
 

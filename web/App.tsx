@@ -135,6 +135,7 @@ class App extends React.Component<Bundle, State> {
     }}));
   };
   private nativeMessage = (event: MessageEvent) => {
+    if (event.source !== window || event.origin !== location.origin) return;
     const message = typeof event.data === 'string' ? (() => {try {return JSON.parse(event.data);} catch {return null;}})() : event.data;
     if (!message || message.type !== 'selene:native-player') return;
     const player = this.video.current;

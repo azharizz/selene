@@ -6,13 +6,15 @@ The [feature map](docs/product-workflow.md) records the workflow, sources and pl
 
 For an authorized transcript provider, see [the licensed scene-context contract](docs/scene-context.md).
 
-## Coding handoff — September 18, 2026
+## Companion code review — September 19, 2026
 
-The own-player and third-party request/response flows are written. A licensed scene-context adapter is available when `SELENE_SCENE_CONTEXT_URL` is configured; without that real endpoint the companion remains metadata-plus-viewer-detail only. An overlay inside another app is not implemented because no supported overlay API or privilege has been supplied. This is not a claim of universal Prime Video or sports-app access. **No tests, typechecks, lint, builds, live model calls, installation or device probes were run during this coding pass.** Existing web bundles, packages and saved device artifacts describe earlier revisions, not current production readiness.
+The companion uses native provider discovery, a fixed moment snapshot, a separate companion relay session, the real explanation agent, and explicit playback controls. Code checks cover notification/cancellation races, clarification, voice consent, graph citations, HTTP scene-source boundaries and private-mirror revocation. See [the review and remaining production gates](docs/companion-review.md). No app, browser or device interaction is part of this review.
+
+A scene-context adapter is available when `SELENE_SCENE_CONTEXT_URL` is configured; without that real endpoint the companion remains metadata-plus-viewer-detail only. An overlay inside another app is not implemented because no supported overlay API or privilege has been supplied. This is not a claim of universal Prime Video or sports-app access.
 
 React state, event handlers and class lifecycle methods own the UI, cancellation, focus and cleanup; application code uses no effect hooks. The model makes interpretation and generation decisions. Host code enforces actual playback state, consent, evidence boundaries and renderer safety.
 
-## Run after entering the build and testing phase
+## Build and run
 
 Use the existing Vega authentication. From this folder, build fresh web and native assets, then start the relay:
 
@@ -33,9 +35,11 @@ npm run vega:run
 
 The relay reads `AGENT_PROVIDER_URL`, `AGENT_PROVIDER_MODEL`, and `AGENT_PROVIDER_API_KEY` from `../.env`. Provider requests use the actual HTTPS endpoint with strict structured outputs and function calls. Credentials never enter the TV bundle. Optional `SELENE_PORT`, `SELENE_BIND` and `SELENE_APP_URL` configure the relay; changing the app URL requires a new web/native build. Remote relay URLs require HTTPS. The local relay must remain running; the TV package is not an offline model server.
 
-After a Moment Response, the TV can create an explicit private mirror. Set `SELENE_PRIVATE_URL` to a reachable HTTPS URL for the relay (and configure the relay/proxy to forward it), then open the shown address on a phone or tablet. The mirror is session-scoped, closes with the viewing session, and only speaks when the person on the private device presses Read aloud. Life Connection text stays hidden there until the TV confirms that conversation. The default loopback URL is intentionally not usable from another device.
+After a Moment Response, the TV can create an explicit private mirror. Set `SELENE_PRIVATE_URL` to a reachable HTTPS URL for the relay (and configure the relay/proxy to forward it), then open the shown address on a phone or tablet. Without a reachable HTTPS configuration, pairing reports unavailable instead of giving a phone a loopback link. The mirror is session-scoped; revocation, disconnection or closing the viewing session clears its text and speech. It only speaks when the person on the private device presses Read aloud. Life Connection text stays hidden there until the TV confirms that conversation.
 
-## Later verification
+The default relay is for one trusted device on loopback. Same-origin checks and random session IDs do not authenticate a public client. Do not expose its model/session routes to the internet without authenticated device access and usage limits at the deployment boundary. A phone mirror proxy should expose only static assets and token-scoped `GET /api/private/<token>` streams, not the TV's model/session POST routes.
+
+## Code checks
 
 ```sh
 npm run typecheck
@@ -43,9 +47,10 @@ npm run lint
 npm test
 npm run build
 npm run test:live
+npm run test:live -- --companion
 ```
 
-`npm run release` includes typecheck, lint, unit checks, and both web and native builds. `test:live` calls the real configured provider for the original story; it cannot verify another streaming app.
+`npm run release` includes typecheck, lint, Node checks, and both web and native builds. `npm exec -- jest --runInBand` additionally checks native React fallback rendering in memory. `test:live` calls the real configured model for the original story. `--companion` uses explicitly synthetic provider metadata and viewer detail to exercise the real companion agent, SVG and Life Connection paths; it cannot verify another streaming app or device rendering. The deterministic suites mock external/native boundaries only inside `test/`.
 
 Then exercise the installed device: D-pad and Back, actual playback and captions, compact/full visuals, microphone and read-aloud availability, mute restoration, background/return, clarification, cancellation, provider failures and manual Life Connection close/resume. Browser speech APIs are capability-gated and still need verification on the target Vega WebView; remote request choices and keyboard input remain available without them.
 
@@ -53,6 +58,6 @@ Then exercise the installed device: D-pad and Back, actual playback and captions
 
 Validated authored context lives in the content package. Scene/title generated connections and exact-response reuse stay in bounded process memory for one viewing session; only model-reviewed general concepts supported by authored evidence are persisted in the bounded graph store. Closing the session requests cleanup; abrupt device termination can leave an orphan until bounded eviction or relay restart. Questions and family conversations are not logged or persisted to disk. Life Connection never opens the microphone. Explicit voice requests may use the browser's speech service; only the reviewed request text is submitted to the SELENE agent.
 
-Third-party metadata stays on device during discovery. Sending a question submits the selected identity/time, request and explicitly supplied scene detail to the relay/model. If `SELENE_SCENE_CONTEXT_URL` points to an authorized HTTPS scene service, the relay sends the provider identity and sampled time and accepts only a verified, time-bounded transcript/scene response whose content identity matches. Viewer accounts remain labeled as such and never become validated graph facts. The companion does not claim control of another app's microphone, narration, captions or audio focus; browser voice and read-aloud are offered only after the provider reports an explicit pause. Provider state notifications are observed only while its Moment Response surface is open; closing/backgrounding releases that subscription.
+Third-party metadata stays on device during discovery. Sending a question submits the selected identity/time, request and explicitly supplied scene detail to the relay/model. If `SELENE_SCENE_CONTEXT_URL` points to an authorized HTTPS scene service, the relay accepts only bounded data matching the provider, catalog, content and exact sampled time. Viewer accounts remain labeled as such and never become validated graph facts. The companion does not claim control of another app's microphone, narration, captions or audio focus. Browser voice requires a fresh reported pause and a live provider subscription; resumed or unknown playback stops voice. Closing/backgrounding releases the subscription.
 
 The app does not enable proactive recommendations, continuous narration, automatic family recording, or direct TV headset routing. An explicit private mirror can stream a response to a reachable phone/tablet, where the viewer may use a connected headset. The own-player registers the documented Vega PlayerSession callbacks for playback voice commands and reports browser playback/audio-focus state; the WebView still falls back to remote/D-pad input when browser speech is unavailable. Fire OS, Alexa+/MCP and direct third-party overlays remain later platform work. The authored Offside Practice fixture is available as a second own-player content package; a sports app that exposes a session can still use the companion's viewer-detail flow without a hardcoded play claim.

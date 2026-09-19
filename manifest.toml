@@ -4,6 +4,7 @@ schema-version = 1
 title = "SELENE"
 version = "0.1.0"
 id = "com.selene.tv"
+build-number = 1
 
 [os.version]
 min = "1.2"

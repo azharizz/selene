@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 
 const MAX_TRANSCRIPT = 40;
 const MAX_FACTS = 40;
+const MAX_BYTES = 131072;
 
 function localOrHttps(value) {
   const url = new URL(value);
@@ -13,7 +14,9 @@ function boundedTime(value) {return typeof value === 'number' && Number.isFinite
 function id(prefix, value) {return `${prefix}-${createHash('sha256').update(value).digest('hex').slice(0, 20)}`;}
 
 function normalize(payload, snapshot) {
-  if (!payload || payload.verified !== true || payload.provider_content_id !== snapshot.content_id) throw new Error('Licensed scene context identity was not verified');
+  if (!payload || payload.verified !== true || payload.provider_content_id !== snapshot.content_id ||
+    payload.provider_package_id !== snapshot.package_id || payload.provider_catalog_name !== snapshot.catalog_name ||
+    payload.at_seconds !== snapshot.at_seconds) throw new Error('Licensed scene context identity and time were not verified');
   const source = boundedText(payload.source, 160);
   if (!source) throw new Error('Licensed scene context did not identify its source');
   const at = snapshot.at_seconds;
@@ -46,7 +49,14 @@ export async function enrichCompanionContext(context, snapshot, signal) {
   });
   if (!response.ok) throw new Error(`Licensed scene context returned HTTP ${response.status}`);
   if (!response.headers.get('content-type')?.toLowerCase().includes('application/json')) throw new Error('Licensed scene context did not return JSON');
-  const payload = await response.json();
+  // A configured service is still a network trust boundary; bound bytes before parsing JSON.
+  const chunks = []; let size = 0;
+  for await (const chunk of response.body) {
+    size += chunk.length;
+    if (size > MAX_BYTES) throw new Error('Licensed scene context exceeded its payload limit');
+    chunks.push(chunk);
+  }
+  const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
   const external = normalize(payload, snapshot);
   return {...context, ...external, scene_id: external.scene?.id ?? context.scene_id, facts: [...context.facts, ...external.facts], transcript: external.transcript};
 }
