@@ -1,13 +1,13 @@
 import React from 'react';
-import {AppState, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {NativeEventSubscription} from 'react-native';
 import type {IMediaControlClientAsync, MediaSessionState, ISubscription} from '@amazon-devices/kepler-media-controls';
 import {WebView} from '@amazon-devices/webview';
 import {appUrl} from './config.json';
 
-type Session = {client: IMediaControlClientAsync; state: MediaSessionState; packageId: string};
+type Session = {client: IMediaControlClientAsync; state: MediaSessionState; packageId: string; title?: string; providerName?: string};
 type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
-type State = {busy: boolean; sessions: Session[]; selected: Session | null; title: string; message: string; snapshot: Snapshot | null};
+type State = {busy: boolean; sessions: Session[]; selected: Session | null; title: string; message: string; snapshot: Snapshot | null; page: number};
 const momentUrl = `${appUrl.replace(/\/$/, '')}/?companion=1`;
 function playback(state: MediaSessionState, revision = 0, observing = false) {
   return {state: state.playbackState.playbackStatus === 'PAUSED' ? 'paused' : state.playbackState.playbackStatus === 'PLAYING' ? 'playing' : 'unknown',
@@ -27,12 +27,13 @@ function positionSeconds(state: MediaSessionState) {
 
 // Native client ownership stays here: discovery never sends a playback command.
 export class Companion extends React.Component<{onDemo: () => void; onReady: () => void}, State> {
-  state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, message: 'Find an app that shares its playback session with SELENE.'};
+  state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message: 'Finding what’s playing…'};
   private clients: IMediaControlClientAsync[] = [];
   private mounted = false;
   private pending = false;
   private revision = 0;
   private appState?: NativeEventSubscription;
+  private backSubscription?: NativeEventSubscription;
   private frame = React.createRef<React.ElementRef<typeof WebView>>();
   private subscription: ISubscription | null = null;
   private momentRevision = 0;
@@ -44,12 +45,17 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     this.appState = AppState.addEventListener('change', state => {
       if (state !== 'active') this.disconnect('Check playback apps again when you return.');
     });
+    this.backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!this.state.snapshot) return false;
+      this.publish({type: 'selene:back'});
+      return true;
+    });
     this.props.onReady();
     this.scan();
   }
   componentWillUnmount() {
     this.mounted = false;
-    this.appState?.remove();
+    this.appState?.remove(); this.backSubscription?.remove();
     this.disconnect();
   }
   private release() {this.stopObserving(); this.clients.forEach(client => client.destroy()); this.clients = [];}
@@ -85,14 +91,14 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     this.revision++;
     this.pending = false;
     this.release();
-    if (this.mounted) this.setState({busy: false, sessions: [], selected: null, title: '', snapshot: null, message});
+    if (this.mounted) this.setState({busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message});
   };
 
   private scan = async () => {
     if (!this.mounted || this.pending) return;
     this.pending = true;
     const revision = ++this.revision;
-    this.setState({busy: true, selected: null, title: '', sessions: [], message: 'Checking shared playback sessions…'});
+    this.setState({busy: true, selected: null, title: '', sessions: [], page: 0, message: 'Finding what’s playing…'});
     this.release();
     try {
       const {MediaControlComponentAsync} = await import('@amazon-devices/kepler-media-controls');
@@ -104,20 +110,23 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
       const results = await Promise.allSettled(clients.map(async client => {
         const packageId = client.getEndpointPackageId().id;
         const states = await client.getSessionState();
-        return states.map(state => ({client, state, packageId}));
+        return Promise.all(states.map(async state => {
+          const metadata = state.mediaInfo ? await client.getMetadata(state.mediaInfo.id).catch(() => null) : null;
+          return {client, state, packageId, title: metadata?.title ?? '', providerName: metadata?.mediaProviderInfo?.name ?? ''};
+        }));
       }));
       if (!this.current(revision)) return;
       const sessions = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
       const failed = results.filter(result => result.status === 'rejected').length;
       const message = sessions.length
-        ? failed ? 'Choose a session. Some playback apps could not be read.' : 'Choose the playback session you want to check.'
-        : failed ? 'A playback app could not share its session. Return to the app, then try again.'
-          : clients.length ? 'Playback apps were found, but none shared an active session. Start a title, then check again.'
-            : 'No shared playback apps found. Open your viewing app, start a title, then check again.';
+        ? failed ? 'Choose a title. Some apps could not be read.' : 'Choose what you’re watching.'
+        : failed ? 'Couldn’t read playback. Open your viewing app, then try again.'
+          : clients.length ? 'Start a title in your viewing app, then try again.'
+            : 'No shared playback found. Start a title in a supported app, then try again.';
       this.setState({sessions, message});
     } catch (error) {
       if (error instanceof Error) console.warn(`[SELENE] playback discovery unavailable: ${error.message}`);
-      if (this.current(revision)) this.setState({message: 'Shared playback discovery is unavailable in this Vega runtime. Open a supported playback app and check again, or use the original story demo.'});
+      if (this.current(revision)) this.setState({message: 'Playback discovery is unavailable on this device. You can still try the SELENE demo.'});
     } finally {
       if (this.current(revision)) {this.pending = false; this.setState({busy: false});}
     }
@@ -183,25 +192,25 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     }
   };
 
-  private openMoment = async () => {
-    if (!this.state.selected) return;
-    const found = await this.select(this.state.selected);
+  private openMoment = async (session = this.state.selected) => {
+    if (!session) return;
+    const found = await this.select(session);
     if (!found || !this.current(found.revision)) return;
-    const {session, title, providerName} = found;
-    const position = positionSeconds(session.state);
-    const media = session.state.mediaInfo?.id;
+    const {session: selectedSession, title, providerName} = found;
+    const position = positionSeconds(selectedSession.state);
+    const media = selectedSession.state.mediaInfo?.id;
     if (position === null || !media?.contentId || !media.catalogName) {
       this.setState({message: 'This app has not supplied the content identity and playback position needed to select a moment.'});
       return;
     }
-    const snapshot = {package_id: session.packageId, session_id: session.state.id.id, catalog_name: media.catalogName,
+    const snapshot = {package_id: selectedSession.packageId, session_id: selectedSession.state.id.id, catalog_name: media.catalogName,
       content_id: media.contentId, title, provider_name: providerName, at_seconds: position};
-    this.observedStatus = session.state.playbackState.playbackStatus; this.playbackVersion = 0;
-    this.setState({snapshot}, () => {void this.watch(session);});
+    this.observedStatus = selectedSession.state.playbackState.playbackStatus; this.playbackVersion = 0;
+    this.setState({snapshot}, () => {void this.watch(selectedSession);});
   };
   private closeMoment = () => {
     this.revision++; this.pending = false; this.stopObserving();
-    this.setState({snapshot: null, selected: null, title: '', busy: false, message: 'Moment closed. A playback request already sent may still finish. Select a session to read its current state.'});
+    this.setState({snapshot: null, selected: null, title: '', busy: false, message: 'Choose a title to ask about another moment.'});
   };
   private bridge = async (data: string, url: string) => {
     if (url !== momentUrl || !this.state.snapshot || data.length > 200) return;
@@ -225,7 +234,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   };
 
   render() {
-    const {busy, sessions, selected, title, message, snapshot} = this.state;
+    const {busy, sessions, selected, message, snapshot, page} = this.state;
     if (snapshot) return <WebView ref={this.frame} style={styles.page} source={{uri: momentUrl}} hasTVPreferredFocus allowSystemKeyEvents
       javaScriptEnabled mixedContentMode="never" mediaPlaybackRequiresUserAction
       injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};true;`}
@@ -235,44 +244,38 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
       onCloseWindow={this.closeMoment}
       onError={() => {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}
       onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}} />;
-    const seconds = selected?.state.playbackState.position?.position.seconds;
-    return <ScrollView style={styles.page} contentContainerStyle={styles.content}>
-      <Text style={styles.brand}>SELENE</Text>
-      <Text style={styles.heading} numberOfLines={2}>{selected ? title || 'Title not supplied' : 'Connect to your playback'}</Text>
-      <Text style={styles.copy}>Use Back to leave SELENE. Your viewing app controls what happens when you return.</Text>
-      <Text style={styles.copy} accessibilityLiveRegion="polite">{message}</Text>
-      {!selected && sessions.map((session, index) => <Button key={`${session.packageId}:${session.state.id.id}:${index}`} disabled={busy} label={`${session.packageId} · Session ${session.state.id.id}`} onPress={() => this.select(session)} />)}
-      {selected && <View style={styles.details}>
-        <Text style={styles.copy}>{selected.packageId} · Session {selected.state.id.id}</Text>
-        <Text style={styles.copy}>Last reported state: {selected.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}</Text>
-        <Text style={styles.copy}>{seconds !== undefined && Number.isFinite(seconds) && seconds >= 0 ? `Sampled position: ${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}` : 'Playback position not supplied'}</Text>
-        <View style={styles.actions}>
-          <Button label="Help with this moment" disabled={busy} preferred onPress={this.openMoment} />
-          <Button label="Refresh this session" disabled={busy} onPress={() => this.select(selected)} />
-          <Button label="Pause this session" disabled={busy || !selected.state.capabilities.actions.some(a => a.name === 'PAUSE')} onPress={() => this.command('pause')} />
-          <Button label="Play this session" disabled={busy || !selected.state.capabilities.actions.some(a => a.name === 'PLAY')} onPress={() => this.command('play')} />
+    const pages = Math.ceil(sessions.length / 3);
+    const visible = sessions.slice(page * 3, page * 3 + 3);
+    return <View style={styles.page}>
+      <View style={styles.content}>
+        <View style={styles.topbar}><View style={styles.logo}><Image source={require('../assets/selene-mark.png')} style={styles.mark}/><Text style={styles.brand}>selene</Text></View><Text style={styles.tagline}>Your viewing companion</Text></View>
+        <View style={styles.main}>
+          <Text style={styles.heading}>{busy ? 'Finding what’s playing…' : 'What are you watching?'}</Text>
+          <Text style={styles.copy} accessibilityLiveRegion="polite">{busy ? 'Checking apps that share playback with SELENE.' : message}</Text>
+          {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Button key={`${session.packageId}:${session.state.id.id}`} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/>)}</View>}
+          {pages > 1 && <View style={styles.actions}><Button label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text style={styles.copy}>Page {page + 1} of {pages}</Text><Button label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
+          <View style={styles.actions}>{busy ? <Button label="Cancel" preferred onPress={() => this.disconnect('Search cancelled. Try again when you’re ready.')}/> : <Button label={sessions.length ? 'Refresh apps' : 'Try again'} preferred={!sessions.length} onPress={this.scan}/>}<Button label="Try the demo" onPress={this.props.onDemo}/></View>
         </View>
-      </View>}
-      <View style={styles.actions}>
-        <Button label="Check playback apps" disabled={busy} preferred={!selected} onPress={this.scan} />
-        {busy && <Button label="Stop waiting" preferred onPress={() => this.disconnect()} />}
-        <Button label="Open the original story demo" onPress={this.props.onDemo} />
+        <View style={styles.footer}><Text style={styles.hint}>Back to leave SELENE</Text><Text style={styles.hint}>Playback stays in your control</Text></View>
       </View>
-    </ScrollView>;
+    </View>;
   }
 }
-export function Button({label, onPress, disabled = false, preferred = false}: {label: string; onPress: () => void; disabled?: boolean; preferred?: boolean}) {
+export function Button({label, detail, onPress, disabled = false, preferred = false, tile = false}: {label: string; detail?: string; onPress: () => void; disabled?: boolean; preferred?: boolean; tile?: boolean}) {
   const [focused, setFocused] = React.useState(false);
-  return <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} hasTVPreferredFocus={preferred && !disabled}
+  return <Pressable accessibilityRole="button" accessibilityLabel={detail ? `${label}, ${detail}` : label} accessibilityState={{disabled}} disabled={disabled} hasTVPreferredFocus={preferred && !disabled}
     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onPress={onPress}
-    style={[styles.button, focused && styles.focused, disabled && styles.disabled]}><Text style={styles.buttonText}>{label}</Text></Pressable>;
+    style={[styles.button, tile && styles.tile, focused && styles.focused, disabled && styles.disabled]}><Text numberOfLines={2} style={[styles.buttonText, tile && styles.tileTitle, focused && styles.focusedText]}>{label}</Text>{detail && <Text numberOfLines={2} style={[styles.tileDetail, focused && styles.focusedText]}>{detail}</Text>}</Pressable>;
 }
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#101714'}, content: {padding: 96, gap: 24},
-  brand: {fontSize: 28, letterSpacing: 5, color: '#e8bb70'}, heading: {fontSize: 48, color: '#f6f2e9'},
-  copy: {fontSize: 30, color: '#c5ccc6', lineHeight: 42, maxWidth: 1400}, details: {gap: 20},
-  actions: {flexDirection: 'row', flexWrap: 'wrap', gap: 20},
-  button: {alignSelf: 'flex-start', maxWidth: '100%', borderWidth: 4, borderColor: '#55625b', borderRadius: 6, padding: 20},
-  focused: {borderColor: '#e8bb70', backgroundColor: '#354239'}, disabled: {opacity: 0.45},
-  buttonText: {fontSize: 30, color: '#f6f2e9'},
+  page: {flex: 1, backgroundColor: '#101114'}, content: {flex: 1, paddingHorizontal: '5%', paddingVertical: '5%', gap: 36},
+  topbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 12}, mark: {width: 48, height: 48},
+  brand: {fontSize: 46, fontWeight: '600', color: '#f1f1f1'}, tagline: {fontSize: 28, color: '#b9bdc6'},
+  main: {flex: 1, justifyContent: 'center', gap: 32}, heading: {fontSize: 64, lineHeight: 76, color: '#f1f1f1', maxWidth: 1250, fontWeight: '600'},
+  copy: {fontSize: 30, color: '#b9bdc6', lineHeight: 42, maxWidth: 1400},
+  actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 24}, sessionRow: {flexDirection: 'row', gap: 28, marginVertical: 16},
+  button: {alignSelf: 'flex-start', maxWidth: '100%', borderWidth: 3, borderColor: 'transparent', borderRadius: 12, backgroundColor: '#303238', paddingVertical: 18, paddingHorizontal: 30},
+  tile: {flex: 1, minHeight: 180, justifyContent: 'space-between', padding: 30, gap: 20}, tileTitle: {fontSize: 36, fontWeight: '600'}, tileDetail: {fontSize: 28, color: '#b9bdc6'},
+  focused: {borderColor: '#f1f1f1', backgroundColor: '#f1f1f1', transform: [{scale: 1.025}]}, focusedText: {color: '#101114'}, disabled: {opacity: 0.45},
+  buttonText: {fontSize: 30, color: '#f1f1f1'}, footer: {flexDirection: 'row', justifyContent: 'space-between', gap: 24}, hint: {fontSize: 28, color: '#b9bdc6'},
 });

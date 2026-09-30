@@ -4,10 +4,10 @@ import {build} from 'esbuild';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 
-const compiled = await build({entryPoints: ['src/Companion.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', plugins: [{
+const compiled = await build({entryPoints: ['src/Companion.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', loader: {'.png': 'dataurl'}, plugins: [{
   name: 'native-test-boundary', setup(builder) {
     builder.onResolve({filter: /^(react|react-native|@amazon-devices\/(kepler-media-controls|webview))$/}, args => ({path: args.path, namespace: 'boundary'}));
-    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === 'react' ? 'export default {createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0;' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
+    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === 'react' ? 'export default {createElement:(type,props,...children)=>({type,props:{...props,children}}),createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0,Image=0; export const BackHandler={addEventListener:()=>({remove(){}})};' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
   },
 }]});
 function instance(locator) {
@@ -175,4 +175,23 @@ test('leaving a pending command suppresses playback; stale reads cannot replace 
   assert.equal(racing.state.busy, false);
   assert.equal(provider.calls.at(-1)[0], 'destroy');
   racing.componentWillUnmount();
+});
+
+
+test('readable playback tiles are paged and open a fresh moment in one selection', async () => {
+  const providers = Array.from({length: 8}, () => endpoint());
+  providers.forEach((provider, index) => {provider.client.getEndpointPackageId = () => ({id: `test.provider.${index}`});});
+  const app = instance({getMediaControlEndpoints: async () => providers.map(value => value.client)});
+  await app.scan();
+  const collect = node => !node || typeof node !== 'object' ? [] : [node, ...(node.props?.children ?? []).flat(Infinity).flatMap(collect)];
+  for (const [page, count] of [[0, 3], [1, 3], [2, 2]]) {
+    app.setState({page});
+    const tiles = collect(app.render()).filter(node => node.props?.tile);
+    assert.equal(tiles.length, count);
+    assert.ok(tiles.every(node => node.props.label === 'Current title' && node.props.detail.includes('Test Provider')));
+  }
+  await app.openMoment(app.state.sessions[7]);
+  assert.equal(app.state.snapshot.package_id, 'test.provider.7');
+  assert.equal(providers[7].calls.some(([action]) => action === 'pause' || action === 'play'), false);
+  app.componentWillUnmount();
 });

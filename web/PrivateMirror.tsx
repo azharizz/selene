@@ -2,6 +2,7 @@ import React from 'react';
 import {Visual, type VisualArtifact} from './Visual';
 import {Voice, type VoiceState} from './voice';
 import {focusPanel, moveFocus} from './navigation';
+import {Brand} from './Brand';
 
 type MirrorMoment = {
   state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
@@ -55,7 +56,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
   render() {
     const {moment, error, voice} = this.state;
     return <main className="app private-app" ref={this.root} tabIndex={-1}>
-      <header className="private-heading"><span className="wordmark">SELENE</span><span>Private mirror</span>{moment && <span>At {clock(moment.grounding.at_seconds)}</span>}</header>
+      <header className="private-heading"><Brand /><span>Private mirror</span>{moment && <span>At {clock(moment.grounding.at_seconds)}</span>}</header>
       {!moment && <section className="sheet" data-panel><h1>{error ? 'Private mirror unavailable' : 'Waiting for SELENE'}</h1><p role={error ? 'alert' : undefined}>{error || 'Your selected Moment Response will appear here. Keep this page open.'}</p></section>}
       {moment && <section className="moment full" data-panel>
         <header><span>Private mirror</span><span>At {clock(moment.grounding.at_seconds)}</span></header>

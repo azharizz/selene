@@ -15,7 +15,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     SELENE_SCENE_CONTEXT_URL: 'https://scene.test.invalid'});
   delete process.env.SELENE_PRIVATE_URL;
   const realFetch = globalThis.fetch;
-  let sceneReads = 0, modelReads = 0, nextState = 'clarification', offerLife = false, sceneUnavailable = false, modelUnavailable = false;
+  let sceneReads = 0, modelReads = 0, nextState = 'clarification', offerLife = false, sceneUnavailable = false, modelUnavailable = false, reviewIssue = '';
   // Only remote network boundaries are fixtures. Routing, tools, schema, review and policy are real code.
   globalThis.fetch = async (url, options) => {
     if (url === 'https://scene.test.invalid') {
@@ -36,7 +36,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     const message = body.tool_choice === 'required'
       ? {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}
       : body.response_format.json_schema.name === 'selene_grounding_review'
-        ? {content: JSON.stringify({supported: true, issue: '', pause_requested: false, life_requested: offerLife})}
+        ? {content: JSON.stringify({supported: true, issue: reviewIssue, pause_requested: false, life_requested: offerLife})}
         : (() => {
           const context = JSON.parse(body.messages.find(message => message.role === 'tool').content);
           return {content: JSON.stringify({version: '1.0', state: nextState, answer: nextState === 'clarification' ? 'Which person do you mean?' : 'From your description, you mean the passer.',
@@ -59,7 +59,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const sessionResponse = await post('/api/session', {mode: 'companion'});
   assert.equal(sessionResponse.status, 201);
   const session = await sessionResponse.json();
-  assert.deepEqual(Object.keys(session), ['session_id'], 'companion sessions do not receive demo story or dialogue');
+  assert.deepEqual(Object.keys(session), ['session_id', 'private_mirror_available'], 'companion sessions do not receive demo story or dialogue');
   const {session_id} = session;
   const input = {snapshot: {package_id: 'test.provider', session_id: 7, content_id: 'test-title', catalog_name: 'test', title: 'Test title', provider_name: 'Test', at_seconds: 10},
     request: 'Who is that?', scene_detail: '', scene_answer: '', continuation: null, play_state: 'playing', playback_choice: 'keep_watching',
@@ -113,6 +113,10 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   modelUnavailable = false;
   const stale = {...input, request: 'Which person are you asking about?', continuation: {request: 'Which person are you asking about?', question: freshQuestion.answer, answer: 'An old answer'}};
   assert.equal((await post('/api/companion/moment', stale, session_id)).status, 409);
+  reviewIssue = 'The answer includes an unsupported scene detail.';
+  const readsBeforeRejection = modelReads;
+  assert.equal((await post('/api/companion/moment', {...input, request: 'A new question for review.'}, session_id)).status, 502, 'a contradictory approval cannot release a flagged response');
+  assert.equal(modelReads - readsBeforeRejection, 5, 'one evidence call, two drafts and two reviews; no retry loop');
   await post('/api/session/end', {session_id});
   assert.equal((await post('/api/companion/moment', input, session_id)).status, 410);
 });

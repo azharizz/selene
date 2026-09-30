@@ -34,7 +34,8 @@ class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () =>
   componentDidMount() {
     this.player.start();
     this.backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      this.props.onCompanion();
+      if (this.state.failed) {this.props.onCompanion(); return true;}
+      this.frame.current?.injectJavaScript("window.dispatchEvent(new MessageEvent('message',{source:window,origin:location.origin,data:{type:'selene:native-player',action:'back'}}));true;");
       return true;
     });
   }
@@ -76,9 +77,9 @@ class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () =>
   }
 }
 const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: '#101714'},
-  webview: {flex: 1, backgroundColor: '#101714'},
-  error: {position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, padding: 96, justifyContent: 'center', gap: 32, backgroundColor: '#101714'},
-  title: {fontSize: 48, color: '#f6f2e9'},
-  copy: {fontSize: 32, color: '#c5ccc6'},
+  container: {flex: 1, backgroundColor: '#101114'},
+  webview: {flex: 1, backgroundColor: '#101114'},
+  error: {position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, padding: 96, justifyContent: 'center', gap: 32, backgroundColor: '#101114'},
+  title: {fontSize: 48, color: '#f1f1f1'},
+  copy: {fontSize: 32, color: '#b9bdc6'},
 });

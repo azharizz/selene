@@ -68,7 +68,7 @@ export const responseSchema = object({
 });
 
 export const reviewSchema = object({
-  supported: {type: 'boolean'}, issue: text(400),
+  issue: {...text(400), description: 'First identify any unsupported scene assertion or premature personal question. Give a correction, or an empty string if none.'}, supported: {type: 'boolean'},
   pause_requested: {type: 'boolean'}, life_requested: {type: 'boolean'},
 });
 

@@ -29,7 +29,9 @@ for (const [name, input, context] of selected) {
   } catch (error) {
     // Only these public/synthetic fixtures are saved, never live household requests or credentials.
     await writeFile(`artifacts/live-${name}-failure.json`, JSON.stringify({input, replies, error: error.message}, null, 2));
-    throw error;
+    console.error(JSON.stringify({case: name, error: error.message}));
+    process.exitCode = 1;
+    continue;
   }
   assert.equal(validResponse(result), true);
   assert.equal(result.state, 'response'); assert.ok(result.answer.trim());
@@ -38,5 +40,6 @@ for (const [name, input, context] of selected) {
   if (context) {assert.equal(result.grounding.content_id, context.content_id); assert.equal(result.new_connections.length, 0);}
   if (name === 'spoiler') assert.ok(result.grounding.evidence_ids.every(id => !['f-history', 'f-value', 'f-new-memory', 't3', 't8'].includes(id)));
   await writeFile(`artifacts/live-${name}.json`, JSON.stringify(result, null, 2));
+  await writeFile(`artifacts/live-${name}-replies.json`, JSON.stringify(replies, null, 2));
   console.info(JSON.stringify({case: name, seconds: Math.round((performance.now() - started) / 1000), tools: calls, visual: result.visual.status, answer: result.answer}));
 }

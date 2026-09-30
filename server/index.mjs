@@ -96,9 +96,10 @@ export const server = createServer(async (req, res) => {
         if (!companionSession && !selectedStory) return send(res, 400, {error: 'Unknown story'});
         const id = randomUUID();
         sessions.set(id, {contentId: selectedStory?.id ?? null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', lifeVisible: false});
-        if (companionSession) return send(res, 201, {session_id: id});
+        const private_mirror_available = Boolean(privateUrl('capability'));
+        if (companionSession) return send(res, 201, {session_id: id, private_mirror_available});
         const {facts, ...playerStory} = selectedStory;
-        return send(res, 201, {session_id: id, story: playerStory, catalog: stories.map(({id: content_id, title, subtitle, duration, poster}) => ({id: content_id, title, subtitle, duration, poster}))});
+        return send(res, 201, {session_id: id, private_mirror_available, story: playerStory, catalog: stories.map(({id: content_id, title, subtitle, duration, poster}) => ({id: content_id, title, subtitle, duration, poster}))});
       }
       if (url.pathname === '/api/session/end') {
         if (!input || typeof input.session_id !== 'string') return send(res, 400, {error: 'Session required'});

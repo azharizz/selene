@@ -6,10 +6,9 @@ import {CompanionMoment, type CompanionBootstrap} from './CompanionMoment';
 import {PrivateMirror} from './PrivateMirror';
 import {focusPanel, moveFocus} from './navigation';
 import './style.css';
+import {Brand, Icon} from './Brand';
+import {needs, recipients, readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
 
-type Need = 'Explain simply' | 'Easy to hear' | 'Translate' | 'Show visually';
-type Recipient = 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone';
-type Language = 'English' | 'Indonesian' | 'Spanish';
 type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
 type Story = {id: string; title: string; subtitle: string; duration: number; video: string; poster: string; scenes: {id: string; start: number; end: number; label: string}[]; transcript: {id: string; start: number; end: number; text: string}[]};
 type CatalogStory = {id: string; title: string; subtitle: string; duration: number; poster: string};
@@ -24,15 +23,13 @@ type Input = {
   playback_choice: Choice; need: Need; language: Language; session: 'family' | 'solo'; recipient: Recipient; life_connection: boolean;
   continuation: {request: string; question: string; answer: string} | null;
 };
-type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'life' | 'preferences' | 'exit' | 'error';
+type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'life' | 'preferences' | 'more' | 'exit' | 'error';
 type State = {
   started: boolean; session: 'family' | 'solo'; screen: Screen; need: Need; language: Language; recipient: Recipient;
   request: string; moment: Moment | null; position: number; paused: boolean; captions: boolean; controls: boolean;
-  error: string; voice: VoiceState; lifeStarted: boolean; anchorAt: number; clarifying: boolean; choice: Choice; background: boolean; mirror: {url: string} | null;
+  error: string; voice: VoiceState; lifeStarted: boolean; anchorAt: number; clarifying: boolean; choice: Choice; background: boolean; mirror: {url: string} | null; returnScreen: 'watch' | 'ask';
 };
-type Bundle = {session_id: string; story: Story; catalog?: CatalogStory[]};
-const needs: Need[] = ['Explain simply', 'Easy to hear', 'Translate', 'Show visually'];
-const recipients: Recipient[] = ['everyone', 'grandparent', 'parent', 'child', 'adult'];
+type Bundle = {session_id: string; private_mirror_available?: boolean; story: Story; catalog?: CatalogStory[]};
 const locale: Record<Language, string> = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const name = (value: string) => value[0].toUpperCase() + value.slice(1);
@@ -46,9 +43,9 @@ async function openSession(contentId: string | null, signal?: AbortSignal): Prom
 
 class App extends React.Component<Bundle, State> {
   state: State = {
-    started: false, session: 'family', screen: 'watch', need: 'Explain simply', language: 'English', recipient: 'everyone',
+    started: false, screen: 'watch', ...readPreferences(),
     request: '', moment: null, position: 0, paused: true, captions: true, controls: true, error: '', voice: 'idle',
-    lifeStarted: false, anchorAt: 0, clarifying: false, choice: 'unspecified', background: document.hidden, mirror: null,
+    lifeStarted: false, anchorAt: 0, clarifying: false, choice: 'unspecified', background: document.hidden, mirror: null, returnScreen: 'watch',
   };
   private video = React.createRef<HTMLVideoElement>();
   private surface = React.createRef<HTMLElement>();
@@ -63,6 +60,12 @@ class App extends React.Component<Bundle, State> {
     voice => {if (this.mounted) this.setState({voice});},
     error => {if (this.mounted) this.setState({error});},
     focused => {native?.postMessage(JSON.stringify({type: 'selene:audio-focus', focused}));});
+
+  private preferences = (selection: Partial<Preferences>) => {
+    const {need, language, recipient, session} = this.state;
+    const preferences = {need, language, recipient, session, ...selection};
+    savePreferences(preferences); this.setState(preferences);
+  };
 
   componentDidMount() {
     this.mounted = true;
@@ -140,6 +143,7 @@ class App extends React.Component<Bundle, State> {
     if (!message || message.type !== 'selene:native-player') return;
     const player = this.video.current;
     if (!player) return;
+    if (message.action === 'back') {this.back(); return;}
     if (message.action === 'play') this.play();
     if (message.action === 'pause') player.pause();
     if (message.action === 'stop') {player.pause(); player.currentTime = 0;}
@@ -169,6 +173,8 @@ class App extends React.Component<Bundle, State> {
     const {screen, voice, started, controls, clarifying} = this.state;
     if (voice !== 'idle') return this.voice.stop();
     if (screen === 'exit') return this.exit();
+    if (screen === 'preferences') return this.setState({screen: this.state.returnScreen});
+    if (screen === 'more') return this.setState({screen: 'moment'});
     if (screen === 'life' || (screen === 'ask' && clarifying)) {
       if (screen === 'life') void this.setMirrorLife(false);
       return this.setState({screen: 'moment', clarifying: false, lifeStarted: false, error: ''});
@@ -189,13 +195,13 @@ class App extends React.Component<Bundle, State> {
     window.location.assign(`/?story=${encodeURIComponent(id)}`);
   };
 
-  private ask = (choice: Choice, life = false) => {
+  private ask = (choice: Choice, life = false, quickRequest?: string) => {
     const player = this.video.current;
     if (!player) return;
     const {need, language, recipient, session, moment, clarifying, request, anchorAt} = this.state;
-    if (clarifying && !request.trim()) {this.setState({error: 'Enter your answer to the question.'}); return;}
+    if (!life && !quickRequest && !request.trim()) {this.setState({error: 'Type a question or choose a quick question.'}); return;}
     const input: Input = {
-      request: life ? 'Help us connect this moment to our own life with one specific question for the selected recipient.' : clarifying && this.lastInput ? this.lastInput.request : request.trim() || 'Help me understand what is happening in this moment.',
+      request: life ? 'Help us connect this moment to our own life with one specific question for the selected recipient.' : clarifying && this.lastInput ? this.lastInput.request : quickRequest ?? request.trim(),
       content_id: this.props.story.id, at_seconds: life && moment ? moment.grounding.at_seconds : anchorAt,
       play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing',
       playback_choice: choice, need, language, recipient, session, life_connection: life || Boolean(clarifying && this.lastInput?.life_connection),
@@ -231,7 +237,7 @@ class App extends React.Component<Bundle, State> {
         else result.intervention.playback = 'keep_watching';
       }
       const lifeVisible = player.paused && result.life_connection.offered && (life || choice === 'pause_to_explore' || result.intervention.playback === 'request_pause');
-      this.setState({moment: result, screen: 'moment', clarifying: false,
+      this.setState({moment: result, screen: result.state === 'clarification' ? 'ask' : 'moment', clarifying: result.state === 'clarification', request: result.state === 'clarification' ? '' : this.state.request,
         choice: result.intervention.playback === 'request_pause' ? 'pause_to_explore' : choice,
         lifeStarted: lifeVisible,
       }, () => {if (lifeVisible) void this.setMirrorLife(true);});
@@ -290,7 +296,7 @@ class App extends React.Component<Bundle, State> {
     if (!target) return;
     if (['Escape', 'BrowserBack', 'GoBack'].includes(event.key) || event.keyCode === 27) {
       event.preventDefault();
-      if (target.matches('textarea,select')) {this.surface.current?.querySelector<HTMLElement>('[data-submit]')?.focus(); return;}
+      if (target.matches('textarea,select')) {this.surface.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus(); return;}
       this.back(); return;
     }
     if (event.key === 'MediaPlayPause' || (event.key === ' ' && target === this.surface.current)) {
@@ -320,11 +326,10 @@ class App extends React.Component<Bundle, State> {
         onError={() => {if (!background) this.setState({error: 'The film could not load. Check the SELENE service, then reload the film.', controls: true});}} />
 
       {!started && screen === 'watch' && <section className="welcome" data-panel ref={this.focusPanel}>
-        <div className="wordmark">SELENE</div>
-        <div className="welcome-copy"><p className="eyebrow">A story to share</p><h1>{story.title}</h1>
-          <p>{story.id === 'offside-practice' ? 'See the pass, the defender, and the rule together.' : 'A worn kite. Something worth keeping.'}</p><p className="muted">{story.subtitle} · {clock(story.duration)}</p>
-          <div className="actions"><button data-initial onClick={() => this.start('family')}>{position > 0 ? 'Continue' : 'Watch'} in Family View</button><button onClick={() => this.start('solo')}>{position > 0 ? 'Continue' : 'Watch'} in Solo View</button></div>
-          <p className="small">The show stays in your hands. Answers appear silently on this TV.</p>
+        <Brand />
+        <div className="welcome-copy"><h1>{story.title}</h1>
+          <p className="muted">{story.subtitle} · {clock(story.duration)}</p>
+          <div className="actions"><button data-initial className="primary" onClick={() => this.start(session)}><Icon name="play"/>{position > 0 ? 'Continue watching' : 'Watch demo'}</button><button onClick={() => this.setState({screen: 'preferences', returnScreen: 'watch'})}><Icon name="settings"/>Preferences</button></div>
           {(this.props.catalog ?? []).length > 1 && <div className="story-picker" aria-label="Choose a story"><p className="eyebrow">Choose a story</p>{(this.props.catalog ?? []).filter(item => item.id !== story.id).map(item => <button key={item.id} className="secondary" onClick={() => this.chooseStory(item.id)}>Open {item.title}</button>)}</div>}
           {native && <button className="secondary" onClick={this.companion}>Connect to another playback app</button>}
           {error && <p role="alert">{error}</p>}
@@ -336,73 +341,68 @@ class App extends React.Component<Bundle, State> {
       {started && screen === 'watch' && <>
         {!controls && <button autoFocus className="quiet-control" onClick={() => this.setState({controls: true})}>SELECT · Controls</button>}
         {controls && <section className="player-controls" data-panel ref={this.focusPanel} aria-label="Player controls">
-          <div className="player-heading"><div><span className="wordmark">SELENE</span><h2>{story.title}</h2></div><span>{session === 'family' ? 'Family View' : 'Solo View'} · {scene?.label}</span></div>
+          <div className="player-heading"><div><Brand /><h2>{story.title}</h2></div><span>{session === 'family' ? 'Family View' : 'Solo View'} · {scene?.label}</span></div>
           <div className="progress" role="progressbar" aria-label="Film position" aria-valuenow={Math.round(position)} aria-valuemin={0} aria-valuemax={story.duration}><span style={{width: `${Math.min(100, position / story.duration * 100)}%`}} /></div>
           <div className="transport"><span className="time">{clock(position)} / {clock(story.duration)}</span><div className="actions">
             <button onClick={() => this.seek(-10)} aria-label="Back 10 seconds">−10s</button>
             <button onClick={() => {if (this.video.current?.ended) this.video.current.currentTime = 0; paused ? this.play() : this.video.current?.pause();}}>{this.video.current?.ended ? 'Replay' : paused ? 'Play' : 'Pause'}</button>
             <button onClick={() => this.seek(10)} aria-label="Forward 10 seconds">+10s</button>
-            <button data-initial className="primary" onClick={this.openAsk}>Help with this moment</button>
+            <button data-initial className="primary" onClick={this.openAsk}>Ask SELENE</button>
             <button aria-pressed={captions} onClick={() => this.setState({captions: !captions})}>Captions {captions ? 'on' : 'off'}</button>
-            <button onClick={() => this.setState({screen: 'preferences'})}>Viewing preferences</button>
+            <button onClick={() => this.setState({screen: 'preferences', returnScreen: 'watch'})}>Preferences</button>
             <button onClick={() => this.setState({controls: false})}>Hide controls</button>
           </div></div>
           {error && <div className="actions"><p role="alert">{error}</p><button onClick={() => {this.resumeAt = position; this.video.current?.load(); this.setState({error: ''});}}>Reload film</button></div>}
         </section>}
       </>}
 
-      {screen === 'ask' && <section className="sheet" data-panel ref={this.focusPanel} aria-labelledby="ask-title">
-        <div className="sheet-head"><div><p className="eyebrow">{story.title} · At {clock(anchorAt)}</p><h2 id="ask-title">{clarifying && moment ? moment.answer : 'A little help with this moment'}</h2></div><button onClick={this.back}>Back</button></div>
-        <div className="need-row" role="group" aria-label="How would you like help?">{needs.map(value => <button key={value} aria-pressed={need === value} onClick={() => this.setState({need: value})}>{value}</button>)}
-          <label>For <select value={recipient} onChange={event => this.setState({recipient: event.target.value as Recipient})}>{recipients.map(value => <option key={value} value={value}>{name(value)}</option>)}</select></label>
-          {need === 'Translate' && <label>Language <select value={language} onChange={event => this.setState({language: event.target.value as Language})}>{Object.keys(locale).map(value => <option key={value}>{value}</option>)}</select></label>}
-        </div>
-        <div className="request-row"><label htmlFor="request">{clarifying ? 'Your answer' : 'Your question'}</label><textarea id="request" rows={2} maxLength={600} disabled={voice === 'listening'} value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Ask about the moment you selected…'} /></div>
-        <div className="actions suggestions">
-          {!clarifying && <><button disabled={voice === 'listening'} onClick={() => this.setState({request: 'Who are the people in this moment?'})}>Who is that?</button><button disabled={voice === 'listening'} onClick={() => this.setState({request: 'Explain what just happened in this moment.'})}>What happened?</button><button disabled={voice === 'listening'} onClick={() => this.setState({request: 'I missed that. Explain the last completed dialogue simply.'})}>I missed that</button></>}
-          {this.voice.Recognition ? <button onClick={this.listen}>{voice === 'listening' ? 'Stop listening' : 'Use microphone'}</button> : <span className="small">Voice input is unavailable here. Use the remote or keyboard.</span>}
-        </div>
-        <div className="sheet-foot"><p>{voice === 'listening' ? 'Listening to your request. Film sound is muted. Review the text before sending it to SELENE.' : paused ? 'The film is paused. Choose how to show your answer.' : 'The film keeps playing. Your question stays with this selected moment.'}</p>
-          <div className="actions"><button data-initial data-submit disabled={voice === 'listening'} onClick={() => this.ask('unspecified')}>Send request</button><button disabled={voice === 'listening'} onClick={() => this.ask('keep_watching')}>Keep watching</button><button className="primary" disabled={voice === 'listening'} onClick={() => this.ask('pause_to_explore')}>Pause to explore</button></div>
-        </div>
-        {error && <p role="alert">{error}</p>}
+      {screen === 'ask' && <section className="sheet ask-sheet" data-panel ref={this.focusPanel} aria-labelledby="ask-title">
+        <div className="sheet-head"><h1 id="ask-title">{clarifying && moment ? moment.answer : 'What would you like to know?'}</h1><button className="text-button" onClick={this.back}><Icon name="back"/>Back</button></div>
+        <p className="request-hint" role={error ? 'alert' : undefined}>{error || `${story.title} · ${clock(anchorAt)}`}</p>
+        <form onSubmit={event => {event.preventDefault(); this.ask('unspecified');}}><label className="sr-only" htmlFor="request">{clarifying ? 'Your answer' : 'Your question'}</label>
+          <div className="question-input"><textarea data-initial={clarifying || undefined} id="request" rows={2} maxLength={600} disabled={voice === 'listening'} value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Ask about what you saw or heard…'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button className="primary" data-submit disabled={voice === 'listening' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask SELENE'}</button></div>
+        </form>
+        {!clarifying && <div className="quick-questions" role="group" aria-label="Quick questions"><button data-initial onClick={() => this.ask('unspecified', false, 'Explain what just happened in this moment.')}>What happened?</button><button onClick={() => this.ask('unspecified', false, 'Who are the people in this moment?')}>Who is that?</button><button onClick={() => this.ask('unspecified', false, 'I missed that. Explain the last completed dialogue simply.')}>I missed that</button></div>}
+        <div className="request-options"><button className="text-button" onClick={() => this.setState({screen: 'preferences', returnScreen: 'ask'})}><Icon name="settings"/>Preferences</button><span className="small">{need}{need === 'Translate' ? ` · ${language}` : ''} · {session === 'solo' ? 'Solo' : name(recipient)}</span>{this.voice.Recognition && <button className="text-button" onClick={this.listen}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : 'Use voice'}</button>}</div>
+        <p className="privacy-note small">{voice === 'listening' ? 'Listening. Film sound is muted. Review before sending.' : 'Shown silently on this TV. Playback stays in your control.'}</p>
       </section>}
 
-      {screen === 'loading' && <section className="loading-panel" data-panel ref={this.focusPanel} role="status"><div><h2>Preparing this moment</h2><p>At {clock(this.lastInput?.at_seconds ?? anchorAt)} · {paused ? 'The film is paused. Resume whenever you choose.' : 'The film keeps playing.'}</p></div><button data-initial onClick={this.close}>Cancel</button></section>}
+      {screen === 'loading' && <section className="loading-panel" data-panel ref={this.focusPanel} role="status"><div><h2>Finding a little clarity…</h2><p>At {clock(this.lastInput?.at_seconds ?? anchorAt)} · {paused ? 'The film is paused. Resume whenever you choose.' : 'The film keeps playing.'}</p></div><button data-initial onClick={this.close}>Cancel</button></section>}
 
-      {screen === 'moment' && moment && <section className={`moment ${full ? 'full' : 'compact'}`} data-panel ref={this.focusPanel} aria-label="Moment Response">
-        <header><span className="wordmark">SELENE</span><span>{story.title} · At {clock(moment.grounding.at_seconds)}</span><span>{this.video.current?.ended ? 'Ended' : paused ? 'Paused' : 'Still playing'}</span></header>
-        <div className="moment-content"><div className="answer"><p className="eyebrow">{lifeStarted ? 'Life Connection' : need}</p><h2>{moment.answer}</h2>
-          {lifeStarted && paused && moment.life_connection.offered && <div className="life-question"><p>For {name(moment.life_connection.recipient)}</p><h3>{moment.life_connection.question}</h3><p className="small">Take your time. Your conversation is not recorded.</p></div>}
-        </div><div className="visual"><Visual key={String(full) + moment.visual.svg + moment.visual.description} visual={moment.visual} /></div></div>
-        {needsChoice && <p className="choice-hint">Choose how you want to explore this moment.</p>}
+      {screen === 'moment' && moment && <section className={`moment ${full ? 'full' : 'compact'} ${moment.visual.status === 'none' ? 'answer-only' : ''}`} data-panel ref={this.focusPanel} aria-label="Moment Response">
+        <header><Brand /><span>{story.title} · At {clock(moment.grounding.at_seconds)}</span><span>{this.video.current?.ended ? 'Ended' : paused ? 'Paused' : 'Still playing'}</span></header>
+        <div className="moment-content"><div className="answer">
+          {lifeStarted && paused && moment.life_connection.offered ? <div className="life-question"><h2>{moment.life_connection.question}</h2><p className="small">Life Connection · {name(moment.life_connection.recipient)}</p><p className="small">Take your time. Nothing is recorded.</p></div> : <h2>{moment.answer}</h2>}
+        </div>{moment.visual.status !== 'none' && <div className="visual"><Visual key={String(full) + moment.visual.svg + moment.visual.description} visual={moment.visual} /></div>}</div>
         <footer className="actions">
           {needsChoice ? <><button data-initial onClick={() => this.setState({choice: 'keep_watching'})}>Keep watching</button><button className="primary" onClick={this.explore}>Pause to explore</button></>
             : <button data-initial className="primary" onClick={() => {this.close(); if (paused) this.play();}}>{this.video.current?.ended ? 'Replay the story' : paused ? 'Resume the story' : 'Close'}</button>}
           {!paused && !needsChoice && <button onClick={this.explore}>Pause to explore</button>}
-          {!lifeStarted && moment.state === 'response' && <button onClick={this.connect}>Connect to life</button>}
-          {moment.state === 'clarification' && <button onClick={() => this.setState({screen: 'ask', request: '', clarifying: true, anchorAt: moment.grounding.at_seconds})}>Answer the question</button>}
-          {this.voice.canSpeak && <button disabled={voice !== 'speaking' && !paused} onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
-          {moment.state === 'response' && <button onClick={mirror ? this.stopMirror : this.openMirror}>{mirror ? 'Stop private mirror' : 'Mirror on phone'}</button>}
-          {(paused || needsChoice) && <button onClick={this.close}>{paused ? 'Close, stay paused' : 'Close'}</button>}
+          {!lifeStarted && moment.state === 'response' && <button onClick={this.connect}>Life Connection</button>}
+          <button onClick={() => this.setState({screen: 'more'})}><Icon name="more"/>More</button>
         </footer>
-        {mirror && <div className="mirror-panel"><p>Open this address on a phone or tablet on the same network. The mirror stays private to this viewing session.</p><code>{mirror.url}</code><button onClick={this.stopMirror}>Stop private mirror</button></div>}
-        {voice === 'speaking' && <p className="small audio-status">Reading aloud · Film sound is muted</p>}
+        {voice === 'speaking' && <button onClick={() => this.voice.stop()}>Stop reading</button>}
         {error && <p role="alert">{error}</p>}
       </section>}
 
+      {screen === 'more' && <section className="sheet options-sheet" data-panel ref={this.focusPanel}><div className="sheet-head"><h1>This moment</h1><button data-initial onClick={this.back}><Icon name="back"/>Back</button></div><div className="option-list">
+        {this.voice.canSpeak && paused && <button onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
+        {this.props.private_mirror_available && <button onClick={mirror ? this.stopMirror : this.openMirror}>{mirror ? 'Stop phone mirror' : 'Mirror on phone'}</button>}
+        <button onClick={this.close}>{paused ? 'Close, stay paused' : 'Close moment'}</button>
+      </div>{mirror && <div className="mirror-panel"><p>Open on your phone:</p><code>{mirror.url}</code></div>}{error && <p role="alert">{error}</p>}</section>}
+
       {screen === 'life' && <section className="sheet life-sheet" data-panel ref={this.focusPanel}>
-        <p className="eyebrow">Life Connection · At {clock(moment?.grounding.at_seconds ?? anchorAt)}</p><h2>Make room for your own story</h2><p>Choose who to invite. Pause for one question about this moment.</p>
-        <div className="need-row" role="group" aria-label="Who is the question for?">{recipients.map(value => <button key={value} aria-pressed={recipient === value} onClick={() => this.setState({recipient: value})}>{name(value)}</button>)}</div>
-        <p className="small">The microphone stays off. You decide when to close or resume.</p>
-        <div className="actions"><button data-initial onClick={this.back}>Back</button><button className="primary" onClick={this.confirmLife}>Pause and connect</button></div>
+        <div className="sheet-head"><h1>Bring it back to your life</h1><button onClick={this.back}><Icon name="back"/>Back</button></div><p>One question for a conversation of your own.</p>
+        <label className="preference-select">Who’s it for?<select value={recipient} onChange={event => this.preferences({recipient: event.target.value as Recipient})}>{recipients.map(value => <option key={value} value={value}>{name(value)}</option>)}</select></label>
+        <div className="actions"><button data-initial data-submit className="primary" onClick={this.confirmLife}>{paused ? 'Start conversation' : 'Pause and connect'}</button><span className="small">Microphone off. Resume when you choose.</span></div>
       </section>}
 
-      {screen === 'preferences' && <section className="sheet" data-panel ref={this.focusPanel}>
-        <h2>Viewing preferences</h2><p className="muted">All answers appear on this TV. Choose the people you are watching with.</p>
-        <div className="need-row"><button aria-pressed={session === 'family'} onClick={() => this.setState({session: 'family'})}>Family View</button><button aria-pressed={session === 'solo'} onClick={() => this.setState({session: 'solo'})}>Solo View</button><button aria-pressed={captions} onClick={() => this.setState({captions: !captions})}>Captions {captions ? 'on' : 'off'}</button></div>
-        {(this.props.catalog ?? []).length > 1 && <div className="story-picker"><p className="eyebrow">Choose another story</p>{(this.props.catalog ?? []).filter(item => item.id !== story.id).map(item => <button key={item.id} className="secondary" onClick={() => this.chooseStory(item.id)}>Open {item.title}</button>)}</div>}
-        <div className="actions"><button data-initial onClick={this.close}>Back to the story</button>{native && <button onClick={this.companion}>Connect to another playback app</button>}</div>
+      {screen === 'preferences' && <section className="sheet preferences-sheet" data-panel ref={this.focusPanel}>
+        <div className="sheet-head"><h1>How can we help?</h1><button data-initial data-submit className="primary" onClick={this.back}>Done</button></div>
+        <div className="preference-group"><h2>Answer style</h2><div className="need-row">{needs.map(value => <button key={value} aria-pressed={need === value} onClick={() => this.preferences({need: value})}>{value}</button>)}</div></div>
+        {need === 'Translate' && <label className="preference-select">Translate into<select value={language} onChange={event => this.preferences({language: event.target.value as Language})}>{Object.keys(locale).map(value => <option key={value}>{value}</option>)}</select></label>}
+        <div className="preference-group"><h2>Watching with</h2><div className="need-row"><button aria-pressed={session === 'family'} onClick={() => this.preferences({session: 'family', recipient: 'everyone'})}>Family</button><button aria-pressed={session === 'solo'} onClick={() => this.preferences({session: 'solo', recipient: 'adult'})}>Just me</button><button aria-pressed={captions} onClick={() => this.setState({captions: !captions})}>Captions {captions ? 'on' : 'off'}</button></div></div>
+        {session === 'family' && <label className="preference-select">Who is the answer for?<select value={recipient} onChange={event => this.preferences({recipient: event.target.value as Recipient})}>{recipients.map(value => <option key={value} value={value}>{name(value)}</option>)}</select></label>}
       </section>}
 
       {screen === 'exit' && <section className="sheet" data-panel ref={this.focusPanel}><h2>Leave SELENE?</h2><p>The story will stop. Press Back again to leave.</p><div className="actions"><button data-initial onClick={() => this.setState({screen: 'watch', controls: true})}>Stay here</button><button onClick={this.exit}>Leave SELENE</button></div></section>}
@@ -435,7 +435,7 @@ class Startup extends React.Component<Record<string, never>, {bundle: Bundle | n
   };
   render() {
     if (this.state.bundle) return <App {...this.state.bundle} />;
-    return <main className="app"><section className="sheet"><h1>SELENE</h1><p role="status">{this.state.error || 'Loading the story…'}</p><div className="actions">{this.state.error && <button autoFocus onClick={this.load}>Try again</button>}{native && <button autoFocus={!this.state.error} onClick={() => native.postMessage('selene:companion')}>Connect to another playback app</button>}</div></section></main>;
+    return <main className="app"><section className="sheet"><Brand /><p role="status">{this.state.error || 'Loading the story…'}</p><div className="actions">{this.state.error && <button autoFocus onClick={this.load}>Try again</button>}{native && <button autoFocus={!this.state.error} onClick={() => native.postMessage('selene:companion')}>Connect to another playback app</button>}</div></section></main>;
   }
 }
 const params = new URLSearchParams(location.search);

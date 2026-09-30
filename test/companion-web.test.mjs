@@ -4,7 +4,7 @@ import {build} from 'esbuild';
 import vm from 'node:vm';
 
 // Exercise component controllers in Node. No browser, WebView, or provider is launched.
-const compiled = await build({stdin: {contents: "export {CompanionMoment} from './web/CompanionMoment'; export {PrivateMirror} from './web/PrivateMirror';", resolveDir: process.cwd()},
+const compiled = await build({stdin: {contents: "export {CompanionMoment} from './web/CompanionMoment'; export {PrivateMirror} from './web/PrivateMirror'; export {readPreferences,savePreferences} from './web/preferences';", resolveDir: process.cwd()},
   bundle: true, write: false, format: 'cjs', platform: 'node', define: {'process.env.NODE_ENV': '"production"'}, plugins: [{name: 'react-boundary', setup(builder) {
     builder.onResolve({filter: /^react$/}, () => ({path: 'react', namespace: 'boundary'}));
     builder.onLoad({filter: /.*/, namespace: 'boundary'}, () => ({contents: 'class Component {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}} export default {Component,PureComponent:Component,createRef:()=>({current:null})};'}));
@@ -35,7 +35,7 @@ test('transport refresh keeps the selected moment fixed through clarification an
     receive({type: 'selene:provider', playback, snapshot: {...snapshot, at_seconds: 500}});
     return playback;
   };
-  app.state.request = 'Why did the flag go up?'; app.state.detail = 'A forward pass.';
+  app.state.request = 'A forward pass. Why did the flag go up?';
   await app.ask('keep_watching');
   app.state.moment = {...moment, state: 'clarification', answer: 'Where was the attacker at the pass?'};
   app.state.clarifying = true; app.state.request = 'Beyond the second-last opponent.';
@@ -43,6 +43,8 @@ test('transport refresh keeps the selected moment fixed through clarification an
   await app.ask('pause_to_explore', true);
   const inputs = requests.filter(request => request.url === '/api/companion/moment').map(request => request.input);
   assert.equal(inputs.length, 3);
+  assert.equal(inputs[0].scene_detail, 'A forward pass. Why did the flag go up?');
+  assert.equal(inputs[1].scene_detail, inputs[0].scene_detail);
   assert.ok(inputs.every(input => input.snapshot.at_seconds === 125.5));
   assert.equal(inputs[1].continuation.question, 'Where was the attacker at the pass?');
   assert.equal(inputs[2].scene_answer, 'Beyond the second-last opponent.');
@@ -84,4 +86,47 @@ test('closing or losing a private mirror clears private text and stops speech', 
     assert.equal(app.state.moment, null); assert.equal(streams[0].closed, true); assert.ok(stopped >= 2);
     app.componentWillUnmount();
   }
+});
+
+
+test('one-click questions call the real request boundary; empty input stays local', async () => {
+  const {app, requests} = instance();
+  app.command = async () => playback;
+  await app.ask('unspecified');
+  assert.equal(requests.length, 0);
+  await app.ask('unspecified', false, 'Who are the people in this moment?');
+  assert.equal(requests[0].input.request, 'Who are the people in this moment?');
+  assert.equal(requests[0].input.playback_choice, 'unspecified');
+  assert.equal(requests[0].input.scene_detail, '');
+});
+
+test('clarification opens its answer field directly; preferences Back preserves the draft', async () => {
+  const {app, context} = instance();
+  app.command = async () => playback;
+  context.fetch = async () => ({ok: true, json: async () => ({...moment, state: 'clarification', answer: 'Which person?'})});
+  app.state.request = 'Who is that?';
+  await app.ask('unspecified');
+  assert.equal(app.state.screen, 'ask');
+  assert.equal(app.state.clarifying, true);
+  assert.equal(app.state.request, '');
+  app.state.request = 'The person in the red shirt.';
+  app.state.screen = 'preferences';
+  app.back();
+  assert.equal(app.state.screen, 'ask');
+  assert.equal(app.state.request, 'The person in the red shirt.');
+  assert.equal(app.lastInput.request, 'Who is that?');
+});
+
+
+test('only explicit preferences are remembered; invalid storage does not break asking', () => {
+  const {context} = instance();
+  let stored = null;
+  context.localStorage = {getItem: () => stored, setItem: (_key, value) => {stored = value;}};
+  context.module.exports.savePreferences({need: 'Translate', language: 'Indonesian', recipient: 'child', session: 'family', request: 'Private dialogue'});
+  assert.equal(stored.includes('Private dialogue'), false);
+  assert.equal(context.module.exports.readPreferences().language, 'Indonesian');
+  stored = '{broken';
+  assert.equal(context.module.exports.readPreferences().need, 'Explain simply');
+  stored = JSON.stringify({need: 'Guess my age', language: 'Unknown', recipient: 'inferred'});
+  assert.equal(context.module.exports.readPreferences().recipient, 'everyone');
 });

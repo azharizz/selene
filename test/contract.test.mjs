@@ -68,6 +68,7 @@ test('reviewed visual reuse stays in its viewing session, scene and spoiler boun
 });
 test('host policy wins and unsafe visual becomes answer-only fallback', () => {
   const moment = result(); moment.intervention.playback = 'request_pause'; moment.visual.svg = '<script/>';
+  assert.throws(() => validateMoment(structuredClone(moment), request, undefined, undefined, false), /Repair the visual/);
   const checked = validateMoment(moment, request);
   assert.equal(checked.intervention.playback, 'keep_watching');
   assert.equal(checked.visual.status, 'fallback'); assert.equal(checked.visual.svg, '');

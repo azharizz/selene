@@ -19,7 +19,7 @@ export class Visual extends React.PureComponent<{visual: VisualArtifact}, {faile
     </div>;
     const animations = JSON.stringify(visual.animations).replace(/</g, '\\u003c');
     // Only this host-owned script executes. The server accepts SVG geometry, never generated JavaScript.
-    const page = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${this.nonce}';"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#182421}svg{display:block;width:100%;height:100%;overflow:hidden}</style></head><body>${visual.svg}<script nonce="${this.nonce}">
+    const page = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${this.nonce}';"><style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#202228;font-family:'Amazon Ember','Helvetica Neue',Arial,sans-serif}svg{display:block;width:100%;height:100%;overflow:hidden}</style></head><body>${visual.svg}<script nonce="${this.nonce}">
 const fail=()=>parent.postMessage('selene:visual-invalid','*');
 addEventListener('error',fail,{once:true});
 const svg=document.querySelector('svg');

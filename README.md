@@ -6,6 +6,12 @@ The [feature map](docs/product-workflow.md) records the workflow, sources and pl
 
 For an authorized transcript provider, see [the licensed scene-context contract](docs/scene-context.md).
 
+## Companion UI — September 20, 2026
+
+Select a playback tile, then type one question or choose a quick question. Scene detail belongs in that same field. Preferences are optional and remember only explicit selections. Playback lists show three sessions per page; secondary response actions are under More. The Fire TV styling and original SELENE mark are documented in [DESIGN.md](DESIGN.md).
+
+See the [screenshot review and current blockers](docs/ui-review.md). The web UI was checked at TV sizes with clearly labelled test fixtures. No Vega device was connected for this pass. Live model checks exposed grounding/visual errors; passing the code suites does not establish production readiness.
+
 ## Companion code review — September 19, 2026
 
 The companion uses native provider discovery, a fixed moment snapshot, a separate companion relay session, the real explanation agent, and explicit playback controls. Code checks cover notification/cancellation races, clarification, voice consent, graph citations, HTTP scene-source boundaries and private-mirror revocation. See [the review and remaining production gates](docs/companion-review.md). No app, browser or device interaction is part of this review.

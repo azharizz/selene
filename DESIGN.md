@@ -1,7 +1,27 @@
-# SELENE TV surface
+# SELENE on Fire TV
 
-Mode: Operate, with the film taking almost all of the screen. The brief pins a quiet 10-foot interface; unattended execution is explicitly authorized.
-Visual world: a cinema's caption and programme system. Slate-black surfaces, warm white text, restrained saffron focus. The playback companion is the home screen; the original player is an explicit secondary option. No dashboard or card grid. On request a low, flat explanation band pairs text with one visual. Confirmed paused exploration uses the available screen; return remains explicit.
-Typography: system sans, roughly 28–38px controls/body at 1080p, short lines and 5% safe areas. SVG labels are 48–64 units on 960x540, with at most six brief labels; the renderer requires at least 28 screen pixels at 1080p and rejects overlapping or clipped labels. Focus uses an outline and clear control boundaries, never color alone.
-All controls are semantic and D-pad reachable. Back dismisses without resuming; the viewer presses Resume. Motion only explains a relationship, finite <=4s and respects reduced motion.
-Alternative considered: permanent companion sidebar. Rejected because it hides the film and becomes persistent chat. Seed challengers (jackfield, rhythm machine, metro tiles, airport signs, cyclorama, rain garden) would introduce controls or motion unrelated to viewing; retain their strongest disciplines: clear state labels and one next decision.
+The user selected Fire TV's familiar interface on 20 September 2026. This replaces the previous green cinema theme. Product truth: [PRODUCT.md](PRODUCT.md), with the original full contract in the parent folder.
+
+## Visual reference
+
+Amazon's 2026 Fire TV home and Movies screenshots: dark charcoal canvas, bright white focus, horizontal selections, rounded controls, generous space, one primary action. Apply that grammar to a viewing companion; don't copy the content catalogue, ads, or Amazon identity.
+
+Sources: [Fire TV design guidance](https://developer.amazon.com/docs/fire-tv/design-and-user-experience-guidelines.html), [current home and Movies UI](https://www.aboutamazon.com/news/devices/new-fire-tv-upgrades-features-2026). Reference images are kept in artifacts/ui-review.
+
+## System
+
+- Background #101114; response surface #202228; controls #303238; text #f1f1f1; secondary #b9bdc6. Orange is reserved for SELENE's own crescent mark and diagram emphasis.
+- Font: installed Amazon Ember where available, Helvetica Neue, then Arial/system sans. Native Vega uses its system font. No unlicensed font binaries or remote font requests.
+- Body and controls 28–34 pixels at 1080p, headings 42–64. 5% safe area, visible focus, no color-only state. Buttons turn white with dark text and a separated outline when focused.
+- An original crescent and play shape beside the lowercase selene wordmark ties the viewing role to the name. It is not an Amazon logo or affiliation claim.
+- Short control transitions (140ms), no ambient animation or looping spinners. Reduced motion removes transforms/transitions. Generated explanation motion remains finite and content-driven.
+
+## Navigation
+
+A real playback tile opens the question directly. Page through three sessions at a time. Readable metadata is used when supplied; package identity is a fallback, never guessed branding. No automatic transport action on discovery or selection.
+
+One question field accepts the question and scene detail together. Quick questions submit directly to the real model. Preferences are optional. Clarification goes directly back to the same single field, with the original request and playback boundary retained. An empty question never invokes a model.
+
+The response pairs answer and visual, with the playback choice and optional Life Connection. Other actions live under More. Unsupported voice and unconfigured phone mirroring are absent. Back closes the current panel first; it never implicitly resumes playback. Every Life Connection conversation requires confirmation.
+
+The original player inherits these controls and styles but remains explicitly labelled as a demo. UI preview fixtures are test-only and never part of the production bundle.
