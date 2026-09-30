@@ -10,7 +10,7 @@ export const requestSchema = object({
   at_seconds: {type: 'number', minimum: 0, maximum: 86400},
   play_state: choice(['playing', 'paused', 'ended']),
   playback_choice: choice(['unspecified', 'keep_watching', 'pause_to_explore']),
-  need: choice(['Explain simply', 'Easy to hear', 'Translate', 'Show visually']),
+  need: choice(['Explain simply', 'Slower answer voice', 'Translate', 'Show visually']),
   language: choice(['English', 'Indonesian', 'Spanish']),
   session: choice(['family', 'solo']),
   recipient: choice(['grandparent', 'parent', 'child', 'adult', 'everyone']),
@@ -32,9 +32,9 @@ export const companionRequestSchema = object({
 });
 
 export const responseSchema = object({
-  version: {type: 'string', const: '1.0'},
+  version: choice(['1.0']),
   state: choice(['quiet', 'response', 'clarification']),
-  answer: text(560),
+  answer: {...text(560), description: 'The actual short explanation or clarification question, visible to the viewer. Must be nonempty for response or clarification. Only quiet may have an empty answer. SVG labels cannot replace this answer.'},
   visual: object({
     status: choice(['ready', 'fallback', 'none']), svg: text(24000), description: text(240),
     animations: list(object({
@@ -49,7 +49,7 @@ export const responseSchema = object({
   }),
   intervention: object({
     playback: choice(['keep_watching', 'offer_choice', 'request_pause']),
-    audio: {type: 'string', const: 'silent'},
+    audio: choice(['silent']),
   }),
   life_connection: object({
     offered: {type: 'boolean'}, question: text(200),

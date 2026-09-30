@@ -4,6 +4,7 @@ import {focusPanel, moveFocus} from './navigation';
 import {Voice, type VoiceState} from './voice';
 import {Brand, Icon} from './Brand';
 import {needs, recipients, readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
+import {accessibilitySettings, initialAccessibility, applyAccessibility, type AccessibilitySettings} from './accessibility';
 
 type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
 type Playback = {state: 'playing' | 'paused' | 'unknown'; can_pause: boolean; can_play: boolean; revision: number; observing: boolean};
@@ -22,15 +23,15 @@ type Input = {
 type State = {
   screen: 'ask' | 'loading' | 'moment' | 'life' | 'preferences' | 'more'; snapshot: Snapshot | null; request: string; sceneAnswer: string; need: Need; language: Language;
   recipient: Recipient; session: 'family' | 'solo'; playback: Playback; moment: Moment | null;
+  accessibility: AccessibilitySettings;
   error: string; clarifying: boolean; lifeStarted: boolean; choice: Choice; controlling: boolean; voice: VoiceState; mirror: {url: string} | null; mirrorAvailable: boolean;
 };
 const name = (value: string) => value[0].toUpperCase() + value.slice(1);
-const clock = (at: number) => `${Math.floor(at / 60)}:${String(Math.floor(at % 60)).padStart(2, '0')}`;
 const native = (window as Window & {ReactNativeWebView?: {postMessage: (data: string) => void}}).ReactNativeWebView;
 
 export class CompanionMoment extends React.Component<{initial: CompanionBootstrap | null}, State> {
   state: State = {screen: 'ask', snapshot: this.props.initial?.snapshot ?? null, request: '', sceneAnswer: '', ...readPreferences(), playback: this.props.initial?.playback ?? {state: 'unknown', can_pause: false, can_play: false, revision: 0, observing: false}, moment: null,
-    error: '', clarifying: false, lifeStarted: false, choice: 'unspecified', controlling: false, voice: 'idle', mirror: null, mirrorAvailable: false};
+    accessibility: initialAccessibility(), error: '', clarifying: false, lifeStarted: false, choice: 'unspecified', controlling: false, voice: 'idle', mirror: null, mirrorAvailable: false};
   private root = React.createRef<HTMLElement>();
   private pending: AbortController | null = null;
   private control: {id: number; resolve: (value: Playback) => void; reject: (error: Error) => void} | null = null;
@@ -50,6 +51,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
 
   componentDidMount() {
     this.mounted = true;
+    applyAccessibility(this.state.accessibility);
     window.addEventListener('message', this.receive);
     window.addEventListener('keydown', this.key);
     window.addEventListener('pagehide', this.end);
@@ -82,6 +84,11 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private visibility = () => {if (document.hidden) this.close();};
   private receive = (event: MessageEvent) => {
     if (event.source !== window || event.origin !== location.origin) return;
+    if (event.data?.type === 'selene:accessibility') {
+      const accessibility = accessibilitySettings(event.data.settings); applyAccessibility(accessibility);
+      if (accessibility.screenReader && this.state.voice === 'speaking') this.voice.stop();
+      this.setState({accessibility}); return;
+    }
     if (event.data?.type === 'selene:back') {this.back(); return;}
     if (event.data?.type === 'selene:provider' && event.data.playback) {
       this.reportPlayback(event.data.playback as Playback);
@@ -117,7 +124,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private choosePause = async () => {
     try {
       await this.pause();
-      if (this.mounted) this.setState({choice: 'pause_to_explore', lifeStarted: Boolean(this.state.moment?.life_connection.offered), error: ''}, () => {if (this.state.lifeStarted) void this.setMirrorLife(true);});
+      if (this.mounted) this.setState({choice: 'pause_to_explore', error: ''});
     } catch (error) {this.failed(error);}
   };
   private resume = async () => {
@@ -143,14 +150,15 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
     } catch (error) {this.failed(error);}
   };
   private readAloud = async () => {
+    if (this.state.accessibility.screenReader) return;
     if (this.state.voice === 'speaking') return this.voice.stop();
     try {
       const playback = await this.command('refresh');
       if (playback.state !== 'paused' || !playback.observing) throw new Error('Read aloud needs a confirmed pause and live playback updates. The answer remains on screen.');
       const {moment, lifeStarted, need, language} = this.state;
-      if (!this.mounted || !moment) return;
+      if (!this.mounted || !moment || this.state.accessibility.screenReader) return;
       this.voice.speak(lifeStarted ? moment.life_connection.question : moment.answer,
-        need === 'Translate' ? (language === 'Indonesian' ? 'id-ID' : language === 'Spanish' ? 'es-ES' : 'en-US') : 'en-US', need === 'Easy to hear');
+        need === 'Translate' ? (language === 'Indonesian' ? 'id-ID' : language === 'Spanish' ? 'es-ES' : 'en-US') : 'en-US', need === 'Slower answer voice');
     } catch (error) {this.failed(error);}
   };
   private openMirror = async () => {
@@ -214,7 +222,15 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       // Re-read the selected session before displaying a delayed answer. Identity is checked natively.
       let current = await this.command('refresh');
       pending.signal.throwIfAborted();
-      if (moment.intervention.playback === 'request_pause' && current.state !== 'paused') {
+      if (moment.state === 'response' && !input.life_connection) {
+        if (current.state !== 'playing') {
+          if (!current.can_play) throw new Error('The playback app cannot resume. Resume it there, then ask again.');
+          current = await this.command('play', current.revision);
+          pending.signal.throwIfAborted();
+          if (current.state !== 'playing') throw new Error('The playback app has not confirmed resumed playback.');
+        }
+        moment.intervention.playback = 'keep_watching';
+      } else if (moment.intervention.playback === 'request_pause' && current.state !== 'paused') {
         // A newer reported transport change wins. Without notifications, request a fresh button press.
         if (!state.observing || !current.observing || state.revision !== current.revision) moment.intervention.playback = 'offer_choice';
         else {current = await this.pause(current.revision); pending.signal.throwIfAborted();}
@@ -260,42 +276,42 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   };
 
   render() {
-    const {screen, snapshot, request, need, language, recipient, session, playback, moment, error, clarifying, lifeStarted, choice, controlling, voice, mirror, mirrorAvailable} = this.state;
+    const {screen, snapshot, request, need, language, recipient, session, playback, moment, error, clarifying, lifeStarted, controlling, voice, mirror, mirrorAvailable} = this.state;
     if (!snapshot || !native) return <main className="app companion-app" ref={this.root}><header className="companion-heading"><Brand /></header><section className="sheet empty-sheet"><h1>Choose a playback app</h1><p>Open SELENE on your Fire TV to select what you’re watching.</p>{native && <button data-initial onClick={this.close}><Icon name="back"/>Back</button>}</section></main>;
     const paused = playback.state === 'paused';
-    const needsChoice = moment?.intervention.playback === 'offer_choice' && choice === 'unspecified';
     const canVoice = Boolean(this.voice.Recognition) && playback.observing;
     return <main className="app companion-app" ref={this.root} tabIndex={-1}>
-      <header className="companion-heading"><Brand /><span className="playback-context"><strong>{snapshot.title || snapshot.provider_name || 'Selected playback'}</strong><span>{snapshot.provider_name || 'Playback app'} · {clock(snapshot.at_seconds)}</span></span><span className="playback-status">{paused ? 'Paused' : playback.state === 'playing' ? 'Playing' : 'Playback unconfirmed'}</span></header>
+
       {screen === 'ask' && <section className="sheet ask-sheet" data-panel ref={focusPanel} aria-labelledby="ask-title">
-        <div className="sheet-head"><h1 id="ask-title">{clarifying && moment ? moment.answer : 'What would you like to know?'}</h1><button className="text-button" onClick={this.back}><Icon name="back"/>Back</button></div>
-        <p className="request-hint" id="request-hint" role={error ? 'alert' : undefined}>{error || (clarifying ? 'One detail to help explain this moment.' : 'Ask about what you saw or heard. Include a line of dialogue if it helps.')}</p>
+        <div className="sheet-head"><h1 id="ask-title" className={clarifying ? '' : 'sr-only'}>{clarifying && moment ? moment.answer.replace(/\u2014/g, ',') : 'Ask Selene'}</h1><button className="ask-close" aria-label="Close question" onClick={this.back}><Icon name="close"/></button></div>
+        <p className="request-hint" id="request-hint" role={error ? 'alert' : undefined}>{error}</p>
         <form onSubmit={event => {event.preventDefault(); this.ask('unspecified');}}>
           <label className="sr-only" htmlFor="companion-request">{clarifying ? 'Your answer' : 'Your question'}</label>
-          <div className="question-input"><textarea data-initial={clarifying || undefined} id="companion-request" rows={2} maxLength={600} disabled={voice === 'listening'} aria-describedby="request-hint" value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Why did that happen?'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button data-submit className="primary" type="submit" disabled={controlling || voice === 'listening' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask SELENE'}</button></div>
+          <div className="question-input"><textarea data-initial id="companion-request" rows={1} maxLength={600} disabled={voice === 'listening'} aria-describedby="request-hint" value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Why did that happen?'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button data-submit className="primary" type="submit" disabled={controlling || voice === 'listening' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask'}</button></div>
         </form>
-        {!clarifying && <div className="quick-questions" role="group" aria-label="Quick questions"><button data-initial disabled={controlling} onClick={() => this.ask('unspecified', false, 'Explain what just happened in this moment.')}>What happened?</button><button disabled={controlling} onClick={() => this.ask('unspecified', false, 'Who are the people in this moment?')}>Who is that?</button><button disabled={controlling} onClick={() => this.ask('unspecified', false, 'I missed that. Explain the last completed dialogue simply.')}>I missed that</button></div>}
-        <div className="request-options"><button className="text-button" onClick={() => this.setState({screen: 'preferences', error: ''})}><Icon name="settings"/>Preferences</button><span className="small">{need}{need === 'Translate' ? ` · ${language}` : ''} · {session === 'solo' ? 'Solo' : name(recipient)}</span>
+        {!clarifying && <div className="quick-questions" role="group" aria-label="Quick questions"><button disabled={controlling} onClick={() => this.ask('unspecified', false, 'Explain what just happened in this moment.')}>Explain scene</button><button disabled={controlling} onClick={() => this.ask('unspecified', false, 'I missed that. Explain the last completed dialogue simply.')}>Explain dialogue</button></div>}
+        <div className="request-options"><button className="text-button" aria-label="Answer preferences" onClick={() => this.setState({screen: 'preferences', error: ''})}><Icon name="settings"/></button>
           {canVoice && <button className="text-button" disabled={controlling || (!paused && !playback.can_pause)} onClick={async () => {if (!paused) {try {await this.pause();} catch (failure) {this.failed(failure); return;}} await this.listen();}}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : paused ? 'Use voice' : 'Pause & use voice'}</button>}
         </div>
-        <p className="privacy-note small">{voice === 'listening' ? 'Listening. Review your words before sending.' : 'Shown silently on this TV. Playback stays in your control.'}</p>
+        {voice === 'listening' && <p className="privacy-note small">Listening. Review before sending.</p>}
       </section>}
       {screen === 'preferences' && <section className="sheet preferences-sheet" data-panel ref={focusPanel}>
         <div className="sheet-head"><h1>How can we help?</h1><button data-initial data-submit className="primary" onClick={this.back}>Done</button></div>
         <div className="preference-group"><h2>Answer style</h2><div className="need-row">{needs.map(value => <button key={value} aria-pressed={need === value} onClick={() => this.preferences({need: value})}>{value}</button>)}</div></div>
         {need === 'Translate' && <label className="preference-select">Translate into<select value={language} onChange={event => this.preferences({language: event.target.value as Language})}>{['English', 'Indonesian', 'Spanish'].map(value => <option key={value}>{value}</option>)}</select></label>}
         <div className="preference-group"><h2>Watching with</h2><div className="need-row"><button aria-pressed={session === 'family'} onClick={() => this.preferences({session: 'family', recipient: 'everyone'})}>Family</button><button aria-pressed={session === 'solo'} onClick={() => this.preferences({session: 'solo', recipient: 'adult'})}>Just me</button></div></div>
+        <p className="small">Slower answer voice changes SELENE's spoken answer. Keep using your viewing app's captions, audio assistance and family help.</p>
+        {this.state.accessibility.screenReader && <p className="small">VoiceView is enabled. SELENE's extra read-aloud is off.</p>}
         {session === 'family' && <label className="preference-select">Who is the answer for?<select value={recipient} onChange={event => this.preferences({recipient: event.target.value as Recipient})}>{recipients.map(value => <option key={value} value={value}>{name(value)}</option>)}</select></label>}
       </section>}
-      {screen === 'loading' && <section className="loading-panel" data-panel ref={focusPanel}><div><h2>Finding a little clarity…</h2><p role="status">{controlling ? 'Checking playback' : `About the moment at ${clock(snapshot.at_seconds)}`}</p></div><button data-initial onClick={this.back}>Cancel</button></section>}
-      {screen === 'moment' && moment && <section className={`moment ${paused && choice === 'pause_to_explore' ? 'full' : 'compact'} ${moment.visual.status === 'none' ? 'answer-only' : ''}`} data-panel ref={focusPanel} aria-label="Moment Response">
+      {screen === 'loading' && <section className="loading-panel" data-panel ref={focusPanel}><p role="status">{controlling ? 'Resuming playback…' : 'Preparing your answer…'}</p><button data-initial aria-label="Cancel" onClick={this.back}><Icon name="close"/></button></section>}
+      {screen === 'moment' && moment && <section className={`moment compact ${moment.visual.status === 'none' ? 'answer-only' : ''}`} data-panel ref={focusPanel} aria-label="Moment Response">
         <div className="moment-content"><div className="answer">
-          {lifeStarted && paused && moment.life_connection.offered ? <div className="life-question"><h2>{moment.life_connection.question}</h2><p className="small">Life Connection · {name(moment.life_connection.recipient)}</p><p className="small">Take your time. Nothing is recorded.</p></div> : <h2>{moment.answer}</h2>}
-        </div>{moment.visual.status !== 'none' && <div className="visual"><Visual key={String(paused) + moment.visual.svg} visual={moment.visual} /></div>}</div>
+          {lifeStarted && paused && moment.life_connection.offered ? <div className="life-question"><h2>{moment.life_connection.question.replace(/\u2014/g, ',')}</h2><p className="small">Life Connection · {name(moment.life_connection.recipient)}</p><p className="small">Take your time. Nothing is recorded.</p></div> : <h2>{moment.answer.replace(/\u2014/g, ',')}</h2>}
+        </div>{moment.visual.status !== 'none' && <div className="visual"><Visual compact key={moment.visual.svg + moment.visual.description} visual={moment.visual} /></div>}</div>
         <footer className="actions">
-          {needsChoice ? <><button data-initial disabled={controlling} onClick={() => this.setState({choice: 'keep_watching'})}>Keep watching</button><button className="primary" disabled={controlling || (!paused && !playback.can_pause)} onClick={this.choosePause}><Icon name="pause"/>Pause to explore</button></> : <button data-initial className="primary" disabled={controlling} onClick={paused && playback.can_play ? this.resume : this.close}>{paused && playback.can_play ? 'Resume playback' : 'Done'}</button>}
-          {moment.state === 'response' && !lifeStarted && <button disabled={controlling || (!paused && !playback.can_pause)} onClick={() => {this.voice.stop(); this.setState({screen: 'life', error: ''});}}>Life Connection</button>}
-          <button onClick={() => this.setState({screen: 'more', error: ''})}><Icon name="more"/>More</button>
+          <button data-initial aria-label="Dismiss answer" disabled={controlling} onClick={this.close}><Icon name="close"/></button>
+          <button aria-label="More options" onClick={() => this.setState({screen: 'more', error: ''})}><Icon name="more"/></button>
         </footer>
         {controlling && <p role="status" className="small">Waiting for the playback app…</p>}
         {voice === 'speaking' && <button onClick={() => this.voice.stop()}>Stop reading</button>}
@@ -304,8 +320,10 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       {screen === 'more' && <section className="sheet options-sheet" data-panel ref={focusPanel}>
         <div className="sheet-head"><h1>This moment</h1><button data-initial onClick={this.back}><Icon name="back"/>Back</button></div>
         <div className="option-list">
-          {!paused && playback.can_pause && <button disabled={controlling} onClick={async () => {await this.choosePause(); if (this.state.playback.state === 'paused') this.setState({screen: 'moment'});}}>Pause to explore</button>}
-          {this.voice.canSpeak && paused && playback.observing && <button disabled={controlling} onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
+          {!paused && playback.can_pause && <button disabled={controlling} onClick={async () => {await this.choosePause(); if (this.state.playback.state === 'paused') this.setState({screen: 'moment'});}}>Pause playback</button>}
+          {paused && playback.can_play && <button disabled={controlling} onClick={this.resume}>Resume playback</button>}
+          {moment?.state === 'response' && !lifeStarted && <button disabled={controlling || (!paused && !playback.can_pause)} onClick={() => {this.voice.stop(); this.setState({screen: 'life', error: ''});}}>Life Connection</button>}
+          {this.voice.canSpeak && paused && playback.observing && !this.state.accessibility.screenReader && <button disabled={controlling} onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
           {mirrorAvailable && <button onClick={mirror ? this.stopMirror : this.openMirror}>{mirror ? 'Stop phone mirror' : 'Mirror on phone'}</button>}
           <button onClick={this.close}>{paused ? 'Close, stay paused' : 'Close moment'}</button>
         </div>

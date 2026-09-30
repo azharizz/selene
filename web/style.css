@@ -1,7 +1,7 @@
 :root {
   font-family: 'Amazon Ember', 'Helvetica Neue', Arial, sans-serif;
   color: #f1f1f1; background: #101114; color-scheme: dark; font-synthesis: none;
-  --ink: #f1f1f1; --muted: #b9bdc6; --accent: #ffad33; --surface: #202228;
+  --ink: #f1f1f1; --muted: #b9bdc6; --accent: #ffad33; --surface: #202228; --selene-text-scale: 1;
 }
 * {box-sizing: border-box}
 html, body, #root {margin: 0; width: 100%; height: 100%; overflow: hidden}
@@ -9,13 +9,13 @@ html, body, #root {margin: 0; width: 100%; height: 100%; overflow: hidden}
 * {scrollbar-color: #6e7480 #202228; scrollbar-width: thin}
 h1, h2, h3, p {margin: 0}
 p {line-height: 1.45; overflow-wrap: break-word}
-h1 {font-size: clamp(34px, 3.34vw, 64px); line-height: 1.14; font-weight: 600; letter-spacing: -.025em; text-wrap: balance}
-h2 {font-size: clamp(27px, 2.2vw, 42px); line-height: 1.3; font-weight: 500; overflow-wrap: break-word}
-h3 {font-size: clamp(26px, 2.05vw, 40px); line-height: 1.3; font-weight: 500}
+h1 {font-size: calc(clamp(34px, 3.34vw, 64px) * var(--selene-text-scale)); line-height: 1.14; font-weight: 600; letter-spacing: -.025em; text-wrap: balance}
+h2 {font-size: calc(clamp(27px, 2.2vw, 42px) * var(--selene-text-scale)); line-height: 1.3; font-weight: 500; overflow-wrap: break-word}
+h3 {font-size: calc(clamp(26px, 2.05vw, 40px) * var(--selene-text-scale)); line-height: 1.3; font-weight: 500}
 button, textarea, select {font: inherit}
 button {
   display: inline-flex; justify-content: center; align-items: center; gap: .5em; color: var(--ink); background: #303238;
-  border: 2px solid transparent; border-radius: 12px; padding: .6em 1em; font-size: clamp(20px, 1.57vw, 30px);
+  border: 2px solid transparent; border-radius: 12px; padding: .6em 1em; font-size: calc(clamp(20px, 1.57vw, 30px) * var(--selene-text-scale));
   font-weight: 500; line-height: 1.3; cursor: pointer; min-height: 48px; max-width: 100%; text-align: center;
   transition: background-color 140ms ease-out, color 140ms ease-out, transform 140ms ease-out;
 }
@@ -31,110 +31,112 @@ button.secondary {margin-top: 24px}
 .icon {width: 1em; height: 1em; flex-shrink: 0}
 textarea {
   resize: none; width: 100%; background: #191b20; color: var(--ink); border: 2px solid #737986;
-  border-radius: 12px; padding: .8em 1em; line-height: 1.4; font-size: clamp(22px, 1.77vw, 34px); caret-color: var(--accent);
+  border-radius: 12px; padding: .8em 1em; line-height: 1.4; font-size: calc(clamp(22px, 1.77vw, 34px) * var(--selene-text-scale)); caret-color: var(--accent);
 }
 textarea::placeholder {color: var(--muted)}
 select {background: #303238; color: var(--ink); padding: .55em .8em; border: 2px solid #737986; border-radius: 8px; max-width: 100%; font-size: inherit}
 .sr-only {position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0}
-.app {height: 100%; position: relative; background: #101114; font-size: clamp(20px, 1.67vw, 32px)}
+.app {height: 100%; position: relative; background: #101114; font-size: calc(clamp(20px, 1.67vw, 32px) * var(--selene-text-scale))}
 video {width: 100%; height: 100%; object-fit: contain; display: block}
-.wordmark {display: inline-flex; align-items: center; gap: .22em; font-size: clamp(32px, 2.5vw, 48px); font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--ink); white-space: nowrap}
+.wordmark {display: inline-flex; align-items: center; gap: .22em; font-size: calc(clamp(32px, 2.5vw, 48px) * var(--selene-text-scale)); font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--ink); white-space: nowrap}
 .wordmark > svg {width: 1em; height: 1em}
-.small, .eyebrow {font-size: clamp(19px, 1.46vw, 28px); color: var(--muted)}
+.small, .eyebrow {font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale)); color: var(--muted)}
 .eyebrow {margin-bottom: 16px}
 .muted {color: var(--muted)}
 .actions {display: flex; align-items: center; gap: clamp(14px, 1.25vw, 24px); flex-wrap: wrap; margin-top: 28px}
 .welcome {position: absolute; inset: 0; padding: 5%; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(90deg, #101114fa 0%, #101114e6 35%, #10111433 80%, transparent)}
 .welcome-copy {width: 65%; max-height: 80%; overflow: auto; padding: 12px 12px 12px 0}
-.welcome-copy h1 {font-size: clamp(46px, 4.4vw, 84px)}
+.welcome-copy h1 {font-size: calc(clamp(46px, 4.4vw, 84px) * var(--selene-text-scale))}
 .welcome-copy > p {margin-top: 24px}
 .welcome-copy .actions {margin-top: 36px}
 .story-picker {margin-top: 30px}
 .story-picker .eyebrow {display: none}
-.quiet-control {position: absolute; bottom: 6%; right: 6%; background: #202228ed; font-size: clamp(19px, 1.46vw, 28px)}
-.player-controls {position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 5% 5%; background: #17191ff5}
-.player-heading {display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 28px; color: var(--muted)}
-.player-heading > div {display: flex; align-items: center; gap: 28px; color: var(--ink)}
-.player-heading h2 {font-size: clamp(24px, 1.9vw, 36px)}
-.player-heading > span {font-size: clamp(19px, 1.46vw, 28px)}
-.progress {height: 5px; background: #555b67; margin-bottom: 26px; border-radius: 3px; overflow: hidden}
-.progress span {display: block; height: 100%; background: var(--ink)}
-.transport {display: flex; align-items: center; gap: 24px}
-.transport .actions {gap: 14px; margin-top: 0}
-.time {font-variant-numeric: tabular-nums; font-size: clamp(19px, 1.46vw, 28px); white-space: nowrap}
-.captions {position: absolute; bottom: 8%; left: 17%; right: 17%; text-align: center; background: #101114ed; padding: 14px 24px; border-radius: 6px; font-size: clamp(26px, 2.2vw, 42px); line-height: 1.35}
-.captions.raised {bottom: 33%}
-.captions.over-intervention {top: 5%; bottom: auto}
+.quiet-control {position: absolute; bottom: 6%; right: 6%; background: #202228ed; font-size: calc(18px * var(--selene-text-scale))}
+.selene-toolbar {position: absolute; right: 5%; bottom: 5%; display: flex; gap: 4px; padding: 6px; border-radius: 12px; background: var(--surface)}
+.selene-toolbar button, .quiet-control {font-size: calc(18px * var(--selene-text-scale)); min-height: 36px; padding: 6px 10px}
+.selene-toolbar button:not(.primary) {width: 36px; padding: 6px; background: transparent}
+.captions {position: absolute; bottom: 8%; left: 17%; right: 17%; text-align: center; background: #101114ed; padding: 14px 24px; border-radius: 6px; font-size: calc(clamp(26px, 2.2vw, 42px) * var(--selene-text-scale)); line-height: 1.35}
+.captions.in-controls {position: static; max-width: 75%; margin: 0 auto 24px}
 .sheet {position: absolute; left: 5%; right: 5%; bottom: 5%; max-height: 90%; overflow: auto; padding: clamp(24px, 2.5vw, 48px); background: var(--surface); border-radius: 16px; scrollbar-gutter: stable}
 .sheet > p {margin-top: 24px; max-width: 65ch}
 .sheet-head {display: flex; align-items: center; justify-content: space-between; gap: 32px; margin-bottom: 24px}
 .sheet-head h1 {max-width: 85%}
 .sheet-head > button {flex-shrink: 0}
-.ask-sheet {padding: clamp(28px, 3vw, 58px)}
-.ask-sheet .request-hint {margin: 0 0 30px; color: var(--muted); max-width: 65ch}
-.question-input {display: flex; align-items: center; gap: 28px}
-.question-input textarea {flex: 1; min-width: 0}
+.ask-sheet, .app.companion-app .ask-sheet {left: auto; right: 5%; top: auto; bottom: 5%; width: min(480px, 90%); padding: 12px; background: var(--surface); border-radius: 12px; max-height: 80%}
+.ask-sheet .sheet-head {margin: 0; gap: 8px}
+.ask-sheet .sheet-head h1 {font-size: calc(18px * var(--selene-text-scale)); margin-bottom: 10px; max-width: calc(100% - 32px)}
+.ask-sheet .ask-close {position: absolute; right: 8px; top: 8px; width: 28px; min-height: 28px; padding: 4px; font-size: 16px; background: transparent}
+.ask-sheet .request-hint {margin: 0 28px 8px 0; font-size: 16px}
+.ask-sheet .request-hint:empty {display: none}
+.question-input {display: flex; align-items: center; gap: 6px; padding-right: 28px}
+.question-input textarea {flex: 1; min-width: 0; padding: 8px; font-size: calc(18px * var(--selene-text-scale)); border-radius: 6px; line-height: 1.35}
+.ask-sheet button {font-size: calc(16px * var(--selene-text-scale)); min-height: 34px; padding: 5px 8px; border-radius: 6px}
 .question-input button {flex-shrink: 0}
-.quick-questions {display: flex; align-items: center; gap: 24px; margin-top: 28px; flex-wrap: wrap}
-.request-options {display: flex; align-items: center; flex-wrap: wrap; gap: 24px; margin-top: 36px}
-.request-options .small {flex: 1}
-.ask-sheet .privacy-note {margin-top: 20px}
+.ask-sheet .quick-questions {display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap}
+.ask-sheet .request-options {display: inline-flex; align-items: center; gap: 4px; margin: 8px 0 0 6px; vertical-align: bottom}
+.ask-sheet .privacy-note {margin-top: 8px; font-size: 15px}
 .need-row {display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 22px}
 .preference-group {margin-top: 34px}
-.preference-group h2 {font-size: clamp(23px, 1.88vw, 36px)}
+.preference-group h2 {font-size: calc(clamp(23px, 1.88vw, 36px) * var(--selene-text-scale))}
 .preference-select {display: flex; align-items: center; gap: 32px; margin-top: 30px}
 .preferences-sheet, .life-sheet {padding: clamp(28px, 3vw, 58px)}
 .option-list {display: flex; align-items: flex-start; gap: 22px; flex-wrap: wrap; margin-top: 34px}
-.loading-panel {position: absolute; bottom: 8%; left: 5%; right: 5%; background: var(--surface); border-radius: 16px; padding: clamp(28px, 3vw, 58px); display: flex; align-items: center; justify-content: space-between; gap: 32px}
-.loading-panel p {margin-top: 16px; color: var(--muted)}
+.loading-panel {position: absolute; top: 5%; right: 5%; width: min(440px, 40vw); max-height: 80%; overflow: auto; background: var(--surface); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 24px}
+.loading-panel h2 {font-size: calc(clamp(22px, 1.46vw, 28px) * var(--selene-text-scale))}
+.loading-panel p {font-size: calc(20px * var(--selene-text-scale)); color: var(--muted)}
 .moment {position: absolute; background: var(--surface); left: 5%; right: 5%; bottom: 5%; padding: clamp(26px, 2.5vw, 48px); border-radius: 16px}
-.moment header {display: flex; align-items: center; flex-wrap: wrap; gap: 24px; font-size: clamp(19px, 1.46vw, 28px); color: var(--muted)}
+.moment header {display: flex; align-items: center; flex-wrap: wrap; gap: 24px; font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale)); color: var(--muted)}
 .moment header > span:last-child {margin-left: auto}
 .moment-content {display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; margin: 24px 0 32px; min-height: 0}
 .answer {min-width: 0}
-.answer h2 {font-size: clamp(27px, 2.18vw, 42px); line-height: 1.35}
+.answer h2 {font-size: calc(clamp(27px, 2.18vw, 42px) * var(--selene-text-scale)); line-height: 1.35}
 .visual {aspect-ratio: 16/9; min-width: 0; width: 100%; max-height: 36vh}
 .visual iframe {border: 0; width: 100%; height: 100%; display: block; pointer-events: none}
 .visual-fallback {height: 100%; display: flex; flex-direction: column; gap: 20px; justify-content: center; padding: 24px; color: var(--muted); line-height: 1.4; border-left: 1px solid #737986}
-.moment.compact {max-height: 62%; overflow: auto; scrollbar-gutter: stable}
+/* A toast, not a second viewing surface. SVG and answer share one row. */
+.moment.compact {left: auto; right: 5%; top: 5%; bottom: auto; width: min(440px, 40vw); max-height: 80%; overflow: auto; padding: 8px; border-radius: 12px; display: flex; align-items: center; gap: 8px}
+.moment.compact .moment-content {display: contents}
+.moment.compact .answer {flex: 1; min-width: 0}
+.moment.compact .answer h2 {font-size: calc(18px * var(--selene-text-scale)); line-height: 1.3; font-weight: 500}
+.moment.compact .answer .small {font-size: calc(16px * var(--selene-text-scale)); margin-top: 6px}
+.moment.compact .visual {order: -1; flex: 0 0 76px; width: 76px; height: 56px; max-height: none; aspect-ratio: 1}
+.moment.compact .visual-fallback {font-size: 14px; padding: 0; gap: 4px; border: 0; overflow: auto}
+.moment.compact footer {margin: 0; display: flex; flex-direction: column; gap: 0; flex: 0 0 32px}
+.moment.compact button, .loading-panel button {min-height: 32px; width: 32px; padding: 5px; font-size: 16px; background: transparent; border-radius: 8px}
+.moment.compact button:focus, .loading-panel button:focus {background: var(--ink); color: #101114; outline-offset: 1px; transform: none}
 .moment.full {inset: 5%; display: flex; flex-direction: column; overflow: auto}
 .moment.full .moment-content {flex: 1 0 auto; gap: 48px}
 .moment.full .visual {max-height: 55vh}
-.moment.full .answer h2 {font-size: clamp(30px, 2.5vw, 48px)}
+.moment.full .answer h2 {font-size: calc(clamp(30px, 2.5vw, 48px) * var(--selene-text-scale))}
 .moment.answer-only .moment-content {grid-template-columns: 1fr; max-width: 65ch}
 .moment footer {margin-top: auto; flex-shrink: 0}
 .mirror-panel {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 28px; color: var(--muted)}
 .mirror-panel p {margin: 0}
 .mirror-panel code {color: var(--accent); overflow-wrap: anywhere}
-.private-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 28px; align-items: center; font-size: clamp(22px, 1.67vw, 32px); color: var(--muted)}
+.private-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 28px; align-items: center; font-size: calc(clamp(22px, 1.67vw, 32px) * var(--selene-text-scale)); color: var(--muted)}
 .private-heading span:last-child {margin-left: auto}
 .private-app .moment.full {top: 16%}
 .private-error {position: absolute; left: 5%; right: 5%; bottom: 5%; padding: 18px; background: var(--surface); color: #ffb5a7}
 .life-question {display: flex; flex-direction: column; gap: 20px}
 .life-question .small {margin: 0}
-.companion-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 48px; align-items: center; font-size: clamp(21px, 1.67vw, 32px); color: var(--muted)}
+.companion-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 48px; align-items: center; font-size: calc(clamp(21px, 1.67vw, 32px) * var(--selene-text-scale)); color: var(--muted)}
 .playback-context {flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px}
 .playback-context strong {font-weight: 500; color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis}
-.playback-context > span {font-size: clamp(19px, 1.46vw, 28px); font-variant-numeric: tabular-nums}
-.playback-status {white-space: nowrap; font-size: clamp(19px, 1.46vw, 28px)}
+.playback-context > span {font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale)); font-variant-numeric: tabular-nums}
+.playback-status {white-space: nowrap; font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale))}
 .companion-app .sheet {top: 23%; bottom: auto; max-height: 71%; padding: 16px 12px 24px; background: transparent; border-radius: 0}
-.companion-app .moment.full {top: 18%}
-.companion-app .moment.compact {bottom: 10%; max-height: 70%}
-.companion-app .loading-panel {bottom: 25%}
 .companion-app .empty-sheet {top: 35%}
 .companion-app .empty-sheet button {margin-top: 32px}
 [role=alert] {color: #ffb5a7; margin-top: 22px; max-width: 65ch}
 @media (max-width: 1100px) {
   .sheet-head {gap: 20px; margin-bottom: 20px}
   .actions, .need-row, .quick-questions {gap: 18px}
-  .question-input {gap: 20px}
+
   .question-input button {padding-inline: .65em}
-  .transport {flex-wrap: wrap; gap: 16px}
-  .player-heading > div {gap: 20px}
+
+
   .moment-content {gap: 28px}
   .welcome-copy {width: 80%}
-  .captions.raised {bottom: 38%}
-  .captions.over-intervention {bottom: auto}
   .companion-heading {gap: 28px}
 }
 @media (max-height: 650px) {
@@ -144,10 +146,10 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
   .companion-app .sheet {top: 21%; max-height: 74%}
 }
 @media (max-width: 650px) {
-  .question-input {flex-wrap: wrap}
-  .question-input textarea {flex-basis: 100%}
   .sheet-head {align-items: flex-start}
   .moment-content {grid-template-columns: 1fr}
+  .moment.compact, .loading-panel {width: 90%}
+  .moment.compact .visual {flex-basis: 76px; width: 76px; height: 56px}
   .moment .visual {max-height: 32vh}
   .companion-heading {flex-wrap: wrap; gap: 18px}
   .playback-status {display: none}
@@ -156,3 +158,20 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
   .private-heading {gap: 16px; flex-wrap: wrap}
 }
 @media (prefers-reduced-motion: reduce) {* {scroll-behavior: auto; transition: none !important} button:focus {transform: none}}
+
+:root[data-high-contrast=true] {--ink: #fff; --muted: #fff; --surface: #000}
+:root[data-high-contrast=true] button, :root[data-high-contrast=true] textarea, :root[data-high-contrast=true] select {border-color: #fff}
+
+/* Secondary companion tools stay small and leave the film visible. */
+.app .sheet:not(.ask-sheet) {left: auto; right: 5%; top: auto; bottom: 5%; width: min(560px, 90%); max-height: 78%; padding: 16px; background: var(--surface); border-radius: 12px; font-size: calc(18px * var(--selene-text-scale))}
+.app .sheet:not(.ask-sheet) h1 {font-size: calc(24px * var(--selene-text-scale))}
+.app .sheet:not(.ask-sheet) h2 {font-size: calc(18px * var(--selene-text-scale))}
+.app .sheet:not(.ask-sheet) button, .app .sheet:not(.ask-sheet) .small {font-size: calc(16px * var(--selene-text-scale))}
+.app .sheet:not(.ask-sheet) button {min-height: 36px; padding: 6px 10px}
+.app .sheet:not(.ask-sheet) .sheet-head {margin-bottom: 12px; gap: 12px}
+.app .sheet:not(.ask-sheet) .actions, .app .sheet:not(.ask-sheet) .need-row, .app .sheet:not(.ask-sheet) .option-list {gap: 8px; margin-top: 12px}
+.app .sheet:not(.ask-sheet) .preference-group, .app .sheet:not(.ask-sheet) .preference-select, .app .sheet:not(.ask-sheet) > p {margin-top: 12px; gap: 12px}
+.demo-controls {margin-top: 16px; font-size: 16px}
+.demo-controls summary {cursor: pointer; padding: 6px 0}
+.demo-controls summary:focus {outline: 2px solid var(--ink); outline-offset: 2px}
+.ask-sheet button:focus, .selene-toolbar button:focus {outline-offset: 1px; transform: none}

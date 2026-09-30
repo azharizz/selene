@@ -32,6 +32,7 @@ export function sceneContext(at, selectedStory = story) {
     // Only completed narration and already-visible facts cross the spoiler boundary.
     transcript: selectedStory.transcript.filter(t => t.end <= at),
     facts: selectedStory.facts.filter(f => f.available_at <= at),
+    ...(selectedStory.ingestion ? {source: 'automatic_ingestion', evidence_notice: 'Imported captions plus provisional single-frame model observations. No unseen action, motives or human verification.', ingestion: {sample_interval_seconds: selectedStory.ingestion.sample_interval_seconds}} : {source: 'authored_demo'}),
   };
 }
 

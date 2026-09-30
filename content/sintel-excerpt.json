@@ -1,0 +1,501 @@
+{
+  "id": "sintel-excerpt",
+  "title": "Sintel excerpt",
+  "subtitle": "Captioned excerpt",
+  "duration": 105,
+  "video": "/media/sintel-excerpt/video.mp4",
+  "poster": "/media/sintel-excerpt/frame-0.jpg",
+  "scenes": [
+    {
+      "id": "sintel-excerpt-interval-1",
+      "start": 0,
+      "end": 15,
+      "label": "Moment 1"
+    },
+    {
+      "id": "sintel-excerpt-interval-2",
+      "start": 15,
+      "end": 30,
+      "label": "Moment 2"
+    },
+    {
+      "id": "sintel-excerpt-interval-3",
+      "start": 30,
+      "end": 45,
+      "label": "Moment 3"
+    },
+    {
+      "id": "sintel-excerpt-interval-4",
+      "start": 45,
+      "end": 60,
+      "label": "Moment 4"
+    },
+    {
+      "id": "sintel-excerpt-interval-5",
+      "start": 60,
+      "end": 75,
+      "label": "Moment 5"
+    },
+    {
+      "id": "sintel-excerpt-interval-6",
+      "start": 75,
+      "end": 90,
+      "label": "Moment 6"
+    },
+    {
+      "id": "sintel-excerpt-interval-7",
+      "start": 90,
+      "end": 105,
+      "label": "Moment 7"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "caption-1",
+      "start": 22.25,
+      "end": 25.5,
+      "text": "We're almost done. Shhh...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-2",
+      "start": 25.75,
+      "end": 28.5,
+      "text": "Hey, sit still.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-3",
+      "start": 43.25,
+      "end": 47.25,
+      "text": "Good night, Scales.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-4",
+      "start": 65.35,
+      "end": 68.85,
+      "text": "Get him, Scales! Come on!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-5",
+      "start": 80.25,
+      "end": 83.25,
+      "text": "Scales?",
+      "source": "imported_caption"
+    }
+  ],
+  "facts": [
+    {
+      "id": "frame-0-1",
+      "available_at": 0,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-0.jpg",
+      "source_interval": {
+        "start": 0,
+        "end": 0
+      },
+      "text": "A pale-skinned figure with short, reddish-brown hair is shown from the chest up, looking downwards.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-0-2",
+      "available_at": 0,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-0.jpg",
+      "source_interval": {
+        "start": 0,
+        "end": 0
+      },
+      "text": "The figure is wearing a light-colored, possibly white or grey, sleeveless garment with straps.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-0-3",
+      "available_at": 0,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-0.jpg",
+      "source_interval": {
+        "start": 0,
+        "end": 0
+      },
+      "text": "The background appears to be an outdoor setting with stone walls and a red-tiled roof visible on the right.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-0-4",
+      "available_at": 0,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-0.jpg",
+      "source_interval": {
+        "start": 0,
+        "end": 0
+      },
+      "text": "Sunlight or a bright light source is casting strong highlights and shadows, particularly on the figure's face and the background.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-15000-1",
+      "available_at": 15,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-15000.jpg",
+      "source_interval": {
+        "start": 15,
+        "end": 15
+      },
+      "text": "A person's hand, partially covered by a brown, textured sleeve, extends from the upper left.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-15000-2",
+      "available_at": 15,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-15000.jpg",
+      "source_interval": {
+        "start": 15,
+        "end": 15
+      },
+      "text": "A small, light-colored creature with wings is situated on the lower right, looking towards the hand.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-15000-3",
+      "available_at": 15,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-15000.jpg",
+      "source_interval": {
+        "start": 15,
+        "end": 15
+      },
+      "text": "The creature appears to be on a surface made of dark, shingle-like tiles.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-15000-4",
+      "available_at": 15,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-15000.jpg",
+      "source_interval": {
+        "start": 15,
+        "end": 15
+      },
+      "text": "Behind the creature, there is a wall constructed from large, light-colored blocks.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-30000-1",
+      "available_at": 30,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-30000.jpg",
+      "source_interval": {
+        "start": 30,
+        "end": 30
+      },
+      "text": "A cartoon female character with short reddish-brown hair is holding a reptilian creature.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-30000-2",
+      "available_at": 30,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-30000.jpg",
+      "source_interval": {
+        "start": 30,
+        "end": 30
+      },
+      "text": "The reptilian creature is brown, has scales, and is looking up at the female character.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-30000-3",
+      "available_at": 30,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-30000.jpg",
+      "source_interval": {
+        "start": 30,
+        "end": 30
+      },
+      "text": "The female character is wearing a light blue top with a grey shoulder guard and has tattoos on her left arm.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-30000-4",
+      "available_at": 30,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-30000.jpg",
+      "source_interval": {
+        "start": 30,
+        "end": 30
+      },
+      "text": "The background is dark and out of focus, with warm orange lights visible.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-45000-1",
+      "available_at": 45,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-45000.jpg",
+      "source_interval": {
+        "start": 45,
+        "end": 45
+      },
+      "text": "The scene is dark, predominantly in shades of deep green and black.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-45000-2",
+      "available_at": 45,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-45000.jpg",
+      "source_interval": {
+        "start": 45,
+        "end": 45
+      },
+      "text": "A pale, indistinct figure lies on a surface in the lower left of the frame.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-45000-3",
+      "available_at": 45,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-45000.jpg",
+      "source_interval": {
+        "start": 45,
+        "end": 45
+      },
+      "text": "Reflections or light patterns are visible on a horizontal surface in the upper-middle of the frame, showing shapes of red and white.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-1",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "A person with light skin and a dark glove on their right hand is shown from the chest up, facing right.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-2",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "The person wears a light blue and brown top with visible stitching.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-3",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "A reptilian creature with scaled, light brown skin, dark ears, and wings is positioned to the right of the person.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-4",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "The creature is resting its head on a light brown, possibly fabric, object, with its left clawed hand on the object.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-75000-1",
+      "available_at": 75,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-75000.jpg",
+      "source_interval": {
+        "start": 75,
+        "end": 75
+      },
+      "text": "A person wearing a dark skirt and a light-colored top is in the foreground on the left, with their back partially to the viewer.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-75000-2",
+      "available_at": 75,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-75000.jpg",
+      "source_interval": {
+        "start": 75,
+        "end": 75
+      },
+      "text": "Another person, wearing light and dark clothes, is shown in motion in the mid-ground, kicking or knocking over a crate of red fruits.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-75000-3",
+      "available_at": 75,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-75000.jpg",
+      "source_interval": {
+        "start": 75,
+        "end": 75
+      },
+      "text": "Two other people are visible in the background on the right, standing near a wooden crate filled with yellow fruits and some pumpkins on the ground.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-75000-4",
+      "available_at": 75,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-75000.jpg",
+      "source_interval": {
+        "start": 75,
+        "end": 75
+      },
+      "text": "A cart with a barrel on it is visible further back in the street scene.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-90000-1",
+      "available_at": 90,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-90000.jpg",
+      "source_interval": {
+        "start": 90,
+        "end": 90
+      },
+      "text": "A winged creature with a long snout is perched on a wooden beam.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-90000-2",
+      "available_at": 90,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-90000.jpg",
+      "source_interval": {
+        "start": 90,
+        "end": 90
+      },
+      "text": "The creature is dark brown with lighter brown wing membranes.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-90000-3",
+      "available_at": 90,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-90000.jpg",
+      "source_interval": {
+        "start": 90,
+        "end": 90
+      },
+      "text": "Its head is tilted upwards, and a bright, white glow is visible near its mouth/snout area.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-90000-4",
+      "available_at": 90,
+      "source": "model_observation",
+      "frame": "/media/sintel-excerpt/frame-90000.jpg",
+      "source_interval": {
+        "start": 90,
+        "end": 90
+      },
+      "text": "The background shows parts of a light-colored building and a blue sky with some white clouds.",
+      "verification": "unverified single-frame model observation"
+    }
+  ],
+  "ingestion": {
+    "version": 1,
+    "source_url": "https://durian.blender.org/",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "credit": "Sintel © 2010 Blender Foundation | durian.blender.org. Trimmed and re-encoded excerpt; captions and visual observations imported automatically.",
+    "permission_acknowledged": true,
+    "source_offset_seconds": 185,
+    "source_sha256": "93df4e31869e879354a5055a8549fb9335df0f5f73f4963c9bf0db2c888bb704",
+    "caption_sha256": "4ed7e1f1bc5ff69fe33606960e4c048ba6766237bf33b132fef76e1a92cb64b2",
+    "video_sha256": "ed47b1fe19dfa2c80aac791607e83018982ab89d5d13d8ed42f49d255393e8f5",
+    "model": "google/gemini-2.5-flash",
+    "sample_interval_seconds": 15,
+    "frames": [
+      {
+        "at_seconds": 0,
+        "image": "/media/sintel-excerpt/frame-0.jpg",
+        "evidence_ids": [
+          "frame-0-1",
+          "frame-0-2",
+          "frame-0-3",
+          "frame-0-4"
+        ]
+      },
+      {
+        "at_seconds": 15,
+        "image": "/media/sintel-excerpt/frame-15000.jpg",
+        "evidence_ids": [
+          "frame-15000-1",
+          "frame-15000-2",
+          "frame-15000-3",
+          "frame-15000-4"
+        ]
+      },
+      {
+        "at_seconds": 30,
+        "image": "/media/sintel-excerpt/frame-30000.jpg",
+        "evidence_ids": [
+          "frame-30000-1",
+          "frame-30000-2",
+          "frame-30000-3",
+          "frame-30000-4"
+        ]
+      },
+      {
+        "at_seconds": 45,
+        "image": "/media/sintel-excerpt/frame-45000.jpg",
+        "evidence_ids": [
+          "frame-45000-1",
+          "frame-45000-2",
+          "frame-45000-3"
+        ]
+      },
+      {
+        "at_seconds": 60,
+        "image": "/media/sintel-excerpt/frame-60000.jpg",
+        "evidence_ids": [
+          "frame-60000-1",
+          "frame-60000-2",
+          "frame-60000-3",
+          "frame-60000-4"
+        ]
+      },
+      {
+        "at_seconds": 75,
+        "image": "/media/sintel-excerpt/frame-75000.jpg",
+        "evidence_ids": [
+          "frame-75000-1",
+          "frame-75000-2",
+          "frame-75000-3",
+          "frame-75000-4"
+        ]
+      },
+      {
+        "at_seconds": 90,
+        "image": "/media/sintel-excerpt/frame-90000.jpg",
+        "evidence_ids": [
+          "frame-90000-1",
+          "frame-90000-2",
+          "frame-90000-3",
+          "frame-90000-4"
+        ]
+      }
+    ],
+    "limitation": "Sparse, unverified single-frame observations; no continuous action capture or audio description.",
+    "created_at": "2026-09-30T10:12:46.966Z"
+  }
+}

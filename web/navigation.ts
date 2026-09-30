@@ -7,7 +7,7 @@ export function moveFocus(event: KeyboardEvent, root: HTMLElement | null) {
   if (!root || !target || !event.key.startsWith('Arrow') || target.matches('textarea,input,select')) return;
   event.preventDefault();
   const area = root.querySelector<HTMLElement>('[data-panel]') ?? root;
-  const items = Array.from(area.querySelectorAll<HTMLElement>('button:not(:disabled),textarea:not(:disabled),select:not(:disabled)')).filter(element => element.getClientRects().length);
+  const items = Array.from(area.querySelectorAll<HTMLElement>('button:not(:disabled),textarea:not(:disabled),select:not(:disabled),summary')).filter(element => element.getClientRects().length);
   const current = target.getBoundingClientRect();
   const horizontal = ['ArrowLeft', 'ArrowRight'].includes(event.key);
   const sign = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1;

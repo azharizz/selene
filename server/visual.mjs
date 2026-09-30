@@ -12,7 +12,7 @@ export function validateVisual(visual) {
   const root = doc.documentElement;
   if (root.tagName !== 'svg' || root.getAttribute('viewBox') !== '0 0 960 540') throw new Error('Invalid visual bounds');
   if (Array.from(doc.childNodes).some(n => n !== root && (n.nodeType !== 3 || n.textContent.trim()))) throw new Error('Multiple roots');
-  const ids = new Map(); let count = 0; let labels = 0;
+  const ids = new Map(); let count = 0; let labels = 0; let geometry = 0;
   function walk(el, depth, inheritedFont = 48) {
     if (++count > 180 || depth > 10 || !elements.has(el.tagName)) throw new Error('Unsupported SVG element');
     for (const attr of Array.from(el.attributes)) {
@@ -20,6 +20,7 @@ export function validateVisual(visual) {
       if (attr.name === 'xmlns' && (el !== root || attr.value !== 'http://www.w3.org/2000/svg')) throw new Error('Invalid namespace');
       if (attr.value.length > 5000) throw new Error('Oversized SVG attribute');
     }
+    if (['path', 'line', 'polyline', 'polygon', 'circle', 'ellipse', 'rect'].includes(el.tagName) && !(el.tagName === 'rect' && el.getAttribute('fill') === '#202228' && Number(el.getAttribute('width')) >= 800 && Number(el.getAttribute('height')) >= 440)) geometry++;
     const size = el.hasAttribute('font-size') ? Number(el.getAttribute('font-size')) : inheritedFont;
     if (!Number.isFinite(size) || size < 48 || size > 64) throw new Error('Illegible visual text');
     if (el.tagName === 'text' && (++labels > 6 || el.textContent.length > 80)) throw new Error('Visual labels exceed TV budget');
@@ -34,7 +35,8 @@ export function validateVisual(visual) {
     }
   }
   walk(root, 0);
-  if (!labels || !visual.description.trim()) throw new Error('Visual lacks an accessible explanation');
+  if (!labels && geometry < 2) throw new Error('An isolated shape does not explain the answer. Draw a recognizable schematic or relationship, with at least two non-background shapes.');
+  if (!visual.description.trim()) throw new Error('Visual lacks an accessible explanation');
   for (const a of visual.animations) {
     if (!ids.has(a.target_id) || a.keyframes.length !== 2 || a.duration_ms + a.delay_ms > 4000 || a.keyframes.some(k => !transform.test(k.transform))) throw new Error('Unsafe animation');
     const target = ids.get(a.target_id);

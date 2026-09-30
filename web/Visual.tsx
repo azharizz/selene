@@ -2,7 +2,7 @@ import React from 'react';
 
 export type VisualArtifact = {status: 'ready' | 'fallback' | 'none'; svg: string; description: string; animations: unknown[]};
 
-export class Visual extends React.PureComponent<{visual: VisualArtifact}, {failed: boolean}> {
+export class Visual extends React.PureComponent<{visual: VisualArtifact; compact?: boolean}, {failed: boolean}> {
   state = {failed: false};
   private frame = React.createRef<HTMLIFrameElement>();
   private nonce = document.querySelector<HTMLMetaElement>('meta[name="selene-renderer-nonce"]')?.content;
@@ -12,7 +12,7 @@ export class Visual extends React.PureComponent<{visual: VisualArtifact}, {faile
     if (event.source === this.frame.current?.contentWindow && event.data === 'selene:visual-invalid') this.setState({failed: true});
   };
   render() {
-    const {visual} = this.props;
+    const {visual, compact = false} = this.props;
     if (visual.status !== 'ready' || this.state.failed || !this.nonce) return <div className="visual-fallback">
       <p>{visual.description || 'The explanation is ready in words.'}</p>
       {(visual.status === 'fallback' || this.state.failed || !this.nonce) && <span className="small">Visual unavailable</span>}
@@ -23,7 +23,15 @@ export class Visual extends React.PureComponent<{visual: VisualArtifact}, {faile
 const fail=()=>parent.postMessage('selene:visual-invalid','*');
 addEventListener('error',fail,{once:true});
 const svg=document.querySelector('svg');
-const labels=Array.from(svg.querySelectorAll('text'));
+const compact=${compact};
+if(compact){
+  // The adjacent answer carries the words; don't shrink duplicate labels into unreadable text.
+  for(const label of svg.querySelectorAll('text'))label.style.display='none';
+  for(const rect of svg.querySelectorAll('rect')){
+    if(rect.getAttribute('fill')==='#202228'&&Number(rect.getAttribute('width'))>=800&&Number(rect.getAttribute('height'))>=440)rect.style.display='none';
+  }
+}
+const labels=compact?[]:Array.from(svg.querySelectorAll('text'));
 function fits(){
   const inverse=svg.getScreenCTM().inverse();
   const illegible=labels.some(label=>{
@@ -38,7 +46,7 @@ function fits(){
     const end=new DOMPoint(box.right,box.bottom).matrixTransform(inverse);
     return {left:start.x,top:start.y,right:end.x,bottom:end.y};
   });
-  const overflow=Array.from(svg.querySelectorAll('path,line,polyline,polygon,circle,ellipse,rect')).some(shape=>{
+  const overflow=Array.from(svg.querySelectorAll('path,line,polyline,polygon,circle,ellipse,rect')).filter(shape=>getComputedStyle(shape).display!=='none').some(shape=>{
     const box=shape.getBoundingClientRect(),start=new DOMPoint(box.left,box.top).matrixTransform(inverse),end=new DOMPoint(box.right,box.bottom).matrixTransform(inverse);
     return start.x<-.5||start.y<-.5||end.x>960.5||end.y>540.5;
   });
@@ -48,7 +56,21 @@ function fits(){
 }
 requestAnimationFrame(()=>{
   if(!fits())return;
-  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)for(const a of ${animations}){
+  if(compact){
+    const box=svg.getBBox(),size=Math.max(box.width,box.height)+96;
+    if(box.width>0&&box.height>0)svg.setAttribute('viewBox',[box.x+box.width/2-size/2,box.y+box.height/2-size/2,size,size].join(' '));
+  }
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  // Older cached diagrams can reveal their connector strokes once. Never pulse the entire SVG.
+  if(compact && ${animations}.length===0){
+    let index=0;
+    for(const line of svg.querySelectorAll('path,line,polyline')){
+      if(getComputedStyle(line).display==='none'||getComputedStyle(line).stroke==='none')continue;
+      const length=line.getTotalLength();
+      if(length>0)line.animate([{strokeDasharray:String(length),strokeDashoffset:String(length)},{strokeDasharray:String(length),strokeDashoffset:'0'}],{duration:900,delay:index++*180,iterations:1,fill:'backwards',easing:'ease-out'});
+    }
+  }
+  for(const a of ${animations}){
     const element=document.getElementById(a.target_id);
     if(element&&element.animate){const motion=element.animate(a.keyframes,{duration:a.duration_ms,delay:a.delay_ms,iterations:1,fill:'forwards',easing:'ease-out'});motion.onfinish=fits;}
   }

@@ -1,0 +1,31 @@
+[
+  {
+    "role": "assistant",
+    "content": null,
+    "refusal": null,
+    "reasoning": null,
+    "tool_calls": [
+      {
+        "type": "function",
+        "index": 0,
+        "id": "call_WTS69C8BWElOZgtsxi8Sxxzx",
+        "function": {
+          "name": "get_scene_context",
+          "arguments": "{}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "assistant",
+    "content": "{\"version\":\"1.0\",\"state\":\"response\",\"answer\":\"“Sit still” means stay in one place without moving your body.\",\"visual\":{\"status\":\"ready\",\"svg\":\"<svg viewBox=\\\"0 0 960 540\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><rect x=\\\"40\\\" y=\\\"40\\\" width=\\\"880\\\" height=\\\"460\\\" fill=\\\"#202228\\\"/><line x1=\\\"290\\\" y1=\\\"340\\\" x2=\\\"670\\\" y2=\\\"340\\\" stroke=\\\"#f1f1f1\\\" stroke-width=\\\"28\\\" stroke-linecap=\\\"round\\\"/><circle cx=\\\"480\\\" cy=\\\"235\\\" r=\\\"65\\\" fill=\\\"none\\\" stroke=\\\"#ffad33\\\" stroke-width=\\\"24\\\"/><path d=\\\"M480 300 L480 340 M480 325 L425 365 M480 325 L535 365\\\" fill=\\\"none\\\" stroke=\\\"#ffad33\\\" stroke-width=\\\"24\\\" stroke-linecap=\\\"round\\\"/></svg>\",\"description\":\"A simple person-shaped figure stays in one place, showing the literal meaning of “sit still.”\",\"animations\":[{\"target_id\":\"figure\",\"duration_ms\":600,\"delay_ms\":0,\"keyframes\":[{\"opacity\":0.6,\"transform\":\"translate(20px, 0px)\"},{\"opacity\":1,\"transform\":\"none\"}]}]},\"intervention\":{\"playback\":\"offer_choice\",\"audio\":\"silent\"},\"life_connection\":{\"offered\":false,\"question\":\"\",\"recipient\":\"everyone\"},\"grounding\":{\"content_id\":\"sintel-excerpt\",\"scene_id\":\"sintel-excerpt-interval-3\",\"at_seconds\":32,\"evidence_ids\":[\"caption-2\"],\"graph_ids\":[]},\"new_connections\":[]}",
+    "refusal": null,
+    "reasoning": null
+  },
+  {
+    "role": "assistant",
+    "content": "{\"version\":\"1.0\",\"state\":\"response\",\"answer\":\"“Sit still” means stay in one place without moving your body.\",\"visual\":{\"status\":\"ready\",\"svg\":\"<svg viewBox=\\\"0 0 960 540\\\" xmlns=\\\"http://www.w3.org/2000/svg\\\"><rect x=\\\"40\\\" y=\\\"40\\\" width=\\\"880\\\" height=\\\"460\\\" fill=\\\"#202228\\\"/><line x1=\\\"340\\\" y1=\\\"380\\\" x2=\\\"620\\\" y2=\\\"380\\\" stroke=\\\"#f1f1f1\\\" stroke-width=\\\"28\\\" stroke-linecap=\\\"round\\\"/><circle id=\\\"figure\\\" cx=\\\"480\\\" cy=\\\"250\\\" r=\\\"55\\\" fill=\\\"none\\\" stroke=\\\"#ffad33\\\" stroke-width=\\\"24\\\"/><path d=\\\"M480 305 L480 380 M480 340 L420 380 M480 340 L540 380\\\" fill=\\\"none\\\" stroke=\\\"#ffad33\\\" stroke-width=\\\"24\\\" stroke-linecap=\\\"round\\\"/></svg>\",\"description\":\"A simple figure rests on a horizontal line, showing staying in one place.\",\"animations\":[{\"target_id\":\"figure\",\"duration_ms\":500,\"delay_ms\":0,\"keyframes\":[{\"opacity\":0.6,\"transform\":\"translate(20px, 0px)\"},{\"opacity\":1,\"transform\":\"none\"}]}]},\"intervention\":{\"playback\":\"offer_choice\",\"audio\":\"silent\"},\"life_connection\":{\"offered\":false,\"question\":\"\",\"recipient\":\"everyone\"},\"grounding\":{\"content_id\":\"sintel-excerpt\",\"scene_id\":\"sintel-excerpt-interval-3\",\"at_seconds\":32,\"evidence_ids\":[\"caption-2\"],\"graph_ids\":[]},\"new_connections\":[]}",
+    "refusal": null,
+    "reasoning": null
+  }
+]

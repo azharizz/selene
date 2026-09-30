@@ -124,3 +124,12 @@ test('third-party evidence stays separate from the demo film and is identified a
   const other = companionContext({...snapshot, package_id: 'another.provider'}, input.scene_detail);
   assert.notEqual(other.content_id, context.content_id);
 });
+
+
+test('compact label-free diagrams retain accessible descriptions and reject empty SVGs', () => {
+  const icon = {...visual, svg: '<svg viewBox="0 0 960 540"><path d="M200 270H760" stroke="#ffad33" stroke-width="20"/><polygon points="720,230 760,270 720,310" fill="#ffad33"/></svg>'};
+  assert.match(validateVisual(icon).svg, /aria-label="The kite connects two generations."/);
+  assert.throws(() => validateVisual({...icon, description: ''}));
+  assert.throws(() => validateVisual({...icon, svg: '<svg viewBox="0 0 960 540"><rect width="960" height="540" fill="#202228"/><circle cx="480" cy="270" r="70"/></svg>'}), /isolated shape/);
+  assert.throws(() => validateVisual({...icon, svg: '<svg viewBox="0 0 960 540"/>'}));
+});

@@ -29,7 +29,7 @@ function endSession(id) {
   if (session) {
     session.memory.responses.clear(); session.memory.connections.length = 0;
     closeMirror(session);
-    session.latestMoment = null; session.latestLanguage = 'English'; session.lifeVisible = false;
+    session.latestMoment = null; session.latestLanguage = 'English'; session.latestSlowerVoice = false; session.lifeVisible = false;
   }
   sessions.delete(id);
 }
@@ -95,7 +95,7 @@ export const server = createServer(async (req, res) => {
         const selectedStory = companionSession ? null : input?.content_id === undefined ? story : getStory(input.content_id);
         if (!companionSession && !selectedStory) return send(res, 400, {error: 'Unknown story'});
         const id = randomUUID();
-        sessions.set(id, {contentId: selectedStory?.id ?? null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', lifeVisible: false});
+        sessions.set(id, {contentId: selectedStory?.id ?? null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', latestSlowerVoice: false, lifeVisible: false});
         const private_mirror_available = Boolean(privateUrl('capability'));
         if (companionSession) return send(res, 201, {session_id: id, private_mirror_available});
         const {facts, ...playerStory} = selectedStory;
@@ -113,7 +113,7 @@ export const server = createServer(async (req, res) => {
         const url = privateUrl(token);
         if (!url) return send(res, 503, {error: 'Private mirroring needs a reachable HTTPS relay address. Continue on this TV.'});
         closeMirror(session);
-        session.mirror = {token, clients: new Set(), latest: session.latestMoment ? mirrorEvent(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage}) : null};
+        session.mirror = {token, clients: new Set(), latest: session.latestMoment ? mirrorEvent(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage, slower_answer_voice: session.latestSlowerVoice}) : null};
         return send(res, 201, {url});
       }
       if (url.pathname === '/api/private/close') {
@@ -128,7 +128,7 @@ export const server = createServer(async (req, res) => {
         if (!session.mirror) return send(res, 409, {error: 'Pair a private mirror before changing its Life Connection visibility.'});
         if (!input || typeof input.visible !== 'boolean') return send(res, 400, {error: 'Life Connection visibility required'});
         session.lifeVisible = input.visible;
-        if (session.latestMoment) publishMirror(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage});
+        if (session.latestMoment) publishMirror(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage, slower_answer_voice: session.latestSlowerVoice});
         return send(res, 200, {visible: session.lifeVisible});
       }
       const companion = url.pathname === '/api/companion/moment';
@@ -166,8 +166,8 @@ export const server = createServer(async (req, res) => {
         if (companion && input.continuation) context.facts.push({id: 'viewer-clarification', source: 'viewer', text: input.continuation.answer});
         const moment = await explain(input, {signal: controller.signal, memory: session.memory, context});
         if (!controller.signal.aborted) {
-          session.latestMoment = moment; session.latestLanguage = input.language; session.lifeVisible = false;
-          publishMirror(session, {type: 'moment', moment, language: input.language});
+          session.latestMoment = moment; session.latestLanguage = input.language; session.latestSlowerVoice = input.need === 'Slower answer voice'; session.lifeVisible = false;
+          publishMirror(session, {type: 'moment', moment, language: input.language, slower_answer_voice: session.latestSlowerVoice});
           session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context} : null;
           send(res, 200, moment);
         }

@@ -86,12 +86,13 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal((await post('/api/private/pair', {}, session_id)).status, 503, 'loopback is not a phone address');
 
   process.env.SELENE_PRIVATE_URL = 'https://mirror.test.invalid'; offerLife = true;
-  assert.equal((await post('/api/companion/moment', {...input, life_connection: true}, session_id)).status, 200);
+  assert.equal((await post('/api/companion/moment', {...input, need: 'Slower answer voice', life_connection: true}, session_id)).status, 200);
   const pairing = await (await post('/api/private/pair', {}, session_id)).json();
   const token = new URL(pairing.url).searchParams.get('private');
   const stream = await fetch(`${base}/api/private/${token}`, {headers: {Host: 'localhost:0'}});
   const reader = stream.body.getReader();
   const initial = new TextDecoder().decode((await reader.read()).value);
+  assert.match(initial, /"slower_answer_voice":true/);
   assert.equal(initial.includes('Have you tried'), false, 'unconfirmed personal question stays on the TV');
   await post('/api/private/life', {visible: true}, session_id);
   assert.match(new TextDecoder().decode((await reader.read()).value), /Have you tried/);

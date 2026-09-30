@@ -190,6 +190,9 @@ test('readable playback tiles are paged and open a fresh moment in one selection
     assert.equal(tiles.length, count);
     assert.ok(tiles.every(node => node.props.label === 'Current title' && node.props.detail.includes('Test Provider')));
   }
+  app.props.accessibility = {textScale: 1.5, highContrast: true};
+  const copy = collect(app.render()).find(node => node.props?.accessibilityLiveRegion === 'polite');
+  assert.equal(copy.props.style.fontSize, 45); assert.equal(copy.props.style.lineHeight, 63); assert.equal(copy.props.style.color, '#ffffff');
   await app.openMoment(app.state.sessions[7]);
   assert.equal(app.state.snapshot.package_id, 'test.provider.7');
   assert.equal(providers[7].calls.some(([action]) => action === 'pause' || action === 'play'), false);

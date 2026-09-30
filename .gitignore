@@ -17,3 +17,6 @@ video/node_modules
 video/.hyperframes
 video/.hf-*
 *.log
+
+artifacts/ingestion-source/
+evaluation/results*.json

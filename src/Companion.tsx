@@ -1,9 +1,17 @@
 import React from 'react';
-import {AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
-import type {NativeEventSubscription} from 'react-native';
+import {AppState, BackHandler, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import type {NativeEventSubscription, TextStyle} from 'react-native';
 import type {IMediaControlClientAsync, MediaSessionState, ISubscription} from '@amazon-devices/kepler-media-controls';
 import {WebView} from '@amazon-devices/webview';
 import {appUrl} from './config.json';
+import type {AccessibilitySnapshot} from './Accessibility';
+
+export function accessibleText(style: TextStyle, settings?: AccessibilitySnapshot): TextStyle {
+  const scale = settings?.textScale ?? 1;
+  return {...style, fontSize: style.fontSize === undefined ? undefined : style.fontSize * scale,
+    lineHeight: style.lineHeight === undefined ? undefined : style.lineHeight * scale,
+    color: settings?.highContrast ? '#ffffff' : style.color};
+}
 
 type Session = {client: IMediaControlClientAsync; state: MediaSessionState; packageId: string; title?: string; providerName?: string};
 type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
@@ -26,7 +34,7 @@ function positionSeconds(state: MediaSessionState) {
 }
 
 // Native client ownership stays here: discovery never sends a playback command.
-export class Companion extends React.Component<{onDemo: () => void; onReady: () => void}, State> {
+export class Companion extends React.Component<{onDemo: () => void; onReady: () => void; accessibility?: AccessibilitySnapshot}, State> {
   state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message: 'Finding what’s playing…'};
   private clients: IMediaControlClientAsync[] = [];
   private mounted = false;
@@ -57,6 +65,9 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     this.mounted = false;
     this.appState?.remove(); this.backSubscription?.remove();
     this.disconnect();
+  }
+  componentDidUpdate(previous: Readonly<Companion['props']>) {
+    if (previous.accessibility !== this.props.accessibility) this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});
   }
   private release() {this.stopObserving(); this.clients.forEach(client => client.destroy()); this.clients = [];}
   private stopObserving() {this.momentRevision++; this.subscription?.unsubscribe(); this.subscription = null;}
@@ -237,45 +248,46 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     const {busy, sessions, selected, message, snapshot, page} = this.state;
     if (snapshot) return <WebView ref={this.frame} style={styles.page} source={{uri: momentUrl}} hasTVPreferredFocus allowSystemKeyEvents
       javaScriptEnabled mixedContentMode="never" mediaPlaybackRequiresUserAction
-      injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};true;`}
+      injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};window.__SELENE_A11Y__=${JSON.stringify(this.props.accessibility ?? {}).replace(/</g, '\\u003c')};true;`}
       onShouldStartLoadWithRequest={event => [momentUrl, 'about:blank', 'about:srcdoc'].includes(event.url)}
       onMessage={event => {void this.bridge(event.nativeEvent.data, event.nativeEvent.url);}}
-      onLoad={() => {if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)});}}
+      onLoad={() => {if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)}); this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});}}
       onCloseWindow={this.closeMoment}
       onError={() => {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}
       onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}} />;
     const pages = Math.ceil(sessions.length / 3);
     const visible = sessions.slice(page * 3, page * 3 + 3);
+    const accessibility = this.props.accessibility;
     return <View style={styles.page}>
-      <View style={styles.content}>
-        <View style={styles.topbar}><View style={styles.logo}><Image source={require('../assets/selene-mark.png')} style={styles.mark}/><Text style={styles.brand}>selene</Text></View><Text style={styles.tagline}>Your viewing companion</Text></View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.topbar}><View style={styles.logo}><Image source={require('../assets/selene-mark.png')} style={styles.mark}/><Text allowFontScaling={false} style={accessibleText(styles.brand, accessibility)}>selene</Text></View><Text allowFontScaling={false} style={accessibleText(styles.tagline, accessibility)}>Your viewing companion</Text></View>
         <View style={styles.main}>
-          <Text style={styles.heading}>{busy ? 'Finding what’s playing…' : 'What are you watching?'}</Text>
-          <Text style={styles.copy} accessibilityLiveRegion="polite">{busy ? 'Checking apps that share playback with SELENE.' : message}</Text>
-          {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Button key={`${session.packageId}:${session.state.id.id}`} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/>)}</View>}
-          {pages > 1 && <View style={styles.actions}><Button label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text style={styles.copy}>Page {page + 1} of {pages}</Text><Button label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
-          <View style={styles.actions}>{busy ? <Button label="Cancel" preferred onPress={() => this.disconnect('Search cancelled. Try again when you’re ready.')}/> : <Button label={sessions.length ? 'Refresh apps' : 'Try again'} preferred={!sessions.length} onPress={this.scan}/>}<Button label="Try the demo" onPress={this.props.onDemo}/></View>
+          <Text allowFontScaling={false} style={accessibleText(styles.heading, accessibility)}>{busy ? 'Finding what’s playing…' : 'What are you watching?'}</Text>
+          <Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)} accessibilityLiveRegion="polite">{busy ? 'Checking apps that share playback with SELENE.' : message}</Text>
+          {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Button accessibility={accessibility} key={`${session.packageId}:${session.state.id.id}`} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/>)}</View>}
+          {pages > 1 && <View style={styles.actions}><Button accessibility={accessibility} label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)}>Page {page + 1} of {pages}</Text><Button accessibility={accessibility} label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
+          <View style={styles.actions}>{busy ? <Button accessibility={accessibility} label="Cancel" preferred onPress={() => this.disconnect('Search cancelled. Try again when you’re ready.')}/> : <Button accessibility={accessibility} label={sessions.length ? 'Refresh apps' : 'Try again'} preferred={!sessions.length} onPress={this.scan}/>}<Button accessibility={accessibility} label="Try the demo" onPress={this.props.onDemo}/></View>
         </View>
-        <View style={styles.footer}><Text style={styles.hint}>Back to leave SELENE</Text><Text style={styles.hint}>Playback stays in your control</Text></View>
-      </View>
+        <View style={styles.footer}><Text allowFontScaling={false} style={accessibleText(styles.hint, accessibility)}>Back to leave SELENE</Text><Text allowFontScaling={false} style={accessibleText(styles.hint, accessibility)}>Playback stays in your control</Text></View>
+      </ScrollView>
     </View>;
   }
 }
-export function Button({label, detail, onPress, disabled = false, preferred = false, tile = false}: {label: string; detail?: string; onPress: () => void; disabled?: boolean; preferred?: boolean; tile?: boolean}) {
+export function Button({label, detail, onPress, disabled = false, preferred = false, tile = false, accessibility}: {label: string; detail?: string; onPress: () => void; disabled?: boolean; preferred?: boolean; tile?: boolean; accessibility?: AccessibilitySnapshot}) {
   const [focused, setFocused] = React.useState(false);
   return <Pressable accessibilityRole="button" accessibilityLabel={detail ? `${label}, ${detail}` : label} accessibilityState={{disabled}} disabled={disabled} hasTVPreferredFocus={preferred && !disabled}
     onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onPress={onPress}
-    style={[styles.button, tile && styles.tile, focused && styles.focused, disabled && styles.disabled]}><Text numberOfLines={2} style={[styles.buttonText, tile && styles.tileTitle, focused && styles.focusedText]}>{label}</Text>{detail && <Text numberOfLines={2} style={[styles.tileDetail, focused && styles.focusedText]}>{detail}</Text>}</Pressable>;
+    style={[styles.button, tile && styles.tile, focused && styles.focused, disabled && styles.disabled]}><Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(tile ? styles.tileTitle : styles.buttonText, accessibility), focused && styles.focusedText]}>{label}</Text>{detail && <Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(styles.tileDetail, accessibility), focused && styles.focusedText]}>{detail}</Text>}</Pressable>;
 }
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#101114'}, content: {flex: 1, paddingHorizontal: '5%', paddingVertical: '5%', gap: 36},
+  page: {flex: 1, backgroundColor: '#101114'}, content: {flexGrow: 1, paddingHorizontal: '5%', paddingVertical: '5%', gap: 36},
   topbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 12}, mark: {width: 48, height: 48},
   brand: {fontSize: 46, fontWeight: '600', color: '#f1f1f1'}, tagline: {fontSize: 28, color: '#b9bdc6'},
   main: {flex: 1, justifyContent: 'center', gap: 32}, heading: {fontSize: 64, lineHeight: 76, color: '#f1f1f1', maxWidth: 1250, fontWeight: '600'},
   copy: {fontSize: 30, color: '#b9bdc6', lineHeight: 42, maxWidth: 1400},
-  actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 24}, sessionRow: {flexDirection: 'row', gap: 28, marginVertical: 16},
+  actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 24}, sessionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 28, marginVertical: 16},
   button: {alignSelf: 'flex-start', maxWidth: '100%', borderWidth: 3, borderColor: 'transparent', borderRadius: 12, backgroundColor: '#303238', paddingVertical: 18, paddingHorizontal: 30},
-  tile: {flex: 1, minHeight: 180, justifyContent: 'space-between', padding: 30, gap: 20}, tileTitle: {fontSize: 36, fontWeight: '600'}, tileDetail: {fontSize: 28, color: '#b9bdc6'},
+  tile: {flex: 1, minWidth: 320, minHeight: 180, justifyContent: 'space-between', padding: 30, gap: 20}, tileTitle: {fontSize: 36, fontWeight: '600', color: '#f1f1f1'}, tileDetail: {fontSize: 28, color: '#b9bdc6'},
   focused: {borderColor: '#f1f1f1', backgroundColor: '#f1f1f1', transform: [{scale: 1.025}]}, focusedText: {color: '#101114'}, disabled: {opacity: 0.45},
   buttonText: {fontSize: 30, color: '#f1f1f1'}, footer: {flexDirection: 'row', justifyContent: 'space-between', gap: 24}, hint: {fontSize: 28, color: '#b9bdc6'},
 });

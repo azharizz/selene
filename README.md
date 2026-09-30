@@ -2,17 +2,27 @@
 
 A Vega-first viewing assistant for apps that expose supported playback sessions. Following the latest product direction, SELENE opens the playback companion first. Select a session, ask about its sampled moment, and add dialogue or scene detail when the provider does not supply it. The same real model produces a concise answer and SVG, with playback and Life Connection under explicit viewer control.
 
-The [feature map](docs/product-workflow.md) records the workflow, sources and platform limits. The [companion](docs/companion.md) uses the real Vega Media Controls API and a guarded native/WebView bridge. The original **The Red Kite** player remains available with its own captions, authored scene evidence, Family/Solo selection, voice capability fallback and complete Moment Response flow.
+The [feature map](docs/product-workflow.md) records the workflow, sources and platform limits. The [companion](docs/companion.md) uses the real Vega Media Controls API and a guarded native/WebView bridge. The original **The Red Kite** player remains available with its own captions, authored scene evidence, Family/Solo selection, voice capability fallback and complete Moment Response flow. Answers pair a compact SVG with text; unsupported diagrams fail safely to words.
 
 For an authorized transcript provider, see [the licensed scene-context contract](docs/scene-context.md).
 
-## Companion UI — September 20, 2026
+## September 30: automatic evidence and native assistance
+
+The own-player now includes a permitted **Sintel excerpt** imported automatically from SRT captions and seven sampled frames, without manually authored plot facts. Run `npm run ingest -- --help` to import another permitted local video. The agent distinguishes captions from provisional image-model observations and prevents generated observations from entering durable graph memory.
+
+The Vega host reads native caption, screen-reader, high-contrast, UI-scale and audio-description preferences. Explicit caption choices remain under viewer control. “Easy to hear” is now “Slower answer voice”; it changes Selene's optional spoken answer only. Native program assistance and family help remain welcome.
+
+[Implementation, import commands, native limits and the household comparison protocol](docs/improvement-verification.md) record the actual checks. `npm run evaluate -- evaluation/results-local.json` summarizes anonymous observations of usual assistance versus the same assistance plus Selene. The template contains no fabricated results. This implementation does not add universal third-party screen/audio capture or a Fire OS build.
+
+The current local answer-model setting is `openai/gpt-6-luna`; the actual frame import used `google/gemini-2.5-flash`. Restart older relay processes to load the answer-model change. The compact-toast release passes 46 deterministic tests, typecheck, lint and all three native release architectures. Earlier eight-case live passes are historical: subsequent prompt changes have produced model-review failures; current live reliability remains a separate issue. Physical-device and household checks remain pending.
+
+## Companion UI: September 20, 2026
 
 Select a playback tile, then type one question or choose a quick question. Scene detail belongs in that same field. Preferences are optional and remember only explicit selections. Playback lists show three sessions per page; secondary response actions are under More. The Fire TV styling and original SELENE mark are documented in [DESIGN.md](DESIGN.md).
 
 See the [screenshot review and current blockers](docs/ui-review.md). The web UI was checked at TV sizes with clearly labelled test fixtures. No Vega device was connected for this pass. Live model checks exposed grounding/visual errors; passing the code suites does not establish production readiness.
 
-## Companion code review — September 19, 2026
+## Companion code review: September 19, 2026
 
 The companion uses native provider discovery, a fixed moment snapshot, a separate companion relay session, the real explanation agent, and explicit playback controls. Code checks cover notification/cancellation races, clarification, voice consent, graph citations, HTTP scene-source boundaries and private-mirror revocation. See [the review and remaining production gates](docs/companion-review.md). No app, browser or device interaction is part of this review.
 
@@ -54,9 +64,10 @@ npm test
 npm run build
 npm run test:live
 npm run test:live -- --companion
+npm run test:live -- --ingested
 ```
 
-`npm run release` includes typecheck, lint, Node checks, and both web and native builds. `npm exec -- jest --runInBand` additionally checks native React fallback rendering in memory. `test:live` calls the real configured model for the original story. `--companion` uses explicitly synthetic provider metadata and viewer detail to exercise the real companion agent, SVG and Life Connection paths; it cannot verify another streaming app or device rendering. The deterministic suites mock external/native boundaries only inside `test/`.
+`npm run release` includes typecheck, lint, Node checks, and both web and native builds. `npm exec -- jest --runInBand` additionally checks native React fallback rendering in memory. `test:live` calls the real configured model for the original story. `--companion` uses explicitly synthetic provider metadata and viewer detail to exercise the real companion agent, SVG and Life Connection paths; it cannot verify another streaming app or device rendering. `--ingested` checks the real imported Sintel captions and sampled-image evidence. The deterministic suites mock external/native boundaries only inside `test/`.
 
 Then exercise the installed device: D-pad and Back, actual playback and captions, compact/full visuals, microphone and read-aloud availability, mute restoration, background/return, clarification, cancellation, provider failures and manual Life Connection close/resume. Browser speech APIs are capability-gated and still need verification on the target Vega WebView; remote request choices and keyboard input remain available without them.
 

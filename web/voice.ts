@@ -65,10 +65,10 @@ export class Voice {
     }
   }
 
-  speak(text: string, language: string, easyToHear: boolean) {
+  speak(text: string, language: string, slowerAnswer: boolean) {
     if (!this.canSpeak) return;
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language; utterance.rate = easyToHear ? 0.85 : 1;
+    utterance.lang = language; utterance.rate = slowerAnswer ? 0.85 : 1;
     const action = this.begin(() => {
       utterance.onend = null; utterance.onerror = null; window.speechSynthesis.cancel();
     }, 'speaking');

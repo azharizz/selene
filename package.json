@@ -24,9 +24,12 @@
     "vega:run": "scripts/vega-run.sh",
     "vega:testvideo": "scripts/vega-testvideo.sh",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
-    "test:live": "node --env-file=../.env scripts/live-check.mjs"
+    "test:live": "node --env-file=../.env scripts/live-check.mjs",
+    "ingest": "node --env-file=../.env scripts/ingest-video.mjs",
+    "evaluate": "node scripts/evaluate.mjs"
   },
   "dependencies": {
+    "@amazon-devices/kepler-a11y-settings-interface-turbo": "1.0.0",
     "@amazon-devices/kepler-media-controls": "^1.0.25",
     "@amazon-devices/react-native-kepler": "^4.0.0",
     "@amazon-devices/webview": "^4.0.0",

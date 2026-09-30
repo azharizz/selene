@@ -17,6 +17,9 @@ Scope: the Vega MVP in [PRODUCT.md](../../PRODUCT.md), plus the latest request f
 | Product requirement | Implementation |
 | --- | --- |
 | Authored films, timed captions, scenes and facts | `assets/media/the-red-kite.mp4`, `assets/media/offside-practice.mp4`, `content/*.json`; `web/App.tsx` owns playback/captions |
+| Automatically acquired evidence from another permitted title | `scripts/ingest-video.mjs`, `content/sintel-excerpt.json`, `assets/media/sintel-excerpt/`; SRT/WebVTT cues and individually timed, provisional frame observations; no durable graph writes |
+| Native accessibility collaboration | `src/Accessibility.ts`, `web/accessibility.ts`; official read-only Vega preferences/listeners, caption defaults/style with explicit overrides, high contrast/text scale, VoiceView speech guard and accurately named slower-answer voice |
+| Collaborative evaluation | `scripts/evaluate.mjs`, `evaluation/trials.template.json`; anonymous usual-help versus usual-help-plus-Selene pairs, comprehension, group/viewer disruption and observed reuse; [protocol and executed checks](improvement-verification.md) |
 | Family/Solo, four viewer needs, explicit recipient, translation | `web/App.tsx`; English, Indonesian and Spanish selections; no inferred household profile |
 | Quiet position awareness and frozen request context | Video events resolve the scene locally; `server/context.mjs` exposes only completed dialogue and already-available facts |
 | Natural request, D-pad, keyboard and optional real voice | `web/App.tsx`, `web/voice.ts`; explicit start/stop, review transcript before submission, capability/error fallback |
