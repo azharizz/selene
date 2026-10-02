@@ -53,6 +53,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const {server} = await import('../server/index.mjs');
   if (!server.listening) await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}`;
+  assert.equal((await fetch(`${base}/api/health`, {headers: {Host: '10.0.0.2:4519'}})).status, 200, 'container health checks may use the node IP as Host');
   t.after(async () => {
     globalThis.fetch = realFetch;
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve));

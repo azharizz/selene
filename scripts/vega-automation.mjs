@@ -1,12 +1,14 @@
-// Launcher-only smoke check. Uses the installed toolchain; never builds or opens SELENE.
+// Pinned launcher check, optionally followed by the installed SELENE feature flow.
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, writeFileSync, mkdirSync, openSync, closeSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, openSync, closeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import {createHash} from 'node:crypto';
+import {fetchRelay, runFeature, verifyServedBuild} from './vega-feature.mjs';
 
 const home = homedir();
 const nodeRoot = join(home, '.nvm/versions/node/v22.17.0');
@@ -14,7 +16,7 @@ const node = join(nodeRoot, 'bin/node');
 const self = fileURLToPath(import.meta.url);
 // npm may be launched with Node 26. Appium and its children must use Node 22.
 if (process.execPath !== node) {
-  try { execFileSync(node, [self], { stdio: 'inherit' }); }
+  try { execFileSync(node, [self, ...process.argv.slice(2)], { stdio: 'inherit' }); }
   catch (error) { process.exit(error.status || 1); }
   process.exit(0);
 }
@@ -28,7 +30,11 @@ const appiumHome = join(home, '.appium');
 const driver = join(appiumHome, 'node_modules/@amazon-devices/appium-vega-driver');
 const serial = 'emulator-5554';
 const base = 'http://127.0.0.1:4723';
-const out = join(root, 'artifacts/automation-baseline', new Date().toISOString().replaceAll(':', '-'));
+const args = process.argv.slice(2);
+assert(args.length === 0 || ([2, 3].includes(args.length) && args[0] === '--feature' && /^[a-z0-9-]+$/.test(args[1]) && (args.length === 2 || args[2] === '--pair-only')), 'Usage: npm run vega:automation -- [--feature sintel-excerpt [--pair-only]]');
+const feature = args[1];
+const pairOnly = args[2] === '--pair-only';
+const out = join(root, feature ? 'artifacts/vega-feature' : 'artifacts/automation-baseline', new Date().toISOString().replaceAll(':', '-'));
 mkdirSync(out, { recursive: true });
 const env = {
   ...process.env,
@@ -42,10 +48,13 @@ const capabilities = {
   'vega:device': `vda://${serial}`,
   'appium:newCommandTimeout': 60,
 };
-const report = { status: 'failed', sdk: sdkVersion, node: process.version, serial, capabilities, checks: {} };
+const report = { status: 'running', startedAt: new Date().toISOString(), finishedAt: null, sdk: sdkVersion, node: process.version, serial, capabilities, checks: {} };
 let server;
+let deviceLog;
 let session;
 let stage = 'preflight';
+const checkpoint = () => writeFileSync(join(out, 'result.json'), `${JSON.stringify({...report, stage}, null, 2)}\n`);
+checkpoint(); // A killed process leaves an incomplete record, never an implied pass.
 const run = (bin, args) => execFileSync(bin, args, { env, encoding: 'utf8', timeout: 15000 });
 const version = (path) => JSON.parse(readFileSync(join(path, 'package.json'))).version;
 async function request(path, body, method = body ? 'POST' : 'GET') {
@@ -103,7 +112,7 @@ try {
       { env, stdio: ['ignore', log, log] });
   } finally { closeSync(log); }
   let ready = false;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
     assert(server.exitCode === null, 'Appium exited. See appium.log.');
     try {
       const r = await fetch(`${base}/status`, { signal: AbortSignal.timeout(500) });
@@ -118,6 +127,7 @@ try {
   session = (await request('/session', { capabilities: { alwaysMatch: capabilities, firstMatch: [{}] } })).sessionId;
   assert(session, 'No Appium session ID');
   report.checks.session = true;
+  if (feature) await command('appium/device/terminate_app', {appId: 'com.selene.tv'});
 
   stage = 'launcher';
   await command('appium/device/press_keycode', { keycode: 172 }); // Linux KEY_HOMEPAGE
@@ -146,11 +156,57 @@ try {
   report.checks.remoteFocusChanged = true;
   report.focusBefore = focus(before);
   report.focusAfter = focus(after);
+  if (feature) {
+    stage = 'selene-feature';
+    const hash = file => createHash('sha256').update(readFileSync(join(root, file))).digest('hex');
+    const catalogFile = readdirSync(join(root, 'content')).filter(name => name.endsWith('.json') && name !== 'graph.json')
+      .find(name => JSON.parse(readFileSync(join(root, 'content', name), 'utf8')).id === feature);
+    assert(catalogFile, `Unknown content ID: ${feature}`);
+    const story = JSON.parse(readFileSync(join(root, 'content', catalogFile), 'utf8'));
+    const {appUrl} = JSON.parse(readFileSync(join(root, 'src/config.json'), 'utf8'));
+    assert((await fetchRelay(appUrl, 10000)).ok, 'Start the SELENE relay first');
+    if (new URL(appUrl).hostname === '127.0.0.1') {
+      const port = new URL(appUrl).port;
+      run(vda, ['-s', serial, 'reverse', `tcp:${port}`, `tcp:${port}`]);
+    }
+    report.build = {webSha256: hash('assets/app.js'), cssSha256: hash('assets/app.css'), catalogSha256: hash(`content/${catalogFile}`),
+      mediaSha256: hash(`assets${story.video}`), nativePackageSha256: hash('build/aarch64-debug/selene_aarch64.vpkg')};
+    stage = 'verify-served-build'; checkpoint();
+    await verifyServedBuild(appUrl, story, report.build);
+    report.checks.servedBuildMatches = true;
+    stage = 'install-debug-package';
+    checkpoint();
+    execFileSync(join(home, 'vega/bin/vega'), ['device', 'install-app', '--device', 'VirtualDevice', '--packagePath', join(root, 'build/aarch64-debug/selene_aarch64.vpkg')], {env, stdio: 'inherit', timeout: 90000});
+    const log = openSync(join(out, 'device.log'), 'w');
+    try {deviceLog = spawn(vda, ['-s', serial, 'shell', 'loggingctl log --follow --vpkg com.selene.tv'], {env, stdio: ['ignore', log, log]});}
+    finally {closeSync(log);}
+    stage = 'selene-feature';
+    report.feature = {contentId: feature, scope: pairOnly ? 'pairing setup only' : 'shared-TV flow', checks: {}};
+    await runFeature({command, screenshot, out, story, report: report.feature, checkpoint, pairOnly});
+    stage = 'verify-unchanged-build'; checkpoint();
+    assert.equal(hash('assets/app.js'), report.build.webSha256, 'Web bundle changed during the run; result is invalid');
+    assert.equal(hash('assets/app.css'), report.build.cssSha256, 'Styles changed during the run; result is invalid');
+    assert.equal(hash(`content/${catalogFile}`), report.build.catalogSha256, 'Catalog changed during the run; result is invalid');
+    assert.equal(hash(`assets${story.video}`), report.build.mediaSha256, 'Media changed during the run; result is invalid');
+    assert.equal(hash('build/aarch64-debug/selene_aarch64.vpkg'), report.build.nativePackageSha256, 'Native package changed during the run; result is invalid');
+    await verifyServedBuild(appUrl, story, report.build);
+    report.checks.buildUnchanged = true;
+  }
   report.status = 'passed';
 } catch (error) {
+  report.status = 'failed';
   report.failure = { stage, message: error.message };
+  if (session) {
+    try {writeFileSync(join(out, 'failure.xml'), await command('source')); await screenshot('failure');} catch { /* retain the original failure */ }
+  }
   process.exitCode = 1;
 } finally {
+  if (deviceLog && deviceLog.exitCode === null) {
+    const stopped = once(deviceLog, 'exit');
+    deviceLog.kill('SIGTERM');
+    const timer = setTimeout(() => deviceLog.kill('SIGKILL'), 3000);
+    await stopped; clearTimeout(timer);
+  }
   if (session) {
     try { await request(`/session/${session}`, undefined, 'DELETE'); }
     catch (error) { report.cleanupError = error.message; report.status = 'failed'; process.exitCode = 1; }
@@ -162,6 +218,7 @@ try {
     await stopped;
     clearTimeout(timer);
   }
-  writeFileSync(join(out, 'result.json'), `${JSON.stringify(report, null, 2)}\n`);
-  console.log(JSON.stringify({ status: report.status, checks: report.checks, failure: report.failure, artifacts: out }, null, 2));
+  report.finishedAt = new Date().toISOString();
+  checkpoint();
+  console.log(JSON.stringify({ status: report.status, checks: report.checks, feature: report.feature, failure: report.failure, artifacts: out }, null, 2));
 }

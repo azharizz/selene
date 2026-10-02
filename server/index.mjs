@@ -93,7 +93,7 @@ export const server = createServer(async (req, res) => {
   res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=(self)');
   res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self'; media-src 'self' ${mediaOrigin}; connect-src 'self'; frame-src 'self' about:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`);
   const host = req.headers.host;
-  if (!allowedHosts.has(host)) return send(res, 403, {error: 'Unrecognized host'});
+  if (!allowedHosts.has(host) && !(req.method === 'GET' && req.url === '/api/health')) return send(res, 403, {error: 'Unrecognized host'});
   try {
     const url = new URL(req.url, `http://${host}`);
     if (!deviceHosts.has(host) && url.pathname.startsWith('/api/')
