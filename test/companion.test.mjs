@@ -11,7 +11,7 @@ const compiled = await build({entryPoints: ['src/Companion.tsx'], bundle: true, 
   },
 }]});
 function instance(locator) {
-  const context = {module: {exports: {}}, locator, console: {log() {}, warn() {}}};
+  const context = {module: {exports: {}}, locator, console: {log() {}, info() {}, warn() {}}};
   vm.runInNewContext(compiled.outputFiles[0].text, context);
   const app = new context.module.exports.Companion({onReady() {}, onDemo() {}});
   app.mounted = true;
@@ -61,6 +61,23 @@ test('provider notifications during a command do not discard its bridge reply', 
   const {appUrl} = JSON.parse(await readFile('src/config.json', 'utf8'));
   await app.bridge(JSON.stringify({id: 1, action: 'refresh'}), `${appUrl.replace(/\/$/, '')}/?companion=1`);
   assert.equal(replies.filter(message => message.type === 'selene:playback' && message.id === 1).length, 1);
+  app.componentWillUnmount();
+});
+
+test('companion accepts Vega messages without url only after a trusted load and resets on close', async () => {
+  const provider = endpoint(), app = instance({getMediaControlEndpoints: async () => [provider.client]});
+  await app.scan(); await app.select(app.state.sessions[0]); await app.openMoment();
+  const frame = app.render().props;
+  const message = url => ({nativeEvent: {data: JSON.stringify({action: 'close'}), ...(url !== undefined ? {url} : {})}});
+  assert.equal(frame.domStorageEnabled, true);
+  frame.onMessage(message()); assert(app.state.snapshot);
+  frame.onLoad({nativeEvent: {url: frame.source.uri}});
+  frame.onMessage(message('https://foreign.example/')); assert(app.state.snapshot);
+  frame.onLoadStart(); frame.onMessage(message()); assert(app.state.snapshot);
+  frame.onLoad({nativeEvent: {url: frame.source.uri}});
+  frame.onMessage(message());
+  assert.equal(app.state.snapshot, null);
+  assert.equal(app.loadedUrl, null);
   app.componentWillUnmount();
 });
 
@@ -211,7 +228,7 @@ test('readable playback tiles are paged and open a fresh moment in one selection
   }
   app.props.accessibility = {textScale: 1.5, highContrast: true};
   const copy = collect(app.render()).find(node => node.props?.accessibilityLiveRegion === 'polite');
-  assert.equal(copy.props.style.fontSize, 45); assert.equal(copy.props.style.lineHeight, 63); assert.equal(copy.props.style.color, '#ffffff');
+  assert.equal(copy.props.style.fontSize, 27); assert.equal(copy.props.style.lineHeight, 39); assert.equal(copy.props.style.color, '#ffffff');
   await app.openMoment(app.state.sessions[7]);
   assert.equal(app.state.snapshot.package_id, 'test.provider.7');
   assert.equal(providers[7].calls.some(([action]) => action === 'pause' || action === 'play'), false);

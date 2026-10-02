@@ -132,7 +132,7 @@ Earlier ingestion checks completed September 30, 2026 (live results below predat
 
 The latest live checks passed after earlier configurations produced unsupported scene inferences, empty responses, schema errors or reviewer disagreements. The final setup keeps schema, renderer and semantic checks; it can still reject a valid answer or miss an error. Passing eight selected cases is not a reliability estimate or a production-ready claim.
 
-Reviewable proof: [imported player](../artifacts/ui-review/2026-09-30-ingested-player.jpg), [real answer with playback choices](../artifacts/ui-review/2026-09-30-ingested-answer.jpg), [accurate assistance settings](../artifacts/ui-review/2026-09-30-accessibility.jpg). The local browser preview is at `http://127.0.0.1:4627/?story=sintel-excerpt` while its relay is running. Normal `npm start` uses the configured relay port; a TV bundle must be rebuilt for the intended reachable relay URL.
+Reviewable proof: [imported player](evidence/ui-review/2026-09-30-ingested-player.jpg), [real answer with playback choices](evidence/ui-review/2026-09-30-ingested-answer.jpg), [accurate assistance settings](evidence/ui-review/2026-09-30-accessibility.jpg). The local browser preview is at `http://127.0.0.1:4627/?story=sintel-excerpt` while its relay is running. Normal `npm start` uses the configured relay port; a TV bundle must be rebuilt for the intended reachable relay URL.
 
 Two next gates remain: **(1)** install on a Vega Fire TV and test native settings, VoiceView, D-pad/Back, speech/audio behavior, captions and interruption recovery; **(2)** run the paired family sessions above and record actual anonymous observations. Test unavailable native assistance as unavailable, not as a Selene feature. The separate Fire OS/Android path and universal third-party capture are not delivered by this Vega implementation.
 
@@ -145,7 +145,7 @@ Removed the response header, metadata and large button row. The notification use
 
 Do not treat the earlier eight live passes as current reliability evidence. Later prompt checks passed both companion cases and the imported caption case, but rejected sampled-image and some authored-demo answers during semantic review. The first live browser attempt during this UI correction also returned the safe unavailable state. These failures are not fixed by the layout change.
 
-Browser verification of the final toast: 420.57×111.99 CSS pixels in a 914×514 CSS viewport, no vertical clipping. The player reported `paused:false`, and advanced from 74.77s to 86.90s while the notification remained present. The sandbox SVG reported an interpolated opacity of 0.619333 during its host WAAPI pulse. The real caption answer succeeded after retry; no test fixture was substituted. [Final compact notification](../artifacts/ui-review/2026-09-30-toast-playing.jpg).
+Browser verification of the final toast: 420.57×111.99 CSS pixels in a 914×514 CSS viewport, no vertical clipping. The player reported `paused:false`, and advanced from 74.77s to 86.90s while the notification remained present. The sandbox SVG reported an interpolated opacity of 0.619333 during its host WAAPI pulse. The real caption answer succeeded after retry; no test fixture was substituted. [Final compact notification](evidence/ui-review/2026-09-30-toast-playing.jpg).
 
 
 ## Watching UI revision, September 30, 2026
@@ -156,8 +156,8 @@ Removed the whole-SVG looping pulse. New model instructions request label-free s
 
 A live model check at 32 seconds returned a ready SVG of a schematic figure at rest with a finite translation animation. Live model reliability is still variable, as noted above. This is not evidence of a universal overlay on Prime Video or other apps: the own-player demo is the visual proof surface; native provider integration remains a separate foreground app.
 
-Latest automated validation: 46 checks, including a Selene-only launcher assertion, one-row question entry, finite connector drawing, reduced motion, label-free accessibility and playback resume. See [launcher](../artifacts/ui-review/compact-launcher.jpg) and [question box](../artifacts/ui-review/compact-question.jpg).
+Latest automated validation: 46 checks, including a Selene-only launcher assertion, one-row question entry, finite connector drawing, reduced motion, label-free accessibility and playback resume. See [launcher](evidence/ui-review/compact-launcher.jpg) and [question box](evidence/ui-review/compact-question.jpg).
 
 The final release command passed typecheck, lint, all 46 tests, the web bundle and armv7/x86_64/aarch64 packages with ABI validation. The isolated-dot check excludes the SVG background from its shape count. A playback regression check also covers the internal seek caused by restarting an ended clip: it must not cancel the answer that requested resume. Real Fire TV hardware and household readability testing remain pending.
 
-Final live browser proof: the generated diagram contains a grouped figure and a fixed baseline. Its WAAPI descriptor moves the whole figure into place over 700ms, then holds the final state. The toast measured 440×79.99 CSS pixels without clipping; playback reported `paused:false` at 71.08 seconds. [Final answer](../artifacts/ui-review/compact-answer.jpg). The browser viewport override was reset afterward.
+Final live browser proof: the generated diagram contains a grouped figure and a fixed baseline. Its WAAPI descriptor moves the whole figure into place over 700ms, then holds the final state. The toast measured 440×79.99 CSS pixels without clipping; playback reported `paused:false` at 71.08 seconds. [Final answer](evidence/ui-review/compact-answer.jpg). The browser viewport override was reset afterward.

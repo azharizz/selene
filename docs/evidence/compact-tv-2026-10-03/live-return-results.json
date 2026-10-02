@@ -1,0 +1,44 @@
+[
+  {
+    "content_id": "the-red-kite",
+    "status": "ready",
+    "elapsed_ms": 3509,
+    "from_seconds": 8,
+    "through_seconds": 34,
+    "answer": "Maya asks about replacing the torn kite; Arun says he made it with her mother when she was Maya’s age.",
+    "evidence": [
+      "t2",
+      "t3",
+      "f-history"
+    ]
+  },
+  {
+    "content_id": "sintel-excerpt",
+    "status": "ready",
+    "elapsed_ms": 3596,
+    "from_seconds": 20,
+    "through_seconds": 36,
+    "answer": "The captions say, “We’re almost done. Shhh...” and “Hey, sit still.” A sampled frame appears to show a character holding a reptilian creature.",
+    "evidence": [
+      "caption-1",
+      "caption-2",
+      "frame-30000-1",
+      "frame-30000-2"
+    ]
+  },
+  {
+    "content_id": "offside-rule",
+    "status": "ready",
+    "elapsed_ms": 3073,
+    "from_seconds": 20,
+    "through_seconds": 45,
+    "answer": "The captions say Marie skips matches because she finds offside too complicated; Philip draws a pitch and takes the goalkeeper’s role, with his friends as defenders.",
+    "evidence": [
+      "caption-8",
+      "caption-9",
+      "caption-10",
+      "caption-11",
+      "caption-12"
+    ]
+  }
+]

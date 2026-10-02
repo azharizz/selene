@@ -1,14 +1,17 @@
+import {preparedExamples} from './preloaded-answers.mjs';
 import {createServer} from 'node:http';
 import {createReadStream} from 'node:fs';
 import {readFile, stat} from 'node:fs/promises';
 import {resolve, extname, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID, randomInt} from 'node:crypto';
-import {validRequest, validCompanionRequest, validPlayback, validHold, validPersonalAsk, validReturn, validPersonalReturn, validPersonalEnd} from './contract.mjs';
+import {validRequest, validCompanionRequest, validPlayback, validReturn} from './contract.mjs';
 import {explain} from './agent.mjs';
 import {story, stories, getStory, createMemory, companionContext, sceneContext} from './context.mjs';
 import {enrichCompanionContext} from './external-context.mjs';
-import {playerStory, conflict, recordPlayback, playbackSnapshot, requirePlayback, holdMoment, publicHold, requireHold, personalContext, guidedReturn, evidenceFor, captionsVtt} from './personal.mjs';
+import {playerStory, conflict, recordPlayback, playbackSnapshot, requirePlayback, guidedReturn, captionsVtt} from './personal.mjs';
+import {privateAction, privateState, publicThread, validatePrivateAction} from './private-actions.mjs';
+import {mcpRequest, mcpAccess} from './mcp.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -37,7 +40,7 @@ function endSession(id) {
   if (session) {
     session.memory.responses.clear(); session.memory.connections.length = 0;
     closeMirror(session);
-    session.latestMoment = null; session.latestLanguage = 'English'; session.latestSlowerVoice = false; session.lifeVisible = false;
+    session.latestMoment = null; session.latestLanguage = 'English'; session.latestSlowerVoice = false;
   }
   sessions.delete(id);
 }
@@ -55,35 +58,38 @@ function privateUrl(token) {
   if (url.protocol !== 'https:' || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return null;
   return `${url.origin}/?private=${encodeURIComponent(token)}`;
 }
-function mirrorMoment(session, moment) {
-  if (session.lifeVisible || !moment?.life_connection) return moment;
-  return {...moment, life_connection: {...moment.life_connection, offered: false, question: ''}};
-}
-function mirrorEvent(session, event) {
-  return event.type === 'moment' && event.moment ? {...event, moment: mirrorMoment(session, event.moment)} : event;
-}
 function publishMirror(session, event) {
   if (!session?.mirror) return;
   // Own-player phone requests are independent; shared TV answers never replace private help.
   if (session.contentId && event.type !== 'playback') return;
-  const visibleEvent = mirrorEvent(session, event);
+  const visibleEvent = event;
   if (event.type !== 'playback') session.mirror.latest = visibleEvent;
   const payload = `data: ${JSON.stringify(visibleEvent).replace(/\u2028|\u2029/g, '')}\n\n`;
   for (const client of session.mirror.clients) client.write(payload);
 }
-function startRequest(owner, res) {
+function startRequest(owner, res, cancelOnClose = true) {
   if (owner.controller) {owner.controller.abort(); active.delete(owner.controller);}
   if (active.size >= 3) throw conflict('Another answer is being prepared. Try again in a moment.', 429);
   const controller = new AbortController(); active.add(controller); owner.controller = controller;
-  res.on('close', () => {if (!res.writableEnded) controller.abort();});
+  if (cancelOnClose) res.on('close', () => {if (!res.writableEnded) controller.abort();});
   return controller;
 }
 function finishRequest(owner, controller) {
   active.delete(controller);
   if (owner.controller === controller) owner.controller = null;
 }
+async function runPrivate(session, action, input, res, cancelOnClose = true) {
+  validatePrivateAction(action, input);
+  const mirror = session.mirror;
+  if (action === 'thread-check' && mirror.controller) return {thread: publicThread(mirror.thread), updated: false};
+  if (!['ask', 'return', 'thread-check'].includes(action)) return privateAction(session, action, input);
+  const controller = startRequest(mirror, res, cancelOnClose);
+  if (!cancelOnClose && mirror.mcp) mirror.mcp.controller = controller;
+  try {return await privateAction(session, action, input, {signal: controller.signal});}
+  finally {if (mirror.mcp?.controller === controller) delete mirror.mcp.controller; finishRequest(mirror, controller);}
+}
 function personalBootstrap(session) {
-  return {type: 'personal', story: servedStory(getStory(session.contentId), true), playback: playbackSnapshot(session), hold: publicHold(session.mirror.hold)};
+  return {type: 'personal', story: servedStory(getStory(session.contentId), true), playback: playbackSnapshot(session), ...privateState(session)};
 }
 
 export const server = createServer(async (req, res) => {
@@ -96,12 +102,21 @@ export const server = createServer(async (req, res) => {
   if (!allowedHosts.has(host) && !(req.method === 'GET' && req.url === '/api/health')) return send(res, 403, {error: 'Unrecognized host'});
   try {
     const url = new URL(req.url, `http://${host}`);
+    const mcpSession = url.pathname === '/api/mcp' ? mcpAccess(req, res, sessions, send) : null;
+    if (url.pathname === '/api/mcp' && !mcpSession) return;
     if (!deviceHosts.has(host) && url.pathname.startsWith('/api/')
-      && url.pathname !== '/api/health' && url.pathname !== '/api/private/join'
-      && !/^\/api\/private\/[0-9a-f-]{36}(?:\/(?:captions|hold|ask|return|end))?$/.test(url.pathname)) {
+      && url.pathname !== '/api/health' && url.pathname !== '/api/private/join' && url.pathname !== '/api/mcp'
+      && !/^\/api\/private\/[0-9a-f-]{36}(?:\/(?:captions|hold|ask|return|end|thread|thread-check))?$/.test(url.pathname)) {
       return send(res, 403, {error: 'This address is for paired phones only.'});
     }
     if (url.pathname === '/api/health' && req.method === 'GET') return send(res, 200, {status: 'ok', provider_configured: Boolean(process.env.AGENT_PROVIDER_URL && process.env.AGENT_PROVIDER_MODEL && process.env.AGENT_PROVIDER_API_KEY), scene_context_configured: Boolean(process.env.SELENE_SCENE_CONTEXT_URL)});
+    if (url.pathname === '/api/examples' && req.method === 'GET') {
+      const contentId = url.searchParams.get('content_id'), value = url.searchParams.get('at_seconds');
+      const selected = getStory(contentId), at = value === null || value.trim() === '' ? NaN : Number(value);
+      if (!selected) return send(res, 404, {error: 'Unknown film'});
+      if (!Number.isFinite(at) || at < 0 || at > selected.duration) return send(res, 400, {error: 'Invalid film moment'});
+      return send(res, 200, {examples: preparedExamples(contentId, at)});
+    }
     if (url.pathname === '/api/catalog' && req.method === 'GET') {
       return send(res, 200, {stories: stories.map(({id, title, subtitle, duration, poster}) => ({id, title, subtitle, duration, poster}))});
     }
@@ -119,7 +134,10 @@ export const server = createServer(async (req, res) => {
       const maxBytes = url.pathname === '/api/companion/moment' ? 32768 : 8192;
       for await (const chunk of req) { size += chunk.length; if (size > maxBytes) return send(res, 413, {error: 'Request too large'}); chunks.push(chunk); }
       let input;
-      try { input = JSON.parse(Buffer.concat(chunks).toString()); } catch { return send(res, 400, {error: 'Invalid JSON'}); }
+      try { input = JSON.parse(Buffer.concat(chunks).toString()); } catch {
+        return send(res, 400, url.pathname === '/api/mcp' ? {jsonrpc: '2.0', id: null, error: {code: -32700, message: 'Invalid JSON'}} : {error: 'Invalid JSON'});
+      }
+      if (url.pathname === '/api/mcp') return mcpRequest(req, res, input, mcpSession, send, (action, args) => runPrivate(mcpSession, action, args, res, false));
       if (url.pathname === '/api/session') {
         const companionSession = input?.mode === 'companion';
         if ((input?.mode !== undefined && !companionSession) || (companionSession && input.content_id !== undefined)) return send(res, 400, {error: 'Invalid session mode'});
@@ -129,7 +147,7 @@ export const server = createServer(async (req, res) => {
         if (!companionSession && !selectedStory) return send(res, 400, {error: 'Unknown story'});
         const id = randomUUID();
         sessions.set(id, {contentId: selectedStory?.id ?? null, contentVersion: selectedStory ? playerStory(selectedStory).content_version : null,
-          duration: selectedStory?.duration ?? 0, playback: null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', latestSlowerVoice: false, lifeVisible: false});
+          duration: selectedStory?.duration ?? 0, playback: null, memory: createMemory(), controller: null, clarification: null, mirror: null, latestMoment: null, latestLanguage: 'English', latestSlowerVoice: false});
         const private_mirror_available = Boolean(privateUrl('capability'));
         if (companionSession) return send(res, 201, {session_id: id, private_mirror_available});
         return send(res, 201, {session_id: id, private_mirror_available, story: servedStory(selectedStory), catalog: stories.map(({id: content_id, title, subtitle, duration, poster}) => ({id: content_id, title, subtitle, duration, poster}))});
@@ -150,7 +168,7 @@ export const server = createServer(async (req, res) => {
         do {code = String(randomInt(100000, 1000000));} while ([...sessions.values()].some(candidate => candidate.mirror?.code === code));
         const expires_at = Date.now() + 5 * 60 * 1000;
         session.mirror = {token, code, expires_at, clients: new Set(), hold: null, controller: null,
-          latest: !session.contentId && session.latestMoment ? mirrorEvent(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage, slower_answer_voice: session.latestSlowerVoice}) : null};
+          latest: !session.contentId && session.latestMoment ? {type: 'moment', moment: session.latestMoment, language: session.latestLanguage, slower_answer_voice: session.latestSlowerVoice} : null};
         return send(res, 201, {url, code, expires_at, join_url: `${new URL(url).origin}/?join=1`});
       }
       if (url.pathname === '/api/private/join') {
@@ -173,8 +191,8 @@ export const server = createServer(async (req, res) => {
         if (!validPlayback(input)) return send(res, 400, {error: 'Invalid playback position'});
         const changed = recordPlayback(session, input);
         if (changed) {
-          if (session.mirror?.hold && session.mirror.hold.epoch !== input.epoch) {
-            session.mirror.controller?.abort(); session.mirror.hold = null;
+          if (session.mirror && [session.mirror.hold, session.mirror.thread, session.mirror.bridge].some(value => value && value.epoch !== input.epoch)) {
+            session.mirror.controller?.abort(); session.mirror.hold = null; session.mirror.help = null; session.mirror.bridge = null; session.mirror.thread = null;
           }
           publishMirror(session, {type: 'playback', playback: playbackSnapshot(session)});
         }
@@ -195,70 +213,18 @@ export const server = createServer(async (req, res) => {
           return send(res, 200, result);
         } finally {finishRequest(session, controller);}
       }
-      const personalMatch = /^\/api\/private\/([0-9a-f-]{36})\/(hold|ask|return|end)$/.exec(url.pathname);
+      const personalMatch = /^\/api\/private\/([0-9a-f-]{36})\/(hold|ask|return|end|thread|thread-check)$/.exec(url.pathname);
       if (personalMatch) {
         const session = [...sessions.values()].find(candidate => candidate.mirror?.token === personalMatch[1]);
         if (!session?.mirror) return send(res, 410, {error: 'This phone connection has ended. Pair again on the TV.'});
-        if (!session.contentId) return send(res, 409, {error: 'This player only shares answers. Personal replay needs an available permitted film source.'});
-        const mirror = session.mirror, action = personalMatch[2], selectedStory = getStory(session.contentId);
-        if (action === 'hold') {
-          if (!validHold(input)) return send(res, 400, {error: 'Invalid personal pause'});
-          const hold = holdMoment(session, input);
-          mirror.controller?.abort(); mirror.hold = hold;
-          return send(res, 201, {hold: publicHold(hold), playback: playbackSnapshot(session)});
-        }
-        if (action === 'end') {
-          if (!validPersonalEnd(input)) return send(res, 400, {error: 'Invalid personal pause'});
-          if (mirror.hold && mirror.hold.id !== input.branch_id) return send(res, 409, {error: 'That personal pause has changed. Reconnect before closing it.'});
-          mirror.controller?.abort(); mirror.hold = null;
-          return send(res, 200, {closed: true});
-        }
-        if (!(action === 'ask' ? validPersonalAsk(input) : validPersonalReturn(input))) return send(res, 400, {error: 'Invalid personal request'});
-        const hold = requireHold(session, input.branch_id);
-        const playback = requirePlayback(session, hold.content_version, hold.epoch);
-        if (action === 'return' && (input.content_version !== hold.content_version || input.epoch !== hold.epoch || input.from_seconds !== hold.from_seconds)) return send(res, 409, {error: 'The saved starting point changed. Try Bring me back again.'});
-        if (action === 'ask' && (!input.request.trim() || input.at_seconds > playback.at_seconds)) return send(res, 400, {error: 'Ask about a moment already reached on the TV.'});
-        const controller = startRequest(mirror, res);
-        try {
-          const {need, language, recipient} = input;
-          let result;
-          if (action === 'return') {
-            result = await guidedReturn(selectedStory, hold.from_seconds, playback, {need, language, recipient}, {signal: controller.signal, memory: hold.memory, question: hold.question});
-          } else {
-            let context = personalContext(selectedStory, input.at_seconds, hold.previous);
-            let request = {request: input.request.trim(), content_id: selectedStory.id, at_seconds: input.at_seconds,
-              play_state: 'paused', playback_choice: 'keep_watching', need, language, recipient, session: 'solo', life_connection: false, continuation: null};
-            if (input.clarification) {
-              const previous = hold.clarification;
-              if (!previous || input.at_seconds !== previous.input.at_seconds || need !== previous.input.need || language !== previous.input.language || recipient !== previous.input.recipient) throw conflict('That clarification changed. Ask the question again.');
-              context = structuredClone(previous.context);
-              request = {...previous.input, continuation: {request: previous.input.request, question: previous.question, answer: input.request.trim()}};
-            } else hold.clarification = null;
-            const moment = await explain(request, {signal: controller.signal, memory: hold.memory, context});
-            controller.signal.throwIfAborted(); requireHold(session, input.branch_id);
-            hold.question = request.request;
-            hold.previous = {request: request.request, answer: moment.answer, at_seconds: request.at_seconds};
-            hold.clarification = moment.state === 'clarification' ? {input: request, context, question: moment.answer} : null;
-            result = {moment, evidence: evidenceFor(moment, context)};
-          }
-          controller.signal.throwIfAborted(); requireHold(session, input.branch_id);
-          return send(res, 200, result);
-        } finally {finishRequest(mirror, controller);}
+        const action = personalMatch[2];
+        return send(res, action === 'hold' ? 201 : 200, await runPrivate(session, action, input, res));
       }
       if (url.pathname === '/api/private/close') {
         const session = sessions.get(req.headers['x-selene-session']);
         if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
         closeMirror(session);
         return send(res, 200, {closed: true});
-      }
-      if (url.pathname === '/api/private/life') {
-        const session = sessions.get(req.headers['x-selene-session']);
-        if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
-        if (!session.mirror) return send(res, 409, {error: 'Pair a private mirror before changing its Life Connection visibility.'});
-        if (!input || typeof input.visible !== 'boolean') return send(res, 400, {error: 'Life Connection visibility required'});
-        session.lifeVisible = input.visible;
-        if (session.latestMoment) publishMirror(session, {type: 'moment', moment: session.latestMoment, language: session.latestLanguage, slower_answer_voice: session.latestSlowerVoice});
-        return send(res, 200, {visible: session.lifeVisible});
       }
       const companion = url.pathname === '/api/companion/moment';
       if (!companion && url.pathname !== '/api/moment') return send(res, 404, {error: 'Not found'});
@@ -270,7 +236,6 @@ export const server = createServer(async (req, res) => {
       if (!companion && !selectedStory) return send(res, 400, {error: 'Unknown story'});
       if (!companion && session.contentId !== input.content_id) return send(res, 409, {error: 'This story is not the active viewing session.'});
       const controller = startRequest(session, res);
-      session.lifeVisible = false;
       session.latestMoment = null;
       if (!input.continuation) session.clarification = null;
       publishMirror(session, {type: 'ready'});
@@ -291,7 +256,7 @@ export const server = createServer(async (req, res) => {
         if (companion && input.continuation) context.facts.push({id: 'viewer-clarification', source: 'viewer', text: input.continuation.answer});
         const moment = await explain(input, {signal: controller.signal, memory: session.memory, context});
         if (!controller.signal.aborted) {
-          session.latestMoment = moment; session.latestLanguage = input.language; session.latestSlowerVoice = input.need === 'Slower answer voice'; session.lifeVisible = false;
+          session.latestMoment = moment; session.latestLanguage = input.language; session.latestSlowerVoice = input.need === 'Slower answer voice';
           publishMirror(session, {type: 'moment', moment, language: input.language, slower_answer_voice: session.latestSlowerVoice});
           session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context} : null;
           send(res, 200, moment);

@@ -1,0 +1,60 @@
+{
+  "status": "passed",
+  "startedAt": "2026-10-02T08:02:28.478Z",
+  "finishedAt": "2026-10-02T08:04:06.438Z",
+  "sdk": "0.24.12112",
+  "node": "v22.17.0",
+  "serial": "emulator-5554",
+  "capabilities": {
+    "platformName": "Vega",
+    "appium:automationName": "automation-toolkit/JSON-RPC",
+    "vega:device": "vda://emulator-5554",
+    "appium:newCommandTimeout": 60
+  },
+  "checks": {
+    "preflight": true,
+    "session": true,
+    "screenshot": true,
+    "remoteFocusChanged": true,
+    "servedBuildMatches": true,
+    "buildUnchanged": true
+  },
+  "appium": "2.2.2",
+  "driver": "3.34.1",
+  "emulatorCommand": "/Users/mekari/vega/sdk/vega-sdk/main/0.24.12112/vvd/images/tv/vmtools/agent/qemu/darwin-aarch64/vega-virtual-device -avd-arch arm64 -skindir /Users/mekari/vega/sdk/vega-sdk/main/0.24.12112/vvd/images/tv/vmtools/agent/skins -skin tv-remote -skin 1280x720 -ports 5554,5555 -gpu off -dns-server auto -sysdir /Users/mekari/vega/sdk/vega-sdk/main/0.24.12112/vvd/instances/22903056-8e5a-488f-ac1e-889720b8ae8a -datadir /Users/mekari/vega/sdk/vega-sdk/main/0.24.12112/vvd/instances/22903056-8e5a-488f-ac1e-889720b8ae8a -data /Users/mekari/vega/sdk/vega-sdk/main/0.24.12112/vvd/instances/22903056-8e5a-488f-ac1e-889720b8ae8a/userdata.qcow2 -keyboard-mapping KEY_ESC:KEY_BACK,KEY_F1:KEY_HOMEPAGE,KEY_F2:KEY_MENU,KEY_F3:KEY_REWIND,KEY_F4:KEY_PLAYPAUSE,KEY_F5:KEY_FASTFORWARD -qemu -qmp unix:/tmp/qmp-socket-5554.sock,server,nowait",
+  "focusBefore": "4294967316",
+  "focusAfter": "4294967308",
+  "build": {
+    "webSha256": "b27f6e37d95559aadb83d08792e01daba51859b06e0a1d0c376c3e8df777c5d7",
+    "cssSha256": "c092a606a35f4be5500ea3643a3ed5673e0fbc79b861daf949046cefab4149d6",
+    "catalogSha256": "40e934545c043113ff2a266818676c018cddaed092bc98bb6f88b31500eb7650",
+    "mediaSha256": "76dafeaeba2480cb06d4bdc17623f83b5dfd33cc523a74569d5dc682d294bccf",
+    "nativePackageSha256": "dfd1de7959b1e2b75eef4d4ea0cea9261c2fb43cc17dd97ad64a6fcec3980175"
+  },
+  "feature": {
+    "contentId": "the-red-kite",
+    "scope": "shared-TV flow",
+    "checks": {
+      "preferencesPersist": true,
+      "holdControl": true,
+      "recapInterval": true,
+      "playbackUnderRecap": true,
+      "dismiss": true,
+      "remotePlayPause": true
+    },
+    "step": "one remote press resumes",
+    "debugWarningDismissed": true,
+    "interval": {
+      "from": 8,
+      "through": 26,
+      "tv": 30
+    },
+    "laterInterval": {
+      "from": 8,
+      "through": 26,
+      "tv": 34
+    },
+    "phone": "not tested"
+  },
+  "stage": "verify-unchanged-build"
+}

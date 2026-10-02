@@ -43,6 +43,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   private appState?: NativeEventSubscription;
   private backSubscription?: NativeEventSubscription;
   private frame = React.createRef<React.ElementRef<typeof WebView>>();
+  private loadedUrl: string | null = null;
   private subscription: ISubscription | null = null;
   private momentRevision = 0;
   private playbackVersion = 0;
@@ -99,6 +100,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   };
   private current(revision: number) {return this.mounted && revision === this.revision;}
   private disconnect = (message = 'Check closed. A playback command already sent may still finish.') => {
+    this.loadedUrl = null;
     this.revision++;
     this.pending = false;
     this.release();
@@ -136,8 +138,8 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
             : 'No shared playback found. Start a title in a supported app, then try again.';
       this.setState({sessions, message});
     } catch (error) {
-      if (error instanceof Error) console.warn(`[SELENE] playback discovery unavailable: ${error.message}`);
-      if (this.current(revision)) this.setState({message: 'Playback discovery is unavailable on this device. You can still try the SELENE demo.'});
+      if (error instanceof Error) console.info(`[SELENE] playback discovery unavailable: ${error.message}`);
+      if (this.current(revision)) this.setState({message: 'Playback discovery is unavailable. Watch a demo instead.'});
     } finally {
       if (this.current(revision)) {this.pending = false; this.setState({busy: false});}
     }
@@ -220,6 +222,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     this.setState({snapshot}, () => {void this.watch(selectedSession);});
   };
   private closeMoment = () => {
+    this.loadedUrl = null;
     this.revision++; this.pending = false; this.stopObserving();
     this.setState({snapshot: null, selected: null, title: '', busy: false, message: 'Choose a title to ask about another moment.'});
   };
@@ -247,11 +250,12 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
   render() {
     const {busy, sessions, selected, message, snapshot, page} = this.state;
     if (snapshot) return <WebView ref={this.frame} style={styles.page} source={{uri: momentUrl}} hasTVPreferredFocus allowSystemKeyEvents
-      javaScriptEnabled mixedContentMode="never" mediaPlaybackRequiresUserAction
+      javaScriptEnabled domStorageEnabled mixedContentMode="never" mediaPlaybackRequiresUserAction
       injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};window.__SELENE_A11Y__=${JSON.stringify(this.props.accessibility ?? {}).replace(/</g, '\\u003c')};true;`}
       onShouldStartLoadWithRequest={event => [momentUrl, 'about:blank', 'about:srcdoc'].includes(event.url)}
-      onMessage={event => {void this.bridge(event.nativeEvent.data, event.nativeEvent.url);}}
-      onLoad={() => {if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)}); this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});}}
+      onLoadStart={() => {this.loadedUrl = null;}}
+      onMessage={event => {void this.bridge(event.nativeEvent.data, event.nativeEvent.url ?? this.loadedUrl ?? '');}}
+      onLoad={event => {this.loadedUrl = event.nativeEvent.url === momentUrl ? momentUrl : null; if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)}); this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});}}
       onCloseWindow={this.closeMoment}
       onError={() => {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}
       onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}} />;
@@ -260,15 +264,18 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
     const accessibility = this.props.accessibility;
     return <View style={styles.page}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.topbar}><View style={styles.logo}><Image source={require('../assets/selene-mark.png')} style={styles.mark}/><Text allowFontScaling={false} style={accessibleText(styles.brand, accessibility)}>selene</Text></View><Text allowFontScaling={false} style={accessibleText(styles.tagline, accessibility)}>Your viewing companion</Text></View>
+        <View style={styles.topbar}><View style={styles.logo}><Image source={require('../assets/selene-mark.png')} style={styles.mark}/><Text allowFontScaling={false} style={accessibleText(styles.brand, accessibility)}>selene</Text></View></View>
         <View style={styles.main}>
-          <Text allowFontScaling={false} style={accessibleText(styles.heading, accessibility)}>{busy ? 'Finding what’s playing…' : 'What are you watching?'}</Text>
-          <Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)} accessibilityLiveRegion="polite">{busy ? 'Checking apps that share playback with SELENE.' : message}</Text>
+          <Text allowFontScaling={false} style={accessibleText(styles.heading, accessibility)}>{busy ? 'Checking playback' : sessions.length ? 'Choose your film' : 'Watch with Selene'}</Text>
+          <Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)} accessibilityLiveRegion="polite">{busy ? 'Looking for shared playback.' : message}</Text>
           {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Button accessibility={accessibility} key={`${session.packageId}:${session.state.id.id}`} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/>)}</View>}
           {pages > 1 && <View style={styles.actions}><Button accessibility={accessibility} label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)}>Page {page + 1} of {pages}</Text><Button accessibility={accessibility} label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
-          <View style={styles.actions}>{busy ? <Button accessibility={accessibility} label="Cancel" preferred onPress={() => this.disconnect('Search cancelled. Try again when you’re ready.')}/> : <Button accessibility={accessibility} label={sessions.length ? 'Refresh apps' : 'Try again'} preferred={!sessions.length} onPress={this.scan}/>}<Button accessibility={accessibility} label="Try the demo" onPress={this.props.onDemo}/></View>
+          <View style={styles.actions}>
+            <Button accessibility={accessibility} label="Try the demo" preferred={!busy && !sessions.length} onPress={this.props.onDemo}/>
+            {busy ? <Button accessibility={accessibility} label="Cancel" preferred onPress={() => this.disconnect('Search cancelled.')}/> : <Button accessibility={accessibility} label={sessions.length ? 'Refresh apps' : 'Try again'} onPress={this.scan}/>}
+          </View>
         </View>
-        <View style={styles.footer}><Text allowFontScaling={false} style={accessibleText(styles.hint, accessibility)}>Back to leave SELENE</Text><Text allowFontScaling={false} style={accessibleText(styles.hint, accessibility)}>Playback stays in your control</Text></View>
+
       </ScrollView>
     </View>;
   }
@@ -280,14 +287,14 @@ export function Button({label, detail, onPress, disabled = false, preferred = fa
     style={[styles.button, tile && styles.tile, focused && styles.focused, disabled && styles.disabled]}><Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(tile ? styles.tileTitle : styles.buttonText, accessibility), focused && styles.focusedText]}>{label}</Text>{detail && <Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(styles.tileDetail, accessibility), focused && styles.focusedText]}>{detail}</Text>}</Pressable>;
 }
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#101114'}, content: {flexGrow: 1, paddingHorizontal: '5%', paddingVertical: '5%', gap: 36},
-  topbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 12}, mark: {width: 48, height: 48},
-  brand: {fontSize: 46, fontWeight: '600', color: '#f1f1f1'}, tagline: {fontSize: 28, color: '#b9bdc6'},
-  main: {flex: 1, justifyContent: 'center', gap: 32}, heading: {fontSize: 64, lineHeight: 76, color: '#f1f1f1', maxWidth: 1250, fontWeight: '600'},
-  copy: {fontSize: 30, color: '#b9bdc6', lineHeight: 42, maxWidth: 1400},
-  actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 24}, sessionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 28, marginVertical: 16},
-  button: {alignSelf: 'flex-start', maxWidth: '100%', borderWidth: 3, borderColor: 'transparent', borderRadius: 12, backgroundColor: '#303238', paddingVertical: 18, paddingHorizontal: 30},
-  tile: {flex: 1, minWidth: 320, minHeight: 180, justifyContent: 'space-between', padding: 30, gap: 20}, tileTitle: {fontSize: 36, fontWeight: '600', color: '#f1f1f1'}, tileDetail: {fontSize: 28, color: '#b9bdc6'},
-  focused: {borderColor: '#f1f1f1', backgroundColor: '#f1f1f1', transform: [{scale: 1.025}]}, focusedText: {color: '#101114'}, disabled: {opacity: 0.45},
-  buttonText: {fontSize: 30, color: '#f1f1f1'}, footer: {flexDirection: 'row', justifyContent: 'space-between', gap: 24}, hint: {fontSize: 28, color: '#b9bdc6'},
+  page: {flex: 1, backgroundColor: '#101114'}, content: {flexGrow: 1, paddingHorizontal: '6%', paddingVertical: '6%', gap: 24},
+  topbar: {flexDirection: 'row', alignItems: 'center'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 8}, mark: {width: 30, height: 30},
+  brand: {fontSize: 28, fontWeight: '600', color: '#f1f1f1'},
+  main: {flex: 1, justifyContent: 'center', gap: 16}, heading: {fontSize: 32, lineHeight: 40, color: '#f1f1f1', maxWidth: 720, fontWeight: '600'},
+  copy: {fontSize: 18, color: '#b9bdc6', lineHeight: 26, maxWidth: 680},
+  actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12}, sessionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginVertical: 8},
+  button: {alignSelf: 'flex-start', maxWidth: '100%', borderWidth: 2, borderColor: 'transparent', borderRadius: 8, backgroundColor: '#303238', paddingVertical: 10, paddingHorizontal: 16},
+  tile: {flex: 1, minWidth: 200, minHeight: 100, justifyContent: 'space-between', padding: 16, gap: 12}, tileTitle: {fontSize: 22, fontWeight: '600', color: '#f1f1f1'}, tileDetail: {fontSize: 16, color: '#b9bdc6'},
+  focused: {borderColor: '#f1f1f1', backgroundColor: '#f1f1f1'}, focusedText: {color: '#101114'}, disabled: {opacity: 0.45},
+  buttonText: {fontSize: 18, color: '#f1f1f1'},
 });

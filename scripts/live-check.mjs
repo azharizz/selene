@@ -4,11 +4,10 @@ import {explain} from '../server/agent.mjs';
 import {validResponse} from '../server/contract.mjs';
 import {companionContext, sceneContext, getStory} from '../server/context.mjs';
 
-const base = {request: 'Why is this kite important to Arun? Use the scene context and any validated connection.', content_id: 'the-red-kite', at_seconds: 44, play_state: 'paused', playback_choice: 'pause_to_explore', need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', life_connection: false};
+const base = {request: 'Why is this kite important to Arun? Use the scene context and any validated connection.', content_id: 'the-red-kite', at_seconds: 44, play_state: 'paused', playback_choice: 'pause_to_explore', need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone',};
 const cases = [
   ['explanation', base],
   ['spoiler', {...base, request: 'Will Maya fly the kite at the end? Tell me only what we know so far.', at_seconds: 20}],
-  ['life', {...base, request: 'Connect this moment to our own lives with one question for everyone.', at_seconds: 79, life_connection: true}],
   ['translation', {...base, request: 'Translate the most recent completed dialogue and explain it simply.', need: 'Translate', language: 'Indonesian'}],
 ];
 // Synthetic playback input exercises the real model; it is never evidence of a real device/provider session.
@@ -23,7 +22,6 @@ const selected = ingested ? [
   ['ingested-frame', {...base, content_id: importedStory.id, at_seconds: 75, request: 'Describe only what appears in the most recent sampled image. Do not guess a story, identities or motion between frames.'}, sceneContext(75, importedStory)],
 ] : process.argv.includes('--companion') ? [
   ['companion', companion, context],
-  ['companion-life', {...companion, request: 'Connect this moment to our own experiences of learning a sports rule, with one question for everyone.', life_connection: true, playback_choice: 'pause_to_explore'}, context],
 ] : cases;
 await mkdir('artifacts', {recursive: true});
 for (const [name, input, context] of selected) {
@@ -47,7 +45,6 @@ for (const [name, input, context] of selected) {
   }
   if (name === 'ingested-frame') assert.match(result.answer, /A sampled frame appears to show/i, 'visual claims must be qualified as an unverified sampled-frame observation');
   if (name === 'translation') assert.match(result.answer, /\b(ibu|layang|membuat|dibuat)\b/i, 'the Indonesian translation must not silently remain English');
-  if (input.life_connection) assert.equal(result.life_connection.offered, true);
   if (context) {assert.equal(result.grounding.content_id, context.content_id); assert.equal(result.new_connections.length, 0);}
   if (name === 'spoiler') assert.ok(result.grounding.evidence_ids.every(id => !['f-history', 'f-value', 'f-new-memory', 't3', 't8'].includes(id)));
   await writeFile(`artifacts/live-${name}.json`, JSON.stringify(result, null, 2));

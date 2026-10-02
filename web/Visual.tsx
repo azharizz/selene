@@ -2,7 +2,7 @@ import React from 'react';
 
 export type VisualArtifact = {status: 'ready' | 'fallback' | 'none'; svg: string; description: string; animations: unknown[]};
 
-export class Visual extends React.PureComponent<{visual: VisualArtifact; compact?: boolean}, {failed: boolean}> {
+export class Visual extends React.PureComponent<{visual: VisualArtifact; compact?: boolean; personal?: boolean}, {failed: boolean}> {
   state = {failed: false};
   private frame = React.createRef<HTMLIFrameElement>();
   private nonce = document.querySelector<HTMLMetaElement>('meta[name="selene-renderer-nonce"]')?.content;
@@ -12,7 +12,7 @@ export class Visual extends React.PureComponent<{visual: VisualArtifact; compact
     if (event.source === this.frame.current?.contentWindow && event.data === 'selene:visual-invalid') this.setState({failed: true});
   };
   render() {
-    const {visual, compact = false} = this.props;
+    const {visual, compact = false, personal = false} = this.props;
     if (visual.status !== 'ready' || this.state.failed || !this.nonce) return <div className="visual-fallback">
       <p>{visual.description || 'The explanation is ready in words.'}</p>
       {(visual.status === 'fallback' || this.state.failed || !this.nonce) && <span className="small">Visual unavailable</span>}
@@ -38,7 +38,7 @@ function fits(){
     const style=getComputedStyle(label), matrix=label.getScreenCTM();
     let opacity=Number(style.fillOpacity);
     for(let element=label;element&&element!==document.body;element=element.parentElement)opacity*=Number(getComputedStyle(element).opacity);
-    return parseFloat(style.fontSize)*Math.hypot(matrix.a,matrix.b)<${Math.max(18, Math.min(28, window.innerWidth / 1920 * 28))}||opacity<0.8;
+    return parseFloat(style.fontSize)*Math.hypot(matrix.a,matrix.b)<${personal ? 16 : Math.max(18, Math.min(28, window.innerWidth / 1920 * 28))}||opacity<0.8;
   });
   const boxes=labels.map(label=>{
     const box=label.getBoundingClientRect();
@@ -57,12 +57,12 @@ function fits(){
 requestAnimationFrame(()=>{
   if(!fits())return;
   if(compact){
-    const box=svg.getBBox(),size=Math.max(box.width,box.height)+96;
-    if(box.width>0&&box.height>0)svg.setAttribute('viewBox',[box.x+box.width/2-size/2,box.y+box.height/2-size/2,size,size].join(' '));
+    const box=svg.getBBox(),height=Math.max(box.height+96,(box.width+96)*9/16),width=height*16/9;
+    if(box.width>0&&box.height>0)svg.setAttribute('viewBox',[box.x+box.width/2-width/2,box.y+box.height/2-height/2,width,height].join(' '));
   }
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   // Older cached diagrams can reveal their connector strokes once. Never pulse the entire SVG.
-  if(compact && ${animations}.length===0){
+  if(${compact || personal} && ${animations}.length===0){
     let index=0;
     for(const line of svg.querySelectorAll('path,line,polyline')){
       if(getComputedStyle(line).display==='none'||getComputedStyle(line).stroke==='none')continue;

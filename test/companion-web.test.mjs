@@ -15,7 +15,7 @@ const snapshot = {package_id: 'test.provider', session_id: 7, catalog_name: 'tes
 const playback = {state: 'paused', can_pause: true, can_play: true, revision: 1, observing: true};
 const moment = {state: 'response', answer: 'From your description, the flag went up.', visual: {status: 'none', svg: '', animations: [], description: ''},
   grounding: {at_seconds: 125.5, evidence_ids: []},
-  intervention: {playback: 'keep_watching', audio: 'silent'}, life_connection: {offered: false, question: '', recipient: 'everyone'}};
+  intervention: {playback: 'keep_watching', audio: 'silent'},};
 
 function instance() {
   const messages = [], requests = [], streams = [];
@@ -33,7 +33,7 @@ function instance() {
   return {app, context, receive, requests, messages, streams};
 }
 
-test('transport refresh keeps the selected moment fixed through clarification and Life Connection', async () => {
+test('transport refresh keeps the selected moment fixed through clarification and explicit pause', async () => {
   const {app, receive, requests} = instance();
   app.command = async action => {
     receive({type: 'selene:provider', playback, snapshot: {...snapshot, at_seconds: 500}});
@@ -44,7 +44,7 @@ test('transport refresh keeps the selected moment fixed through clarification an
   app.state.moment = {...moment, state: 'clarification', answer: 'Where was the attacker at the pass?'};
   app.state.clarifying = true; app.state.request = 'Beyond the second-last opponent.';
   await app.ask('keep_watching');
-  await app.ask('pause_to_explore', true);
+  await app.ask('pause_to_explore');
   const inputs = requests.filter(request => request.url === '/api/companion/moment').map(request => request.input);
   assert.equal(inputs.length, 3);
   assert.equal(inputs[0].scene_detail, 'A forward pass. Why did the flag go up?');
@@ -55,13 +55,12 @@ test('transport refresh keeps the selected moment fixed through clarification an
   assert.equal(app.state.snapshot.at_seconds, 125.5);
 });
 
-test('a provider resume stops voice and withdraws Life Connection from the private mirror', () => {
+test('a provider resume stops voice without changing the explanation', () => {
   const {app, receive} = instance();
-  let stopped = 0, hidden = false;
-  app.voice = {stop: () => stopped++}; app.setMirrorLife = async visible => {hidden = !visible;};
-  app.state.lifeStarted = true;
+  let stopped = 0;
+  app.voice = {stop: () => stopped++};
   receive({type: 'selene:provider', playback: {...playback, state: 'playing'}});
-  assert.equal(stopped, 1); assert.equal(hidden, true); assert.equal(app.state.lifeStarted, false);
+  assert.equal(stopped, 1); assert.equal(app.state.playback.state, 'playing');
 });
 
 test('voice rechecks provider state and requires live notifications before starting', async () => {
@@ -98,19 +97,18 @@ test('private read aloud uses the selected slower-answer setting', () => {
   app.readAloud(); assert.equal(spoken[1], 'es-ES'); app.componentWillUnmount();
 });
 
-test('personal pause and guided return are reachable through TV and phone controls without interrupting a playing TV', async () => {
-  const {context, streams} = instance();
+test('phone explains live and selected moments without a video, preference menus or TV transport', async () => {
+  const {context, streams, messages} = instance();
   const story = {id: 'test', title: 'Test', content_version: 'a'.repeat(64), duration: 100, video: '/media/test.mp4', transcript: [], scenes: []};
   const report = {content_id: story.id, content_version: story.content_version, epoch: 0, sequence: 1, at_seconds: 35, play_state: 'playing', playback_rate: 1, age_ms: 0, fresh: true};
   const hold = {id: '12345678-1234-1234-1234-123456789abc', content_version: story.content_version, epoch: 0, from_seconds: 35};
-  const answer = {...moment, grounding: {...moment.grounding, at_seconds: 20}};
-  const bridge = {status: 'ready', ...hold, through_seconds: 45, moment: {...answer, grounding: {...answer.grounding, at_seconds: 45}}, evidence: []};
   const pair = {code: '123456', url: 'https://relay.invalid/?private=token', join_url: 'https://relay.invalid/?join=1', expires_at: Date.now() + 300000};
   const calls = [];
   context.fetch = async (url, options) => {
-    calls.push({url, input: JSON.parse(options.body)});
-    const result = url === '/api/private/pair' ? pair : url.endsWith('/hold') ? {hold, playback: report}
-      : url.endsWith('/ask') ? {moment: answer, evidence: []} : url.endsWith('/return') ? bridge : {closed: true};
+    const input = JSON.parse(options.body); calls.push({url, input});
+    const result = url === '/api/private/pair' ? pair : url.endsWith('/hold') ? {hold: {...hold, from_seconds: input.from_seconds}, playback: report}
+      : url.endsWith('/ask') ? {moment: {...moment, grounding: {...moment.grounding, at_seconds: input.at_seconds}}, evidence: []}
+        : url.endsWith('/return') || url === '/api/return' ? {status: 'ready', from_seconds: input.from_seconds, through_seconds: 45, moment, evidence: []} : {closed: true};
     return {ok: true, json: async () => result};
   };
   const nodes = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(nodes)];
@@ -122,42 +120,59 @@ test('personal pause and guided return are reachable through TV and phone contro
   const tv = new context.module.exports.OwnApp({session_id: 'test-session', story, private_mirror_available: true});
   tv.mounted = true; tv.state.started = true;
   tv.video.current = {currentTime: 35, readyState: 4, playbackRate: 1, paused: false, pause: () => tvTransport++, play: async () => tvTransport++};
-  button(tv, 'Selene tools').props.onClick();
-  button(tv, 'Hold our place').props.onClick();
+  button(tv, 'Selene tools').props.onClick(); button(tv, 'Hold our place').props.onClick();
   assert.equal(tv.state.savedPlace.at_seconds, 35);
-  tv.video.current.currentTime = 45;
-  await button(tv, 'Bring us back').props.onClick();
+  tv.video.current.currentTime = 45; await button(tv, 'Bring us back').props.onClick();
   assert.equal(tv.state.screen, 'return'); assert.equal(tv.state.returnResult.through_seconds, 45);
-  button(tv, 'Close return').props.onClick();
-  button(tv, 'Selene').props.onClick(); button(tv, 'Selene tools').props.onClick();
-  await button(tv, 'Pair phone').props.onClick();
-  assert.equal(tv.state.screen, 'pair'); assert.equal(tv.state.mirror.code, pair.code);
+  button(tv, 'Close return').props.onClick(); button(tv, 'Selene').props.onClick(); button(tv, 'Selene tools').props.onClick();
+  await button(tv, 'Pair phone').props.onClick(); assert.equal(tv.state.mirror.code, pair.code);
 
+  const beforePhoneMessages = messages.length;
   const phone = new context.module.exports.PrivateMirror({token: 'token'});
   phone.componentDidMount();
   streams[0].onmessage({data: JSON.stringify({type: 'personal', story, playback: report, hold: null})});
-  await button(phone, 'Pause for me').props.onClick();
-  assert.equal(phone.state.hold.id, hold.id); assert.equal(phone.state.muted, true);
-  const player = {currentTime: 20, paused: true, muted: true, pause() {this.paused = true;}, play: async () => {player.paused = false;}};
-  phone.player.current = player;
-  phone.state.preferences.need = 'Translate'; phone.state.preferences.language = 'Indonesian'; phone.state.request = 'What does that mean?';
+  assert.equal(nodes(phone.render()).some(node => ['video', 'select'].includes(node.type)), false);
+  phone.state.request = "I'm grandma. Explain that simply.";
   await nodes(phone.render()).find(node => node.type === 'form').props.onSubmit({preventDefault() {}});
+  assert.equal(phone.state.moment.grounding.at_seconds, 35);
+  const first = calls.find(call => call.url.endsWith('/ask')).input;
+  assert.equal(first.request, "I'm grandma. Explain that simply.");
+  assert.equal(first.need, 'Show visually'); assert.equal(first.language, 'English'); assert.equal(first.recipient, 'everyone');
+  assert.equal(phone.state.hold.from_seconds, 35, 'asking saves the moment without a separate pause button');
+
+  button(phone, 'Choose a moment').props.onClick();
+  nodes(phone.render()).find(node => node.type === 'input').props.onChange({target: {value: '20'}});
+  phone.state.request = 'What did that mean?'; await phone.ask();
   assert.equal(phone.state.moment.grounding.at_seconds, 20);
-  let spoken;
-  phone.voice = {stop() {}, speak: (...args) => {spoken = args;}};
-  phone.preferences({language: 'Spanish'}); phone.readAloud();
-  assert.equal(spoken[1], 'id-ID', 'voice matches the delivered answer, not a later preference change');
+  assert.equal(phone.state.hold.from_seconds, 35, 'an earlier question never moves the help interval before Send');
+  let spoken; phone.voice = {stop() {}, speak: (...args) => {spoken = args;}};
+  phone.readAloud(); assert.equal(spoken[1], 'en-US');
   const pending = new AbortController(); phone.pending = pending; phone.state.busy = 'ask';
-  nodes(phone.render()).find(node => node.type === 'video').props.onSeeking();
-  assert.equal(pending.signal.aborted, true); assert.equal(phone.state.moment, null, 'rewinding removes later answer text and pending output');
+  phone.chooseMoment(18); assert.equal(pending.signal.aborted, true); assert.equal(phone.state.moment, null);
   phone.receivePlayback({...report, sequence: 2, at_seconds: 45});
-  await button(phone, 'Bring me back').props.onClick();
-  assert.equal(phone.state.bridge.through_seconds, 45);
-  await button(phone, 'Back to TV').props.onClick();
-  assert.equal(phone.state.hold, null); assert.equal(player.paused, true); assert.equal(player.muted, true);
-  assert.equal(tvTransport, 0, 'personal actions and shared return never issue transport commands');
-  assert.ok(calls.some(call => call.url === '/api/return'));
-  assert.ok(calls.some(call => call.url === '/api/private/token/return'));
+  await button(phone, 'Catch me up').props.onClick();
+  assert.equal(phone.state.bridge.from_seconds, 35); assert.equal(phone.state.bridge.through_seconds, 45);
+  button(phone, 'Choose a moment').props.onClick(); await button(phone, 'Follow TV').props.onClick();
+  assert.equal(phone.state.hold, null); assert.equal(phone.state.selected, null);
+  assert.equal(tvTransport, 0); assert.equal(messages.length, beforePhoneMessages, 'the phone never sends native transport commands');
+  phone.componentWillUnmount();
+});
+
+test('phone clarification stays frozen; stale samples and TV seeks cannot generate or retain an old answer', async () => {
+  const {context, streams, requests} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'test'}); phone.componentDidMount();
+  const playback = {content_version: 'a'.repeat(64), epoch: 0, sequence: 1, at_seconds: 35, age_ms: 0, fresh: true};
+  const hold = {id: 'branch', content_version: playback.content_version, epoch: 0, from_seconds: 20};
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'}, playback, hold})});
+  phone.state.moment = {...moment, state: 'clarification', grounding: {...moment.grounding, at_seconds: 20}};
+  phone.state.request = 'The person on the left.';
+  phone.receivePlayback({...playback, sequence: 2, at_seconds: 45}); await phone.ask();
+  assert.equal(requests.at(-1).input.at_seconds, 20); assert.equal(requests.at(-1).input.clarification, true);
+  phone.state.request = 'Another question'; phone.state.receivedAt = Date.now() - 7000;
+  const count = requests.length; await phone.ask(); assert.equal(requests.length, count);
+  const pending = new AbortController(); phone.pending = pending; phone.state.selected = 20;
+  phone.receivePlayback({...playback, sequence: 3, epoch: 1, at_seconds: 10});
+  assert.equal(pending.signal.aborted, true); assert.equal(phone.state.moment, null); assert.equal(phone.state.selected, null);
   phone.componentWillUnmount();
 });
 
@@ -235,8 +250,14 @@ test('missing HTTPS pairing stays discoverable and media events preserve truthfu
 
 test('closing a failed shared return preserves its marker for retry', () => {
   const {context} = instance();
-  const tv = new context.module.exports.OwnApp({session_id: 'test-session', story: {id: 'test'}, private_mirror_available: true});
+  const tv = new context.module.exports.OwnApp({session_id: 'test-session', story: {id: 'test', transcript: []}, private_mirror_available: true});
   const saved = {at_seconds: 8, epoch: 0};
+  tv.state.screen = 'return';
+  tv.state.returnResult = {status: 'unavailable', from_seconds: 8, through_seconds: 20, moment: null, quote: {at_seconds: 11, text: 'Exact source dialogue.'}};
+  const nodes = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(nodes)];
+  const card = nodes(tv.render());
+  assert.equal(card.find(node => node.type === 'h2').props.children, '“Exact source dialogue.”');
+  assert(card.some(node => node.type === 'p' && JSON.stringify(node.props.children).includes('Recap unavailable; close to retry.')));
   for (const status of ['unavailable', 'insufficient_evidence', 'ready', 'no_gap']) {
     tv.state.savedPlace = saved; tv.state.returnResult = {status}; tv.state.screen = 'return';
     tv.back();
@@ -248,7 +269,7 @@ test('closing a failed shared return preserves its marker for retry', () => {
 test('TV position renders only on displayed seconds or cue changes, without rounding playback samples', () => {
   const {context, messages} = instance();
   const transcript = [{start: 0.25, end: 0.75, text: 'First'}, {start: 0.75, end: 1.5, text: 'Second'}];
-  const tv = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'test', transcript}});
+  const tv = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'test', duration: 100, transcript}});
   tv.video.current = {currentTime: 0, duration: 100, paused: false, ended: false, muted: false, volume: 1};
   tv.publishPlayback = async () => {};
   let renders = 0;
@@ -311,7 +332,7 @@ test('own-player follows native captions until explicitly overridden and rejects
 test('paused answers stay notifications with their SVG; pause never opens a conversation', async () => {
   const {app, context} = instance();
   const visual = {status: 'ready', svg: '<svg/>', description: 'A supported relation.', animations: [{target_id: 'relation'}]};
-  const response = {...moment, visual, life_connection: {offered: true, question: 'A private question.', recipient: 'everyone'}};
+  const response = {...moment, visual,};
   const own = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'test', title: 'Test', duration: 200, transcript: [], scenes: []}});
   own.mounted = true; own.state = {...own.state, screen: 'moment', started: true, paused: true, moment: response};
   let plays = 0; own.video.current = {pause() {}, play: () => {plays++; return Promise.resolve();}};
@@ -323,8 +344,8 @@ test('paused answers stay notifications with their SVG; pause never opens a conv
     assert.ok(sections(panel).some(node => node.props?.visual === visual), 'preserve SVG and animation data in the notification');
     assert.equal(sections(panel).some(node => node.props?.children === 'Pause to explore'), false);
   }
-  own.pauseMoment(); assert.equal(own.state.lifeStarted, false);
-  app.command = async () => playback; await app.choosePause(); assert.equal(app.state.lifeStarted, false);
+  own.pauseMoment(); assert.equal(own.state.paused, true);
+  app.command = async () => playback; await app.choosePause(); assert.equal(app.state.playback.state, 'paused');
   own.back(); assert.equal(own.state.controls, false); assert.equal(plays, 0, 'Back dismisses without resuming playback');
 });
 
@@ -349,7 +370,7 @@ test('one-click questions call the real request boundary; empty input stays loca
   app.command = async () => playback;
   await app.ask('unspecified');
   assert.equal(requests.length, 0);
-  await app.ask('unspecified', false, 'Who are the people in this moment?');
+  await app.ask('unspecified', 'Who are the people in this moment?');
   assert.equal(requests[0].input.request, 'Who are the people in this moment?');
   assert.equal(requests[0].input.playback_choice, 'unspecified');
   assert.equal(requests[0].input.scene_detail, '');
@@ -379,9 +400,9 @@ test('only explicit preferences are remembered; invalid storage does not break a
   context.localStorage = {getItem: () => stored, setItem: (_key, value) => {stored = value;}};
   context.module.exports.savePreferences({need: 'Translate', language: 'Indonesian', recipient: 'child', session: 'family', request: 'Private dialogue'});
   assert.equal(stored.includes('Private dialogue'), false);
-  assert.equal(context.module.exports.readPreferences().language, 'Indonesian');
+  assert.equal(context.module.exports.readPreferences().language, 'English', 'obsolete language and audience selectors are reset');
   stored = '{broken';
-  assert.equal(context.module.exports.readPreferences().need, 'Explain simply');
+  assert.equal(context.module.exports.readPreferences().need, 'Show visually');
   stored = JSON.stringify({need: 'Guess my age', language: 'Unknown', recipient: 'inferred'});
   assert.equal(context.module.exports.readPreferences().recipient, 'everyone');
 });
@@ -395,7 +416,7 @@ test('ordinary answers resume before appearing and failed resume never shows a n
       assert.notEqual(app.state.screen, 'moment');
       return action === 'play' && succeeds ? {...playback, state: 'playing'} : playback;
     };
-    await app.ask('pause_to_explore', false, 'What does that mean?');
+    await app.ask('pause_to_explore', 'What does that mean?');
     assert.ok(actions.includes('play'));
     assert.equal(app.state.screen === 'moment', succeeds);
     if (succeeds) assert.equal(app.state.moment.intervention.playback, 'keep_watching');
@@ -410,7 +431,7 @@ test('ordinary answers resume before appearing and failed resume never shows a n
     nodes(own.render()).find(node => node.type === 'video').props.onSeeking();
     own.video.current.paused = false;
   }};
-  await own.deliver({request: 'Explain', life_connection: false});
+  await own.deliver({request: 'Explain',});
   assert.equal(played, true); assert.equal(own.state.screen, 'moment');
 });
 
@@ -438,6 +459,22 @@ test('compact SVG reveals connector geometry once and honors reduced motion', ()
 });
 
 
+test('phone SVG keeps full bounds and invokes finite WAAPI geometry; reduced motion skips it', () => {
+  for (const reduced of [false, true]) {
+    const {context} = instance(); context.document.querySelector = () => ({content: 'test-nonce'});
+    const animation = {target_id: 'person', keyframes: [{opacity: 1, transform: 'translate(-32px, 0px)'}, {opacity: 1, transform: 'none'}], duration_ms: 1400, delay_ms: 100};
+    const renderer = new context.module.exports.Visual({personal: true, visual: {...moment.visual, status: 'ready', svg: '<svg/>', animations: [animation]}});
+    const page = renderer.render().props.srcDoc, motions = [];
+    const svg = {querySelectorAll: () => [], getScreenCTM: () => ({inverse: () => ({})}), setAttribute: () => assert.fail('Phone bounds must retain readable labels')};
+    vm.runInNewContext(page.match(/<script nonce="test-nonce">([\s\S]*?)<\/script>/)[1], {
+      document: {querySelector: () => svg, getElementById: () => ({animate: (...args) => {motions.push(args); return {};}})},
+      parent: {postMessage: () => assert.fail('Valid SVG rejected')}, addEventListener() {}, requestAnimationFrame: fn => fn(), matchMedia: () => ({matches: reduced}),
+    });
+    assert.equal(motions.length, reduced ? 0 : 1);
+    if (!reduced) {assert.equal(motions[0][1].iterations, 1); assert.equal(motions[0][1].duration, 1400); assert.equal(motions[0][0][1].transform, 'none');}
+  }
+});
+
 test('watching launcher offers only Selene actions and question entry stays minimal', () => {
   const {context} = instance();
   const own = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'test', duration: 200, transcript: [], scenes: []}});
@@ -450,4 +487,151 @@ test('watching launcher offers only Selene actions and question entry stays mini
   own.state.screen = 'ask';
   const question = nodes(own.render()).find(node => node.type === 'textarea');
   assert.equal(question.props.rows, 1); assert.equal(question.props['data-initial'], true);
+});
+
+test('phone Send and catch-up retain captured samples across delayed requests and restart after success', async () => {
+  const {context, streams, messages} = instance(), calls = [];
+  const phone = new context.module.exports.PrivateMirror({token: 'test'}); phone.componentDidMount();
+  const story = {id: 'test', title: 'Test', transcript: [], scenes: []};
+  let report = {content_version: 'a'.repeat(64), epoch: 0, sequence: 1, at_seconds: 35, age_ms: 0, fresh: true};
+  const advance = at => {report = {...report, at_seconds: at, sequence: report.sequence + 1}; phone.receivePlayback(report);};
+  let held, branches = 0;
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story, playback: report, hold: null})});
+  context.fetch = async (url, options) => {
+    const input = JSON.parse(options.body); calls.push({url, input});
+    let result;
+    if (url.endsWith('/hold')) {
+      held = {id: String(++branches).padStart(36, '0'), content_version: report.content_version, epoch: 0, from_seconds: input.from_seconds, question_at_seconds: null};
+      if (branches === 1) advance(40);
+      result = {hold: held, playback: report};
+    } else if (url.endsWith('/ask')) {
+      held = {...held, question_at_seconds: input.at_seconds};
+      result = {id: 'answer', request: input.request, at_seconds: input.at_seconds, hold: held, thread: null, evidence: [], quote: null,
+        moment: {...moment, grounding: {...moment.grounding, at_seconds: input.at_seconds}}};
+    } else if (url.endsWith('/return')) {
+      advance(70); result = {status: 'ready', from_seconds: held.from_seconds, through_seconds: input.through_seconds, moment, evidence: []};
+    } else assert.fail(`Unexpected private request ${url}`);
+    return {ok: true, json: async () => result};
+  };
+  phone.chooseMoment(20); phone.state.request = 'Explain the earlier line'; await phone.ask();
+  assert.equal(calls[0].input.at_seconds, 35); assert.equal(calls[0].input.sequence, 1);
+  assert.equal(calls[1].input.at_seconds, 20); assert.equal(phone.state.hold.from_seconds, 35);
+  advance(50); phone.state.request = 'More simply please'; await phone.ask();
+  assert.equal(calls.at(-1).input.at_seconds, 20); assert.equal(calls.at(-1).input.new_topic, false);
+  advance(60); const tappedSequence = report.sequence; await phone.bringBack();
+  assert.equal(calls.at(-1).input.through_seconds, 60); assert.equal(calls.at(-1).input.sequence, tappedSequence);
+  assert.equal(phone.state.bridge.through_seconds, 60); assert.equal(phone.state.playback.at_seconds, 70);
+  assert.equal(phone.state.hold, null); assert.equal(phone.state.selected, null);
+  advance(72); phone.state.request = 'What just happened?'; await phone.ask();
+  assert.equal(phone.state.hold.from_seconds, 72); assert.equal(calls.at(-1).input.at_seconds, 72);
+  assert.equal(messages.length, 0, 'private help cannot issue a native transport action');
+  phone.componentWillUnmount();
+});
+
+test('thread updates wait through typing and read-aloud, keep the marker, and can continue after a first update', async () => {
+  const {context, streams} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'test'}); phone.componentDidMount();
+  const playback = {content_version: 'a'.repeat(64), epoch: 0, sequence: 1, at_seconds: 35, age_ms: 0, fresh: true};
+  const hold = {id: 'branch', content_version: playback.content_version, epoch: 0, from_seconds: 35, question_at_seconds: 35};
+  const help = {id: 'answer', request: 'Why keep it?', at_seconds: 35, moment: {...moment, grounding: {...moment.grounding, at_seconds: 35}}, quote: null, evidence: []};
+  const thread = {id: 'follow', answer_id: help.id, question: help.request, content_version: playback.content_version, epoch: 0,
+    help, revision: 0, checked_through_seconds: 35};
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'}, playback, hold, help, bridge: null, thread})});
+  phone.receivePlayback({...playback, sequence: 2, at_seconds: 45});
+  let finish, calls = 0;
+  context.fetch = async () => {calls++; return new Promise(resolve => {finish = resolve;});};
+  const checking = phone.checkThread(); phone.editing = true; phone.state.request = 'My draft';
+  const updated = {...thread, revision: 1, checked_through_seconds: 45,
+    help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45}}}};
+  finish({ok: true, json: async () => ({thread: updated, updated: true})}); await checking;
+  assert.equal(phone.state.moment.answer, help.moment.answer); assert.ok(phone.queuedThread);
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'},
+    playback: {...playback, sequence: 2, at_seconds: 45}, hold, help, bridge: null, thread: updated})});
+  assert.equal(phone.state.moment.answer, help.moment.answer, 'automatic reconnect cannot replace a card during typing');
+  assert.equal(phone.state.request, 'My draft'); assert.equal(phone.queuedThread.revision, 1);
+  phone.editing = false; phone.state.request = ''; phone.state.voice = 'speaking'; phone.flushThread();
+  assert.equal(phone.state.moment.answer, help.moment.answer, 'speech must finish before the card changes');
+  phone.state.voice = 'idle';
+  const oldSetState = phone.setState, deferred = [];
+  phone.setState = (...args) => deferred.push(args);
+  phone.begin('ask'); phone.flushThread();
+  assert.equal(phone.state.moment.answer, help.moment.answer, 'a pending action blocks updates even before React commits busy state');
+  phone.setState = oldSetState; deferred.forEach(args => phone.setState(...args));
+  phone.pending = null; phone.state.busy = ''; phone.flushThread();
+  assert.equal(phone.state.moment.answer, updated.help.moment.answer); assert.equal(phone.state.hold.from_seconds, 35);
+  phone.receivePlayback({...playback, sequence: 3, at_seconds: 60}); phone.nextThreadCheck = 0;
+  context.document.hidden = true; await phone.checkThread(); assert.equal(calls, 1);
+  context.document.hidden = false; const next = phone.checkThread();
+  assert.equal(calls, 2, 'applying an update cannot disable subsequent thread checks');
+  phone.receivePlayback({...playback, sequence: 4, epoch: 1, at_seconds: 10});
+  finish({ok: true, json: async () => ({thread: {...updated, revision: 2}, updated: true})}); await next;
+  assert.equal(phone.state.thread, null); assert.equal(phone.state.moment, null, 'a late result cannot survive a TV seek');
+  phone.state.thread = updated; phone.state.playback.fresh = false;
+  context.fetch = async (url, options) => {
+    assert.ok(url.endsWith('/thread')); assert.equal(JSON.parse(options.body).enabled, false);
+    return {ok: true, json: async () => ({thread: null})};
+  };
+  await phone.toggleThread();
+  assert.equal(phone.state.thread, null, 'the viewer can opt out even while TV samples are stale');
+  phone.componentWillUnmount();
+});
+
+test('phone reconciliation restores a completed return without resurrecting its old interval', () => {
+  const {context, streams} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'test'}); phone.componentDidMount();
+  const bridge = {status: 'ready', from_seconds: 35, through_seconds: 45, moment, evidence: []};
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'},
+    playback: {content_version: 'a'.repeat(64), epoch: 0, sequence: 3, at_seconds: 50, age_ms: 0, fresh: true}, hold: null, help: null, bridge, thread: null})});
+  assert.equal(phone.state.bridge.through_seconds, 45); assert.equal(phone.state.hold, null); assert.equal(phone.questionAt, null);
+  assert.equal(phone.state.moment.answer, moment.answer);
+  phone.componentWillUnmount();
+});
+
+
+test('Guided Return at the film end shows its recap without restarting the film', async () => {
+  const {context} = instance();
+  const tv = new context.module.exports.OwnApp({session_id: 'test-session', story: {id: 'test', duration: 105}});
+  tv.mounted = true; tv.state.savedPlace = {at_seconds: 40, epoch: 0};
+  tv.publishPlayback = async () => {};
+  context.fetch = async () => ({ok: true, json: async () => ({status: 'ready', from_seconds: 40, through_seconds: 105, moment})});
+  let restarts = 0;
+  tv.video.current = {paused: true, ended: true, currentTime: 105, play: async () => {restarts++;}};
+  await tv.bringUsBack();
+  assert.equal(restarts, 0); assert.equal(tv.state.screen, 'return');
+  assert.equal(tv.state.returnResult.through_seconds, 105);
+  tv.send = async () => ({ok: true, json: async () => moment});
+  await tv.deliver({request: 'Explain that.', at_seconds: 105, playback_choice: 'keep_watching',});
+  assert.equal(restarts, 0); assert.equal(tv.state.screen, 'moment');
+});
+
+test('TV hides films behind one list, puts Saved and Clear on one row, and sends a prepared example at its frozen moment', async () => {
+  const {context} = instance();
+  const own = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'the-red-kite', title: 'The Red Kite', duration: 96, transcript: [], scenes: []},
+    catalog: [{id: 'the-red-kite', title: 'The Red Kite', duration: 96}, {id: 'sintel-excerpt', title: 'Sintel excerpt', duration: 105}]});
+  own.mounted = true;
+  const sections = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(sections)];
+  const buttons = () => sections(own.render()).filter(node => node.type === 'button');
+  assert.ok(buttons().some(node => node.props.children === 'Films'));
+  assert.equal(buttons().some(node => node.props['aria-label'] === 'Open Sintel excerpt'), false);
+  own.setState({screen: 'films'});
+  assert.ok(buttons().some(node => node.props['aria-label'] === 'Open Sintel excerpt'));
+  own.setState({started: true, screen: 'tools', savedPlace: {at_seconds: 9, epoch: 0}});
+  const savedRow = sections(own.render()).find(node => node.props?.className === 'saved-place-row');
+  assert.ok(sections(savedRow).some(node => node.props?.['aria-label'] === 'Clear saved place'));
+  own.video.current = {currentTime: 12, paused: false};
+  context.fetch = async () => ({ok: true, json: async () => ({examples: [{id: 'remember-character', request: 'Who is Arun to Maya?'}]})});
+  own.openAsk();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(own.state.anchorAt, 12);
+  own.setState({examplesOpen: true});
+  const example = buttons().find(node => node.props.children === 'Who is Arun to Maya?');
+  assert.ok(example);
+  let sent;
+  own.deliver = input => {sent = input;};
+  own.video.current.currentTime = 35;
+  example.props.onClick();
+  assert.equal(sent.at_seconds, 12);
+  assert.equal(sent.playback_choice, 'keep_watching');
+  assert.equal(sent.request, 'Who is Arun to Maya?');
+  assert.equal('life_connection' in sent, false);
 });

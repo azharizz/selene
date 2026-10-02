@@ -3,7 +3,8 @@ import json, subprocess
 from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 story = json.loads((root / 'content/story.json').read_text())
-assets = root / 'video/the-red-kite/assets'
+assets = root / 'assets/media/the-red-kite/narration'
+assets.mkdir(parents=True, exist_ok=True)
 for cue in story['transcript']:
     path = assets / (cue['id'] + '.aiff')
     subprocess.run(['say', '-v', 'Samantha', '-r', '145', '-o', str(path), cue['text']], check=True)

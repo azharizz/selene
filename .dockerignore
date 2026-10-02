@@ -1,0 +1,8 @@
+*
+!assets/
+!assets/**
+!server/
+!server/**
+!content/
+!content/**
+!Dockerfile

@@ -5,21 +5,17 @@ export type Need = typeof needs[number];
 export type Recipient = typeof recipients[number];
 export type Language = typeof languages[number];
 export type Preferences = {need: Need; language: Language; recipient: Recipient; session: 'family' | 'solo'};
-const defaults: Preferences = {need: 'Explain simply', language: 'English', recipient: 'everyone', session: 'family'};
+const defaults: Preferences = {need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family'};
 
 export function readPreferences(): Preferences {
   try {
     const value = JSON.parse(localStorage.getItem('selene.preferences') || 'null');
-    if (!value) return {...defaults};
-    if (value.need === 'Easy to hear') value.need = 'Slower answer voice';
-    return {need: needs.includes(value.need) ? value.need : defaults.need,
-      language: languages.includes(value.language) ? value.language : defaults.language,
-      recipient: recipients.includes(value.recipient) ? value.recipient : defaults.recipient,
-      session: value.session === 'solo' ? 'solo' : 'family'};
-  } catch {return {...defaults};} // WebView storage can be disabled or contain an older invalid value.
+    // Audience and wording now come from the question. Retain only an explicit audio preference.
+    return {...defaults, need: ['Slower answer voice', 'Easy to hear'].includes(value?.need) ? 'Slower answer voice' : defaults.need};
+  } catch {return {...defaults};}
 }
 
-export function savePreferences({need, language, recipient, session}: Preferences) {
-  try {localStorage.setItem('selene.preferences', JSON.stringify({need, language, recipient, session}));}
+export function savePreferences({need}: Preferences) {
+  try {localStorage.setItem('selene.preferences', JSON.stringify({need}));}
   catch { /* The current viewing session still keeps the explicit selection. */ }
 }

@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import {createHash} from 'node:crypto';
-import {fetchRelay, runFeature, verifyServedBuild} from './vega-feature.mjs';
+import {fetchRelay, runFeature, verifyServedBuild, applicationRunning} from './vega-feature.mjs';
 
 const home = homedir();
 const nodeRoot = join(home, '.nvm/versions/node/v22.17.0');
@@ -127,12 +127,21 @@ try {
   session = (await request('/session', { capabilities: { alwaysMatch: capabilities, firstMatch: [{}] } })).sessionId;
   assert(session, 'No Appium session ID');
   report.checks.session = true;
-  if (feature) await command('appium/device/terminate_app', {appId: 'com.selene.tv'});
+  if (feature && applicationRunning(run(vda, ['-s', serial, 'shell', 'vlcm list']), 'com.selene.tv.main')) {
+    await command('appium/device/terminate_app', {appId: 'com.selene.tv'});
+  }
 
   stage = 'launcher';
   await command('appium/device/press_keycode', { keycode: 172 }); // Linux KEY_HOMEPAGE
+  let before;
+  const launcherDeadline = Date.now() + 20000;
+  do {
+    before = await command('source');
+    if (before.includes('appName="com.amazon.keplerlauncherapp"') && focus(before)) break;
+    await delay(250);
+  } while (Date.now() < launcherDeadline);
   await command('appium/device/press_keycode', { keycode: 103 }); // Up to Settings
-  const before = await command('source');
+  before = await command('source');
   writeFileSync(join(out, 'before.xml'), before);
   launcher(before);
   assert(focus(before), 'Launcher has no focusable control selected');

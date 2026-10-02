@@ -6,6 +6,10 @@ import {DOMParser} from '@xmldom/xmldom';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
+export function applicationRunning(list, componentId) {
+  return list.split('\n').some(line => line.trim().split(/\s+/, 1)[0] === componentId);
+}
+
 export async function fetchRelay(url, timeout = 30000) {
   try {
     return await fetch(url, {redirect: 'error', signal: AbortSignal.timeout(timeout)});
@@ -62,8 +66,8 @@ export function returnWindow(labels) {
 // never infer progress from a successful click or a generic "playing" flag.
 export async function runFeature({command, screenshot, out, story, report, checkpoint = () => {}, pairOnly = false}) {
   // The driver's generic press_keycode holds for 1000 ms, which can repeat
-  // Enter into the next screen. Send an actual short remote tap instead.
-  const key = keycode => command('execute/sync', {script: 'jsonrpc: injectInputKeyEvent', args: [[{inputKeyEvent: String(keycode), holdDuration: 50}]]});
+  // Enter into the next screen. Match the driver’s remotePressOk 100 ms tap instead.
+  const key = keycode => command('execute/sync', {script: 'jsonrpc: injectInputKeyEvent', args: [[{inputKeyEvent: String(keycode), holdDuration: 100}]]});
   const capture = async name => {
     const source = await command('source');
     writeFileSync(join(out, `${name}.xml`), source);
@@ -82,7 +86,7 @@ export async function runFeature({command, screenshot, out, story, report, check
         await delay(500);
         continue;
       }
-      const error = state.labels.find(label => /film could not load|Playback could not start|SELENE could not connect|recap could not be prepared|This return is unavailable/i.test(label));
+      const error = state.labels.find(label => /film could not load|Playback could not start|SELENE could not connect|recap could not be prepared|Recap unavailable|This return is unavailable/i.test(label));
       assert(!error, error);
       if (predicate(state)) return state;
       await delay(500);
@@ -91,28 +95,35 @@ export async function runFeature({command, screenshot, out, story, report, check
   };
   const click = async label => {
     const state = await waitFor(`button ${label}`, value => value.button(label));
-    const id = state.button(label).getAttribute('id');
-    await command('execute/sync', {script: 'jsonrpc: setFocus', args: [[{id: Number(id)}]]});
-    await waitFor(`focus on ${label}`, value => value.button(label)?.getAttribute('focused') === 'true');
+    report.step = `focus on ${label}`; checkpoint();
+    // Chromium can replace accessibility IDs during a painted transition.
+    // Refresh only focus, never retry an OK press that may already have acted.
+    let current = state, focused = false;
+    const deadline = Date.now() + 5000;
+    do {
+      const button = current.button(label);
+      if (button?.getAttribute('focused') === 'true') {focused = true; break;}
+      if (button) await command('execute/sync', {script: 'jsonrpc: setFocus', args: [[{id: Number(button.getAttribute('id'))}]]});
+      await delay(150);
+      current = ui(await command('source'));
+    } while (Date.now() < deadline);
+    assert(focused, `Could not focus current button: ${label}`);
     await key(28);
     await delay(250); // Allow the TV accessibility tree to reflect the remote action.
   };
   console.info(`Feature flow: ${story.id}. Uses the live configured model.`);
   await command('appium/device/activate_app', {appId: 'com.selene.tv.main'});
+  await waitFor('companion entry', value => value.button('Try the demo'));
+  await delay(1000); // Native accessibility can be ready before its first painted frame.
+  const entry = await capture('entry');
+  report.checks.cleanEntry = !entry.labels.some(label => /Open debugger to view warnings|Running debug build of JavaScript/.test(label));
   await click('Try the demo');
   await waitFor('story picker', state => state.button('Watch demo') || state.button('Continue watching'));
-  if (!pairOnly) {
-    await click('Preferences'); await click('Translate'); await click('Done');
-    await click('Connect to another playback app'); await click('Try the demo'); await click('Preferences');
-    await waitFor('saved translation preference after native WebView recreation', value => value.labels.includes('Translate into'));
-    await capture('storage-restored');
-    report.checks.preferencesPersist = true;
-    await click('Explain simply'); await click('Done');
-  }
   let state = await waitFor('story picker after preferences', value => value.button('Watch demo') || value.button('Continue watching'));
-  if (state.button(`Open ${story.title}`)) await click(`Open ${story.title}`);
-  // A picker button also contains the bare title as a descendant text node.
-  await waitFor('selected title', value => value.labels.includes(story.title) && !value.button(`Open ${story.title}`));
+  await click('Films');
+  await capture('films');
+  await click(`Open ${story.title}`);
+  await waitFor('selected title', value => value.labels.includes(story.title) && !value.button('Close films'));
   await capture('selected');
   await click('Watch demo');
   await waitFor('quiet Selene control', value => value.button('Selene'));
@@ -125,17 +136,48 @@ export async function runFeature({command, screenshot, out, story, report, check
     report.checks.pairingCode = true;
     report.phone = 'awaiting browser verification';
     await capture('pairing');
+    console.info(`Pair phone at ${report.pairing.url} with code ${report.pairing.code}. Keeping automation active for 90 seconds; browser verification is separate.`);
+    checkpoint();
+    // Keep the VDA automation/display session alive while a browser joins.
+    for (let i = 0; i < 9; i++) {await delay(10000); await command('source');}
+    await capture('paired-later');
     return;
   }
   await delay(5000);
   await capture('playing');
-  await click('Selene'); await click('Selene tools'); await click('Hold our place');
+  if (story.id === 'the-red-kite') {
+    await click('Selene'); await click('Selene tools'); await click('Playback');
+    await click('Forward 10 seconds');
+    if (ui(await command('source')).button('Close playback')) await click('Close playback');
+    await click('Ask Selene');
+    await click('Prepared examples');
+    await waitFor('title-matched prepared example', value => value.button('Who is Arun to Maya?'));
+    await capture('prepared-examples');
+    await click('Who is Arun to Maya?');
+    await waitFor('prepared answer with SVG', value => value.labels.includes('Arun is Maya’s grandfather.'));
+    await capture('prepared-answer');
+    report.checks.preparedExample = true;
+    await click('More options');
+    const more = await capture('answer-options');
+    assert(!more.labels.some(label => /Life Connection/i.test(label)), 'Obsolete option remains visible');
+    report.checks.noLifeConnection = true;
+    await click('Dismiss');
+  }
+  await click('Selene');
+  await click('Selene tools'); await click('Hold our place');
   await waitFor('saved place control', value => value.button('Bring us back'));
   await capture('held');
   report.checks.holdControl = true;
+  // A saved quiet control activates Return. Use the real D-pad to open tools.
+  await key(103); await delay(250); await key(106); await delay(250); await key(28);
+  await waitFor('saved tools panel', value => value.button('Clear saved place'));
+  const tools = await capture('saved-tools');
+  assert(tools.button('Clear saved place') && tools.labels.some(label => /^Saved at/.test(label)), 'Saved place controls are missing');
+  await click('Close tools'); await click('Hide Selene');
   console.info('Marker saved. Letting the TV advance before requesting a return.');
   await delay(20000);
   await click('Bring us back');
+  await capture('preparing-return');
   state = await waitFor('a reviewed recap with a nonempty interval', value => {
     assert(!value.labels.some(label => /no gap at|not enough evidence/i.test(label)), 'Return was a fallback, not a reviewed recap');
     return returnWindow(value.labels);
@@ -157,8 +199,7 @@ export async function runFeature({command, screenshot, out, story, report, check
   await capture('dismissed');
   report.checks.dismiss = true;
   // One hardware play/pause input per transition. UI transport state must change once.
-  await click('Selene'); await click('Selene tools'); await click('Answer preferences');
-  await click('Demo playback');
+  await click('Selene'); await click('Selene tools'); await click('Playback');
   await waitFor('playing transport state', value => value.button('Pause'));
   await key(164); // Linux KEY_PLAYPAUSE, delivered by the Vega remote path.
   await waitFor('one remote press pauses', value => value.button('Play'));

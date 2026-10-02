@@ -11,12 +11,13 @@ node_modules
 CMakeUserPresets.json
 npm-debug.log
 .env*
-artifacts/live-*.json
 data/*.json
-video/node_modules
-video/.hyperframes
-video/.hf-*
 *.log
 
-artifacts/ingestion-source/
 evaluation/results*.json
+
+# Generated runs and local authoring/tool state
+/artifacts/
+/video/
+/.impeccable/
+/.serena/

@@ -1,8 +1,10 @@
 import {build} from 'esbuild';
-import {mkdir, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {loadEnvFile} from 'node:process';
 loadEnvFile(new URL('../../.env', import.meta.url));
-const url = process.env.SELENE_APP_URL ?? `http://127.0.0.1:${process.env.SELENE_PORT ?? 4519}`;
+// UI rebuilds retain the selected native relay. Override explicitly to switch targets.
+const configured = JSON.parse(await readFile('src/config.json', 'utf8')).appUrl;
+const url = process.env.SELENE_APP_URL ?? configured ?? `http://127.0.0.1:${process.env.SELENE_PORT ?? 4519}`;
 if (!/^https:\/\//.test(url) && !/^http:\/\/127\.0\.0\.1:\d+$/.test(url)) throw new Error('Remote SELENE_APP_URL must use HTTPS');
 await mkdir('assets', {recursive: true});
 await build({entryPoints: ['web/App.tsx'], bundle: true, minify: true, sourcemap: false, outdir: 'assets', entryNames: 'app', platform: 'browser', target: 'chrome120', jsx: 'automatic', define: {'process.env.NODE_ENV': '"production"'}});

@@ -5,13 +5,13 @@ import {sceneContext, companionContext, connections, callTool, story, createMemo
 import {validateVisual} from '../server/visual.mjs';
 import {validateMoment, explain} from '../server/agent.mjs';
 
-const request = {request: 'Why does he keep the kite?', content_id: 'the-red-kite', at_seconds: 44, play_state: 'playing', playback_choice: 'keep_watching', need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', life_connection: false};
+const request = {request: 'Why does he keep the kite?', content_id: 'the-red-kite', at_seconds: 44, play_state: 'playing', playback_choice: 'keep_watching', need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone',};
 const visual = {status: 'ready', description: 'The kite connects two generations.', animations: [], svg: '<svg viewBox="0 0 960 540"><rect width="960" height="540" fill="#182421"/><text id="label" x="60" y="120" font-size="48" fill="#f6f2e9">Made together</text><line id="connection" x1="80" y1="220" x2="700" y2="220" stroke="#e8bb70" stroke-width="6"/></svg>'};
 const result = () => ({...quietResponse(request, 'made-together'), state: 'response', answer: 'Arun made this kite with Maya’s mother.', visual: structuredClone(visual), grounding: {content_id: story.id, scene_id: 'made-together', at_seconds: 44, evidence_ids: ['f-history'], graph_ids: ['g-kite-history']}});
 
 test('request trust boundary rejects unknown fields, future times and inferred preferences', () => {
   assert.equal(validRequest(request), true);
-  for (const altered of [{...request, at_seconds: 100}, {...request, request: 'x'.repeat(601)}, {...request, recipient: 'probably old'}, {...request, provider_url: 'https://evil.invalid'}, {...request, life_connection: 'yes'}]) assert.equal(validRequest(altered), false);
+  for (const altered of [{...request, at_seconds: 100}, {...request, request: 'x'.repeat(601)}, {...request, recipient: 'probably old'}, {...request, provider_url: 'https://evil.invalid'}, {...request, obsolete_option: 'yes'}]) assert.equal(validRequest(altered), false);
 });
 test('every moment excludes future facts, unfinished dialogue and future graph relationships', () => {
   for (let at = 0; at <= story.duration; at += 0.25) {
@@ -86,13 +86,11 @@ test('fabricated citations, changed recipients and stale context fail closed', (
   assert.throws(() => validateMoment(future, request));
   const stale = result(); stale.grounding.at_seconds = 90;
   assert.throws(() => validateMoment(stale, request));
-  const recipient = result(); recipient.life_connection.recipient = 'child';
-  assert.throws(() => validateMoment(recipient, request));
 });
 test('no request is quiet and never requires an agent call', async () => {
   const quiet = await explain({...request, request: ''});
   assert.equal(quiet.state, 'quiet'); assert.equal(quiet.answer, '');
-  assert.equal(quiet.visual.status, 'none'); assert.equal(quiet.life_connection.offered, false);
+  assert.equal(quiet.visual.status, 'none');
   assert.equal(validResponse(quiet), true);
 });
 

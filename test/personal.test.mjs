@@ -22,22 +22,22 @@ test('personal time boundaries reject stale, reordered, changed-content and chan
   assert.throws(() => requirePlayback(session, content_version, 0, 8000), /TV position is unavailable/);
   assert.throws(() => recordPlayback(session, {...report, sequence: 2, at_seconds: 200}, 3000), /outside/);
   assert.throws(() => recordPlayback(session, {...report, content_version: 'a'.repeat(64)}, 3000), /different film/);
-  const input = {content_version, epoch: 0};
+  const input = {content_version, epoch: 0, sequence: 1, at_seconds: 35};
   assert.ok(validHold(input));
   assert.equal(validHold({...input, from_seconds: -1}), false);
   const before = structuredClone(session.playback);
   const hold = holdMoment(session, input, 3000);
   assert.deepEqual(session.playback, before, 'holding on the phone cannot change TV transport');
   assert.equal(hold.from_seconds, 35);
-  assert.deepEqual(Object.keys(publicHold(hold)).sort(), ['content_version', 'epoch', 'from_seconds', 'id']);
+  assert.deepEqual(Object.keys(publicHold(hold)).sort(), ['content_version', 'epoch', 'from_seconds', 'id', 'question_at_seconds']);
   assert.throws(() => holdMoment(session, {...input, from_seconds: 36}, 3000), /already reached/);
   recordPlayback(session, {...report, sequence: 2, epoch: 1, at_seconds: 10}, 4000);
   assert.throws(() => requirePlayback(session, content_version, hold.epoch, 4000), /different point/);
   assert.equal(recordPlayback(session, {...report, sequence: 3}, 4000), false, 'an old seek generation stays invalid');
   const preferences = {need: 'Explain simply', language: 'English', recipient: 'everyone'};
-  assert.ok(validPersonalAsk({branch_id: hold.id, request: 'Why?', at_seconds: 10, clarification: false, ...preferences}));
-  assert.equal(validPersonalAsk({branch_id: hold.id, request: 'Why?', at_seconds: 10, clarification: false, ...preferences, session_id: 'TV authority'}), false);
-  assert.ok(validPersonalReturn({branch_id: hold.id, content_version, epoch: 0, from_seconds: 35, ...preferences}));
+  assert.ok(validPersonalAsk({branch_id: hold.id, request: 'Why?', at_seconds: 10, clarification: false, new_topic: true, ...preferences}));
+  assert.equal(validPersonalAsk({branch_id: hold.id, request: 'Why?', at_seconds: 10, clarification: false, new_topic: true, ...preferences, session_id: 'TV authority'}), false);
+  assert.ok(validPersonalReturn({branch_id: hold.id, content_version, epoch: 0, sequence: 1, from_seconds: 35, through_seconds: 35, ...preferences}));
 });
 
 test('returns use source evidence from the declared interval without future or generated graph facts', async () => {
@@ -71,9 +71,9 @@ test('returns use source evidence from the declared interval without future or g
 test('shared-TV Guided Return enforces its 26-word limit', () => {
   const story = getStory('offside-rule'), context = returnContext(story, 6, {at_seconds: 23}, '', 'shared_tv');
   const input = {request: 'Summarize the missed interval.', content_id: story.id, at_seconds: 23, play_state: 'playing', playback_choice: 'keep_watching',
-    need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', life_connection: false, continuation: null};
+    need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', continuation: null};
   const makeMoment = answer => ({version: '1.0', state: 'response', answer, visual: {status: 'none', svg: '', description: '', animations: []},
-    intervention: {playback: 'keep_watching', audio: 'silent'}, life_connection: {offered: false, question: '', recipient: 'everyone'},
+    intervention: {playback: 'keep_watching', audio: 'silent'},
     grounding: {content_id: story.id, scene_id: context.scene_id, at_seconds: 23, evidence_ids: [context.return_window.interval_evidence_ids[0]], graph_ids: []}, new_connections: []});
   validateMoment(makeMoment('word '.repeat(26).trim()), input, context);
   assert.throws(() => validateMoment(makeMoment('word '.repeat(27).trim()), input, context), /at most 26 words/);
@@ -101,14 +101,14 @@ test('a malformed grounding review retries the review without regenerating its r
     const body = JSON.parse(options.body);
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
       reviews++;
-      const content = reviews === 1 ? '{invalid' : JSON.stringify({supported: true, issue: '', pause_requested: false, life_requested: false});
+      const content = reviews === 1 ? '{invalid' : JSON.stringify({supported: true, issue: '', pause_requested: false});
       return Response.json({choices: [{finish_reason: 'stop', message: {content}}]});
     }
     generations++;
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({
       version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather’s table.',
       visual: {status: 'none', svg: '', description: '', animations: []},
-      intervention: {playback: 'keep_watching', audio: 'silent'}, life_connection: {offered: false, question: '', recipient: 'everyone'},
+      intervention: {playback: 'keep_watching', audio: 'silent'},
       grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []}, new_connections: [],
     })}}]});
   };
@@ -135,7 +135,7 @@ test('caption-led Guided Return keeps interval observations available to generat
       const review = JSON.parse(body.messages.at(-1).content);
       assert.deepEqual(review.context.return_window.interval_evidence_ids, ['caption-1', 'caption-2']);
       assert.equal(review.context.facts.some(fact => fact.source === 'model_observation'), false);
-      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false, life_requested: false})}}]});
+      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
     assert.match(body.messages[0].content, /When captions are sparse or do not describe the main visual development/);
     const runtime = JSON.parse(body.messages.at(-1).content.split('\n').at(-1));
@@ -143,7 +143,6 @@ test('caption-led Guided Return keeps interval observations available to generat
     assert.ok(runtime.playback_context.facts.some(fact => fact.source === 'model_observation'), 'generation can use interval visual evidence');
     const moment = {version: '1.0', state: 'response', answer: 'Someone says they are nearly done, then tells someone to sit still.',
       visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-      life_connection: {offered: false, question: '', recipient: 'everyone'},
       grounding: {content_id: story.id, scene_id: source.scene_id, at_seconds: 36, evidence_ids: ['caption-1', 'caption-2'], graph_ids: []}, new_connections: []};
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
   };
@@ -170,8 +169,8 @@ test('Guided Return keeps a useful later caption instead of requiring every cue'
       const reviewRules = body.messages.find(message => message.content.includes('For Guided Return'))?.content;
       assert.match(reviewRules, /Do not name a specific uncited caption as a required omission/);
       const verdict = reviews === 1
-        ? {supported: false, issue: 'Include the earlier “Good night, Scales” cue.', pause_requested: false, life_requested: false}
-        : {supported: true, issue: '', pause_requested: false, life_requested: false};
+        ? {supported: false, issue: 'Include the earlier “Good night, Scales” cue.', pause_requested: false}
+        : {supported: true, issue: '', pause_requested: false};
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(verdict)}}]});
     }
     drafts++;
@@ -182,7 +181,6 @@ test('Guided Return keeps a useful later caption instead of requiring every cue'
         ? 'The captions say “We’re almost done” and “sit still”; later, “Get him, Scales! Come on!”'
         : 'The captions say “sit still,” then “Good night, Scales”; later, “Get him, Scales! Come on!”',
       visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-      life_connection: {offered: false, question: '', recipient: 'everyone'},
       grounding: {content_id: story.id, scene_id: source.scene_id, at_seconds: 78,
         evidence_ids: drafts === 1 ? ['caption-1', 'caption-2', 'caption-4'] : ['caption-2', 'caption-3', 'caption-4'], graph_ids: []}, new_connections: []};
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
@@ -208,15 +206,15 @@ test('a misleading optional return diagram is dropped while the reviewed recap s
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
       reviews++;
       const verdict = reviews < 3
-        ? {supported: false, issue: 'A connector invents an unshown repair.', pause_requested: false, life_requested: false}
-        : {supported: true, issue: '', pause_requested: false, life_requested: false};
+        ? {supported: false, issue: 'A connector invents an unshown repair.', pause_requested: false}
+        : {supported: true, issue: '', pause_requested: false};
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(verdict)}}]});
     }
     drafts++;
     const moment = {
       version: '1.0', state: 'response', answer: 'Maya asks for another kite. Arun made this one with her mother at Maya’s age.',
       visual: {status: 'ready', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><rect x="40" y="40" width="880" height="460" fill="#202228"/><circle cx="300" cy="270" r="90" fill="#ffad33"/><rect x="570" y="180" width="180" height="180" fill="none" stroke="#f1f1f1" stroke-width="22"/><line id="connector" x1="410" y1="270" x2="530" y2="270" stroke="#ffad33" stroke-width="22"/></svg>', description: 'Two events in the story.', animations: [{target_id: 'connector', duration_ms: 900, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
-      intervention: {playback: 'keep_watching', audio: 'silent'}, life_connection: {offered: false, question: '', recipient: 'everyone'},
+      intervention: {playback: 'keep_watching', audio: 'silent'},
       grounding: {content_id: story.id, scene_id: 'made-together', at_seconds: 36, evidence_ids: ['t3', 'f-history'], graph_ids: []}, new_connections: [],
     };
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
@@ -236,7 +234,7 @@ test('a misleading optional return diagram is dropped while the reviewed recap s
   }
 });
 
-test('an early return keeps a reviewed answer when its first optional SVG is invalid', async () => {
+test('an early return requests bounded text without SVG and still reviews an invalid visual fallback', async () => {
   const story = getStory('the-red-kite'), saved = {...process.env}, fetch = globalThis.fetch;
   Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only'});
   let drafts = 0, reviews = 0;
@@ -247,15 +245,17 @@ test('an early return keeps a reviewed answer when its first optional SVG is inv
       const {response, context} = JSON.parse(body.messages.at(-1).content);
       assert.equal(response.visual.status, 'none');
       assert.equal(context.transcript.some(cue => cue.id === 't2'), false);
-      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false, life_requested: false})}}]});
+      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
     drafts++;
-    assert.match(body.messages[0].content, /Renderer: for Guided Return, generate a grounded schematic SVG only when/);
+    assert.match(body.messages[0].content, /Do not generate an SVG/);
+    assert.equal(body.max_tokens, 1024);
+    assert.deepEqual(body.response_format.json_schema.schema.properties.visual.properties.status.enum, ['none']);
     assert.doesNotMatch(body.messages[0].content, /Renderer: for a response, generate one grounded schematic SVG/);
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({
       version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather Arun’s kitchen table.',
       visual: {status: 'ready', svg: '<svg><script>invalid()</script></svg>', description: 'A kite.', animations: []},
-      intervention: {playback: 'keep_watching', audio: 'silent'}, life_connection: {offered: false, question: '', recipient: 'everyone'},
+      intervention: {playback: 'keep_watching', audio: 'silent'},
       grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []}, new_connections: [],
     })}}]});
   };
@@ -278,7 +278,6 @@ test('return failures identify the stage without exposing provider bodies or acc
   Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'private-key'});
   const draft = {version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather’s table.',
     visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-    life_connection: {offered: false, question: '', recipient: 'everyone'},
     grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1'], graph_ids: []}, new_connections: []};
   const logs = [];
   console.error = value => logs.push(value);
@@ -301,19 +300,22 @@ test('return failures identify the stage without exposing provider bodies or acc
         if (scenario === 'long' && !reviewing && calls === 1) assert.match(body.messages[0].content, /at most 20 words/);
         if (scenario === 'long' && !reviewing && calls > 1) assert.match(body.messages.at(-1).content, /Shorten to at most 20 words; omit a secondary cue or optional sampled-frame detail/);
         if (scenario === 'generation_http' || (scenario === 'review_http' && reviewing)) return new Response('private upstream details', {status: 503});
-        const result = reviewing ? {supported: false, issue: 'private viewer detail is not supported', pause_requested: false, life_requested: false}
+        const result = reviewing ? {supported: false, issue: 'private viewer detail is not supported', pause_requested: false}
           : scenario === 'schema' ? {answer: 'private viewer detail'} : scenario === 'long' ? {...draft, answer: 'word '.repeat(27)} : draft;
         return Response.json({choices: [{finish_reason: 'stop', message: {content: scenario === 'json' ? 'private invalid JSON' : JSON.stringify(result)}}]});
       };
-      const result = await guidedReturn(story, 6, {at_seconds: 14, content_version: playerStory(story).content_version, epoch: 0, play_state: 'playing'},
+      const from = scenario === 'schema' ? 6 : 0;
+      const result = await guidedReturn(story, from, {at_seconds: 14, content_version: playerStory(story).content_version, epoch: 0, play_state: 'playing'},
         {need: 'Explain simply', language: 'English', recipient: 'everyone'}, {output: 'shared_tv'});
       assert.equal(result.status, 'unavailable', scenario);
       assert.equal(result.moment, null, 'unreviewed text must never be passed off as a successful recap');
+      const cue = story.transcript.filter(line => line.start >= from && line.end <= 14).at(-1);
+      assert.deepEqual(result.quote, cue ? {id: cue.id, at_seconds: cue.start, text: cue.text} : null, 'failure quotes only completed original dialogue within the frozen interval');
       assert.equal(calls, expectedCalls, scenario);
       assert.equal(logs.length, 1);
       const diagnostic = JSON.parse(logs[0]);
       assert.equal(diagnostic.stage, stage, scenario); assert.equal(diagnostic.code, code, scenario);
-      assert.equal(diagnostic.from_seconds, 6); assert.equal(diagnostic.through_seconds, 14);
+      assert.equal(diagnostic.from_seconds, from); assert.equal(diagnostic.through_seconds, 14);
       assert.doesNotMatch(logs[0], /private|Authorization|Bearer/);
       if (scenario.endsWith('_http')) assert.equal(diagnostic.http_status, 503);
     }

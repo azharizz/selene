@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "provenance": "Prepared, source-checked demonstration answers. A hit is not a live model generation.",
+  "matching": "Exact listed aliases, matching story and source hashes, and [from_seconds, until_seconds) question-time window. Available on the phone and own-player TV. Otherwise use the live pipeline.",
+  "limits": "No fuzzy matching, cross-title substitutions, follow-up/thread substitutions or fixed catch-up recaps. TV lists only source-checked examples already available at the frozen question time. A prepared hit is not live generation.",
+  "entries": [
+    {
+      "id": "missed-fast-dialogue",
+      "situation": "Grandma misses fast dialogue",
+      "content_id": "sintel-excerpt",
+      "from_seconds": 28.5,
+      "until_seconds": 43.25,
+      "requests": [
+        "What does sit still mean?",
+        "I missed that line. What does sit still mean?",
+        "I am grandma. What does sit still mean?"
+      ],
+      "answer": "“Sit still” means stay in one place without moving. The caption does not say why.",
+      "evidence_ids": [
+        "caption-2"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "A schematic person settles once above a marked place, illustrating staying in one place without moving. It does not identify the caption's speaker.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><g id=\"settling-person\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"480\" cy=\"110\" r=\"30\"/><path d=\"M480 144V230M430 184H530M480 230L440 295M480 230L520 295\"/></g><path d=\"M330 355H630\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"24\" stroke-linecap=\"round\"/><text x=\"480\" y=\"465\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Stay still</text></svg>",
+        "animations": [
+          {
+            "target_id": "settling-person",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(32px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "94bef62652d8e81640304089a0479ead4f97465224d65a2b4b51925f62339fc5",
+      "evidence_sha256": "7bbdd9978f31cc607841aa70b3b3e9209918c64bfe0af5e7e5efb36a82db5c95"
+    },
+    {
+      "id": "remember-character",
+      "situation": "Grandma forgets a character or relationship",
+      "content_id": "the-red-kite",
+      "from_seconds": 9,
+      "until_seconds": 96.001,
+      "requests": [
+        "Who is Arun to Maya?",
+        "Who is Arun?",
+        "I am grandma. Who is Arun to Maya?"
+      ],
+      "answer": "Arun is Maya’s grandfather.",
+      "evidence_ids": [
+        "f-family"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "Arun and Maya are shown as labeled schematic people. The connecting line settles between them: Arun is Maya's grandfather.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><g id=\"grandfather\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"260\" cy=\"150\" r=\"30\"/><path d=\"M260 184V270M210 224H310M260 270L220 335M260 270L300 335\"/></g><g id=\"maya\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"700\" cy=\"150\" r=\"30\"/><path d=\"M700 184V270M650 224H750M700 270L660 335M700 270L740 335\"/></g><g id=\"family-link\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\"><path d=\"M350 220H610\"/><polygon points=\"595,195 625,220 595,245\" fill=\"#ffad33\"/></g><text x=\"260\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Arun</text><text x=\"700\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Maya</text></svg>",
+        "animations": [
+          {
+            "target_id": "family-link",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(-24px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "0a64c0a2306546f741387d9bfe651e3b4c61779cd96352620288efded2ff0f35",
+      "evidence_sha256": "7aed3fc8d577d6f39700ccffdec6338002e5a0a9536ea39f13fa70493932682c"
+    },
+    {
+      "id": "missed-moment",
+      "situation": "Child gets distracted",
+      "content_id": "the-red-kite",
+      "from_seconds": 33,
+      "until_seconds": 44,
+      "requests": [
+        "I got distracted. What did I miss?",
+        "I missed that. What did Arun say?",
+        "What did Arun just say?"
+      ],
+      "answer": "Arun just explained that he made the old kite with Maya’s mother when she was Maya’s age.",
+      "evidence_ids": [
+        "t3",
+        "f-history"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "Two labeled people, Arun and Maya's mother, connect to a kite. The connectors settle into place to show that they made it together.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><g id=\"arun\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"180\" cy=\"150\" r=\"30\"/><path d=\"M180 184V270M130 224H230M180 270L140 335M180 270L220 335\"/></g><g id=\"mother\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"480\" cy=\"150\" r=\"30\"/><path d=\"M480 184V270M430 224H530M480 270L440 335M480 270L520 335\"/></g><g fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\" stroke-linejoin=\"round\"><polygon points=\"790,120 865,210 790,300 715,210\"/><path d=\"M790 300Q755 340 805 375\"/></g><g id=\"making\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\" stroke-linecap=\"round\"><path d=\"M260 215H340M560 215H680\"/></g><text x=\"180\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Arun</text><text x=\"480\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Mother</text><text x=\"790\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Kite</text></svg>",
+        "animations": [
+          {
+            "target_id": "making",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(-24px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "0a64c0a2306546f741387d9bfe651e3b4c61779cd96352620288efded2ff0f35",
+      "evidence_sha256": "57e801b6345c69e70b1707165fbb981efc358984c348dff1cf25c403b7778b59"
+    },
+    {
+      "id": "unfamiliar-word",
+      "situation": "Child misunderstands a word",
+      "content_id": "the-red-kite",
+      "from_seconds": 68,
+      "until_seconds": 79,
+      "requests": [
+        "What does mend mean?",
+        "Explain mend to my child.",
+        "What does a patch do?"
+      ],
+      "answer": "“Mend” means repair something broken. Arun suggests using a patch to repair the torn kite.",
+      "evidence_ids": [
+        "t6",
+        "f-invite",
+        "f-setting"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "A yellow patch settles over a tear in a schematic kite. It explains Arun's proposed repair, not a repair already completed in the film.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><g fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linejoin=\"round\"><polygon points=\"480,65 680,215 480,365 280,215\"/><path d=\"M480 65V365M280 215H680\"/><path d=\"M480 365Q430 395 465 410\"/></g><path d=\"M460 175L505 200L460 225L505 250L460 275\" fill=\"none\" stroke=\"#202228\" stroke-width=\"24\"/><rect id=\"repair-patch\" x=\"439\" y=\"170\" width=\"82\" height=\"115\" rx=\"8\" fill=\"#ffd65a\"/><text x=\"480\" y=\"490\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Mend</text></svg>",
+        "animations": [
+          {
+            "target_id": "repair-patch",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(24px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "0a64c0a2306546f741387d9bfe651e3b4c61779cd96352620288efded2ff0f35",
+      "evidence_sha256": "8a3346af5211a48e992771f0e48169ddeb1a559e0a205a745dccb27eae3f42d7"
+    },
+    {
+      "id": "more-time",
+      "situation": "Either person needs longer to understand",
+      "content_id": "the-red-kite",
+      "from_seconds": 44,
+      "until_seconds": 56,
+      "requests": [
+        "Explain why he kept the kite more simply.",
+        "Why did Arun keep the old kite?",
+        "Why did he keep the kite?"
+      ],
+      "answer": "Arun kept the kite because he made it with Maya’s mother. The old kite connects him to her.",
+      "evidence_ids": [
+        "t3",
+        "t4",
+        "f-value"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "A schematic kite connects Arun with Maya's mother. The connectors settle into place, explaining the kite's established family connection without inventing an emotion.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><g id=\"arun\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"180\" cy=\"150\" r=\"30\"/><path d=\"M180 184V270M130 224H230M180 270L140 335M180 270L220 335\"/></g><g id=\"mother\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"480\" cy=\"150\" r=\"30\"/><path d=\"M480 184V270M430 224H530M480 270L440 335M480 270L520 335\"/></g><g fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\" stroke-linejoin=\"round\"><polygon points=\"790,120 865,210 790,300 715,210\"/><path d=\"M790 300Q755 340 805 375\"/></g><g id=\"making\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\" stroke-linecap=\"round\"><path d=\"M260 215H340M560 215H680\"/></g><text x=\"180\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Arun</text><text x=\"480\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Mother</text><text x=\"790\" y=\"440\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Kite</text></svg>",
+        "animations": [
+          {
+            "target_id": "making",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(-24px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "0a64c0a2306546f741387d9bfe651e3b4c61779cd96352620288efded2ff0f35",
+      "evidence_sha256": "407a83372987d45c9e8b9e3eba8369903567935008fa1edbcab691bfc16430bd"
+    },
+    {
+      "id": "unfamiliar-rule",
+      "situation": "Child misunderstands a rule",
+      "content_id": "offside-rule",
+      "from_seconds": 0,
+      "until_seconds": 96.001,
+      "requests": [
+        "What is offside?",
+        "Explain the offside rule simply.",
+        "Explain offside to my child."
+      ],
+      "answer": "At a teammate’s pass, an attacker beyond both the ball and second-last opponent in the opponents’ half is in an offside position. Active involvement makes it an offence.",
+      "evidence_ids": [
+        "g-soccer-offside"
+      ],
+      "visual": {
+        "status": "ready",
+        "description": "A rule example, not this match: the attacker is beyond the ball and second-last opponent in the opponents' half. Position alone is not an offence.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\"><rect x=\"55\" y=\"55\" width=\"850\" height=\"290\" rx=\"12\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"18\"/><path d=\"M300 55V345\" stroke=\"#f1f1f1\" stroke-width=\"12\"/><rect x=\"860\" y=\"170\" width=\"40\" height=\"100\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"12\"/><circle cx=\"350\" cy=\"255\" r=\"24\" fill=\"#f1f1f1\"/><g id=\"defender\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"560\" cy=\"110\" r=\"30\"/><path d=\"M560 144V230M510 184H610M560 230L520 295M560 230L600 295\"/></g><g id=\"attacker\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"740\" cy=\"110\" r=\"30\"/><path d=\"M740 144V230M690 184H790M740 230L700 295M740 230L780 295\"/></g><g id=\"keeper\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"20\" stroke-linecap=\"round\"><circle cx=\"830\" cy=\"110\" r=\"30\"/><path d=\"M830 144V230M780 184H880M830 230L790 295M830 230L870 295\"/></g><text x=\"350\" y=\"415\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Ball</text><text x=\"560\" y=\"415\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Defender</text><text x=\"740\" y=\"490\" fill=\"#f1f1f1\" font-size=\"64\" text-anchor=\"middle\">Attacker</text></svg>",
+        "animations": [
+          {
+            "target_id": "attacker",
+            "duration_ms": 1200,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 1,
+                "transform": "translate(-24px, 0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          }
+        ]
+      },
+      "content_version": "5cf7da6b9d3360114794b4b97aad916d09449ddf14f1dcbf282f760ff88a9f15",
+      "evidence_sha256": "00f2d5266096d40083e192e655a556a523b563adc472ef5dfdf3c87c5faad06a"
+    }
+  ]
+}

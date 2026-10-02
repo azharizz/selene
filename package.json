@@ -22,6 +22,8 @@
     "dev": "npm run build:web && npm start",
     "build:web": "node scripts/build.mjs",
     "vega:vvd": "scripts/start-vega-vvd.sh",
+    "vega:manual": "scripts/vega-manual.sh",
+    "vega:manual:phone": "SELENE_PHONE_PAIRING=1 scripts/vega-manual.sh",
     "vega:automation": "node scripts/vega-automation.mjs",
     "vega:screenshot": "scripts/vega-screenshot.sh",
     "vega:run": "scripts/vega-run.sh",

@@ -53,7 +53,7 @@ export function companionContext(snapshot, detail = '', sceneAnswer = '') {
 
 export function connections(at, query = '', memory, context = sceneContext(at)) {
   // Private replay and return must use original sources, never compound earlier generated answers.
-  if (context.source_only) return [];
+  if (context.source_only) return context.references ?? [];
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   return [...graph, ...generalGraph, ...(memory?.connections ?? [])].filter(g => g.validated &&
     (g.scope !== 'general' || !terms.length || score(g) > 0) &&
@@ -62,6 +62,17 @@ export function connections(at, query = '', memory, context = sceneContext(at)) 
     (g.scope === 'general' || !g.scene_id || g.scene_id === context.scene_id))
     .sort((a, b) => score(b) - score(a));
   function score(g) { return terms.filter(t => `${g.subject} ${g.object} ${g.explanation}`.toLowerCase().includes(t)).length; }
+}
+
+export function personalReferences(query) {
+  const terms = query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+  // Only authored, attributed general references. Model-generated memory is never a source here.
+  // ponytail: exact topic keywords; add authored aliases only when real questions need them.
+  return graph.filter(entry => entry.scope === 'general' && entry.title_id === '*' && entry.validated
+    && /^https:\/\//.test(entry.source_url ?? '')
+    && (entry.subject.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).some(term => term.length >= 4
+      && !['rule', 'rules', 'concept', 'meaning'].includes(term) && terms.includes(term)))
+    .slice(0, 3).map(entry => ({...entry, source: 'reference'}));
 }
 
 function persistGeneralGraph() {

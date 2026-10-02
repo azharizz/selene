@@ -28,7 +28,7 @@ test('sampled evidence is provisional, time-bounded and never exposes a future c
   assert.equal(sceneContext(4, story).transcript.length, 0);
   assert.equal(sceneContext(5, story).transcript.length, 1);
   assert.equal(sceneContext(5, story).source, 'automatic_ingestion');
-  const input = {content_id: 'new', at_seconds: 5, recipient: 'everyone', playback_choice: 'keep_watching', play_state: 'playing', life_connection: false};
+  const input = {content_id: 'new', at_seconds: 5, recipient: 'everyone', playback_choice: 'keep_watching', play_state: 'playing',};
   const moment = {...quietResponse(input, 'one'), state: 'response', answer: 'A hand is visible in the sampled image.'}; moment.grounding.evidence_ids = [facts[0].id];
   moment.new_connections = [{scope: 'general', subject: 'image', relation: 'explains', object: 'story', explanation: 'Must not enter memory.', evidence_ids: ['invented']}];
   validateMoment(moment, input, sceneContext(5, story)); assert.equal(moment.new_connections.length, 0);

@@ -1,6 +1,18 @@
 # Personal Pause and Guided Return
 
-Updated: 2 October 2026. The current source has passed the full local release checks and live model checks for Sintel caption/frame ingestion plus both phone and shared-TV Guided Return on Sintel and Offside. These are code and model-fixture checks, not a real two-device or production deployment pass. The Vega Virtual Device process is running, but `vega device list` currently reports no connected devices; phone pairing also lacks a reachable HTTPS origin.
+## Current phone decision, 2 October 2026
+
+This supersedes the historical replay UI below. The paired phone is now a private SVG explainer: no video element, caption track, original audio, replay speed or preference selectors. Its centered timestamp follows the observed TV sample and can select an earlier moment. Questions are available immediately. The first Send saves the confirmed TV sample for catch-up, even when the question is about an earlier selected scene. Follow-ups keep the explained moment and the first Send marker. Dictation only creates an editable draft; Send starts help. English is the request default; communication needs are stated in text or voice and passed unchanged to the model. No age or role is guessed. A full-width labeled SVG and a short explanation carry the answer, with explicit optional Read aloud.
+
+Catch me up captures the confirmed TV sample at its tap, validates its sequence/version/epoch against the last six seconds of reports, then freezes that endpoint during generation. It reuses the first Send marker; choosing an earlier moment does not move an existing interval. With no open interval, an explicit earlier-point catch-up remains possible. Successful or empty returns close the interval; errors preserve retry. Reconnection restores a completed card without restoring its old marker. These are observed samples, not frame-exact tap times. Follow TV closes that private branch without issuing TV transport commands. Server evidence limits, pairing tokens, cancellation and seek invalidation remain active. Third-party sessions with answer-only sharing remain answer mirrors; this redesign does not create source evidence for an unsupported provider.
+
+Original completed captions are quoted verbatim beside the answer when available. Authored general references, selected by topic keywords and linked to their sources, can explain a rule; generated graph memory stays excluded and general concepts never establish movie events.
+
+One optional Follow thread toggle follows one answered question per pairing. The relay checks only when new completed source evidence exists, at most once every 15 seconds, with one generation in flight. A material update must cite new original evidence and pass the grounding review. Irrelevant evidence stays quiet. Typing, voice activity, hidden pages, stale playback and selected earlier moments suspend display/checks; a result arriving during typing or speech waits. Seeking, title changes and revocation cancel the thread. Follow-up questions use the displayed update, while the first Send marker remains unchanged. A catch-up card pauses following so it cannot be replaced while being read; a new conversation or Follow TV ends the old topic.
+
+The phone no longer provides original-media replay or speed/audio assistance. The previous 36-row coverage hypothesis includes those functions and is not a verified claim for this new UI. The old test and design sections below are historical records. Local browser previews use clearly labeled fixtures; they are not physical-phone, Vega playback or live-model evidence.
+
+Current results live in [Vega verification](vega-verification.md). This document describes the implementation and preserves historical checks; it is not a second current-status table.
 
 This implements option A from [the approved research](../../SELENE_BREAKTHROUGH_OPTIONS.md). The two features share Selene's existing permitted media, reviewed answer pipeline and compact SVG renderer. No dependency was added.
 
@@ -20,17 +32,15 @@ The latest follow-up keeps the existing Vega WebView and relay. A native-player 
 | Private help fetched evidence with a model tool call although the server already held the exact source. | The host supplies the evidence directly for private questions and both returns. Ordinary companion requests retain their retrieval path and semantic review. |
 | Provider calls had no total generation deadline. | Drafting, correction and semantic review share a 30-second deadline, with one output correction at most. Caller cancellation remains authoritative. |
 | The parser accepted a first JSON object and silently discarded trailing output. | Standard JSON parsing rejects trailing prose or a second verdict. |
-| Provider failure could become a successful source-quote recap. | `unavailable` is explicit and separate from `insufficient_evidence`. The phone offers original replay; closing an unsuccessful TV return retains its marker for retry. |
+| Provider failure could become a successful source-quote recap. | `unavailable` is explicit and separate from `insufficient_evidence`. The phone offers retry or another question; closing an unsuccessful TV return retains its marker for retry. |
 | Public phone/media origins could reach session-owner routes. | Those origins expose code exchange and token-scoped personal routes, while TV-owner routes are blocked. Hosting a TV itself at the public app origin still requires access control outside this local prototype. |
 | Animation-target failures gave an unspecific repair instruction. | The error identifies the missing target and requires a matching SVG geometry ID. Existing WAAPI and reduced-motion handling remain in use. |
 
-Regression checks cover strict JSON, caption and time boundaries, explicit provider failure/cancellation, public route isolation, missing animation IDs, failed return markers, compact answer limits and optional frame handling. `npm run release` is the final gate for the current source; its result is recorded below. The real-model smoke checks are separate because model judgment can vary between runs.
+Regression checks cover strict JSON, caption and time boundaries, explicit provider failure/cancellation, public route isolation, missing animation IDs, failed return markers, compact answer limits and optional frame handling. `npm run release` runs the local release checks and package build; consult [Vega verification](vega-verification.md) for which checks actually ran on the latest source. The real-model smoke checks are separate because model judgment can vary between runs.
 
-The local build uses `http://127.0.0.1:4519`; the Vega launcher must establish the matching reverse port forward. The package build succeeds, but the current VDA is not visible to the Vega device CLI, so no current package install, Appium session, screenshot or playback flow is claimed. Phone pairing requires a reachable HTTPS relay origin; `SELENE_PRIVATE_URL` is unset on this host. A local browser check cannot substitute for those device checks.
+The local build uses `http://127.0.0.1:4519`; the Vega launcher establishes the matching reverse port forward. Phone pairing separately requires a reachable HTTPS relay origin. A local browser or launcher check cannot substitute for the complete device feature flow. For a failed model request, the product keeps the saved marker and offers retry; it never presents one caption as a completed Guided Return.
 
-Two next paths remain: reconnect the VDA to the Vega SDK and install the freshly built package, or use the local browser for layout and relay checks while waiting for device connectivity. For a failed model request, the product keeps the saved marker and offers original replay; it never presents one caption as a completed Guided Return.
-
-## The two paths
+## Historical replay interaction, superseded on 2 October 2026
 
 | Path | Interaction | Playback behavior |
 | --- | --- | --- |
@@ -41,7 +51,7 @@ Personal Pause starts muted with original captions. Native video controls provid
 
 The ordinary TV launcher remains three compact controls: Ask Selene, tools, dismiss. Pairing and the family marker live in tools. Answers retain the finite WAAPI SVG renderer and reduced-motion behavior. There is no expanding answer panel or replacement TV transport bar.
 
-## Source review corrections
+## Historical replay source review corrections
 
 The review traced the TV tools, pairing, phone hold/replay/question, personal return, shared return and close handlers. Current component checks cover these paths:
 
@@ -55,19 +65,9 @@ The review traced the TV tools, pairing, phone hold/replay/question, personal re
 
 These checks run in the current local release suite. They do not simulate Fire TV remote input, Vega WebView playback, or a real phone connection.
 
-## Current verification, 2 October 2026
-
-| Check | Result |
-| --- | --- |
-| Full local release | `npm run release` passes typecheck, lint, Node tests, web bundle, and Vega Release packages for aarch64, armv7 and x86_64. |
-| Guided Return with the real configured model | One complete four-case pass succeeded: Sintel and Offside, phone and shared-TV output. Answers cited interval evidence and kept playback at `keep_watching`. Model output is nondeterministic; earlier attempts before prompt/validation fixes failed review or length checks. |
-| Automatic permitted-video evidence | The live Sintel caption question returned a grounded WAAPI-animated SVG; the frame-only answer cited provisional frame evidence and used the required sampled-frame qualifier. |
-| Vega VDA/Appium | The VDA QEMU process is running, but `vega device list` reports no connected device. Appium 2.2.2 and the Vega driver are installed; there is no device session to install or interact with. |
-| Phone | No real phone session. `SELENE_PRIVATE_URL` is unset, so the local loopback page cannot pair a phone over HTTPS. |
-
 ## Historical verification results
 
-The following records predate the latest fixes. In particular, the old build status and hidden Pair phone behavior do not describe the current source. None of these rows certifies the current TV-plus-phone flow.
+These dated implementation-stage records are historical. For current results, use [Vega verification](vega-verification.md). The following records predate the latest fixes. In particular, the old build status and hidden Pair phone behavior do not describe the current source. None of these rows certifies the current TV-plus-phone flow.
 
 | Check | Result |
 | --- | --- |
@@ -81,9 +81,9 @@ The following records predate the latest fixes. In particular, the old build sta
 | Vega Virtual Device visual capture and interaction | **Partially observed, not interactively verified.** The user-provided screenshot shows the native companion fallback screen and a two-warning debugger toast. QMP produced a black 1280×720 frame with software rendering; the device screenshot utility produced a 0-byte file and did not return. Computer Use could not bind to the QEMU window because it is absent from the host app inventory. The repository documents the QMP/software-rendering limitation in [README](../README.md#running-on-vega-virtual-device). |
 | Fire TV plus physical phone | Not tested. Browser previews do not establish hardware compatibility or a real two-device session. |
 
-The passing relay tests use a mock model. They prove request routing and source/interval checks, not live answer quality. The live result demonstrates the evidence fallback, not a successful return. The missing HTTPS address separately blocks two-device pairing. The local browser screens were shown during the browser review; this table records their limits. The Vega run confirms installation and launch, but its broken capture path leaves feature behavior on Vega unverified.
+Those historical relay checks used a mock model. They prove request routing and source/interval checks, not live answer quality. The historical live browser result was an evidence fallback, and the historical native run proved installation and launch only. Their limitations must not overwrite later dated device results.
 
-## Research decisions applied to code
+## Historical replay research decisions
 
 | Finding | Decision |
 | --- | --- |
@@ -98,21 +98,23 @@ The passing relay tests use a mock model. They prove request routing and source/
 
 The TV sends ordered snapshots about once per second during playback and every two seconds when held. Each includes content version, position, state, speed, sequence and a seek generation. The relay accepts only reports matching the session's catalog version and duration. Older sequence numbers cannot replace newer positions. The content version hashes the loaded catalog record, including ingestion media hashes when present; catalog and media must remain immutable during that relay process.
 
-A position expires after six seconds without a fresh report. A phone hold records the most recent observed TV position or an explicitly selected earlier position. No wall-clock extrapolation moves the source evidence boundary forward. Seeking the TV invalidates an existing personal branch; a title change ends the viewing session. A phone can replay already reached material and explicitly set the point it last followed. Replay alone does not mark comprehension.
+A position expires after six seconds without a fresh report. A phone hold validates the sample captured when Send was pressed; an explicitly selected earlier position is only the question boundary, or the start of a standalone earlier catch-up. No wall-clock extrapolation moves the source evidence boundary forward. Seeking the TV invalidates an existing personal branch; a title change ends the viewing session. The phone offers explanations about already reached material. Neither reading an answer nor receiving a thread update marks comprehension.
 
 The paired viewer has its own request controller, clarification and bounded answer memory. A TV request cannot cancel or publish over that private answer. One paired viewer is supported in this first implementation. Replacing a pairing revokes its previous token and cancels its pending work.
 
-Guided Return takes the declared starting point, latest observed TV endpoint and unresolved question, when present. It reuses the reviewed explanation pipeline with an interval-specific instruction. It asks for the essential supported change, a necessary earlier connection where available, and orientation to the endpoint. A response must cite original evidence completed or made available after the starting point and no later than the sampled endpoint. A caption that starts before the marker but ends afterward remains usable once completed. Earlier original evidence may explain a connection; generated graph memories cannot fill missing facts.
+Private Guided Return takes the first Send marker, confirmed TV sample captured on tap and unresolved question, when present. Shared TV Guided Return retains its existing endpoint sampling. It reuses the reviewed explanation pipeline with an interval-specific instruction. It asks for the essential supported change, a necessary earlier connection where available, and orientation to the endpoint. A response must cite original evidence completed or made available after the starting point and no later than the sampled endpoint. A caption that starts before the marker but ends afterward remains usable once completed. Earlier original evidence may explain a connection; generated graph memories cannot fill missing facts.
 
-Returns target 31 words on the phone and 20 on TV, with hard ceilings of 31 and 26 words respectively. Generation failure returns an explicit unavailable state; it does not fabricate a recap from clipped source text. A gap that cannot be explained faithfully within the evidence or this budget must produce a limitation and original-replay route. Empty intervals and intervals without new source evidence avoid a model request altogether. Model review is still fallible; citing a real source ID does not prove a claim is correct.
+Returns target 31 words on the phone and 20 on TV, with hard ceilings of 31 and 26 words respectively. Generation failure returns an explicit unavailable state; it does not fabricate a recap from clipped source text. A gap that cannot be explained faithfully within the evidence or this budget must produce a limitation and allow another question or retry. Empty intervals and intervals without new source evidence avoid a model request altogether. Model review is still fallible; citing a real source ID does not prove a claim is correct.
 
-The phone shows the return boundary and how far the last TV sample has progressed beyond it. **Back to TV** closes personal playback and speech without changing the TV. **Replay from here** starts at the bridge endpoint, or at the saved starting point when evidence was insufficient. It does not claim to recreate every missed shot, emotion or shared reaction.
+The phone shows the return boundary and a separate live TV clock. **Follow TV** closes private help and speech without changing the TV. The phone has no original video or replay control. It does not claim to recreate every missed shot, emotion or shared reaction.
+
+The optional disabled MCP endpoint shares these private actions. See [MCP operation and limits](mcp.md). No X-Ray API, live Alexa+ connection or AVG presentation is claimed.
 
 ## Connection and deployment
 
-Use the existing own-player demo in the Vega app, or the existing browser player. Phone replay currently uses those permitted catalog assets. The separate third-party companion still supports answer mirroring; provider metadata alone does not make its movie available for personal replay or Guided Return.
+Use the existing own-player demo in the Vega app, or the existing browser player. Phone explanations use those permitted catalog sources; the phone does not load their video. The separate third-party companion still supports answer mirroring; provider metadata alone does not make its movie available for personal replay or Guided Return.
 
-Configure `SELENE_PRIVATE_URL` with a reachable HTTPS relay origin and forward that origin to this same relay. The existing `SELENE_APP_URL` HTTPS origin can also supply pairing when no separate phone origin is configured. The latest code-only follow-up did not change a tunnel, environment value or deployment. A configured URL is not proof that a phone can reach it.
+The demo is deployed at the Lightsail HTTPS origin recorded in `src/config.json` when building the Vega package. `npm run vega:manual:phone` uses that reachable relay directly and skips ngrok; local development can still use ngrok to expose a local relay. The 2 October 2026 browser-simulation pass verified pairing, question, caption quote, SVG answer, and Follow thread opt-in against the deployed service. This was a desktop browser at a phone-sized viewport, not a physical handset. Vega screen automation failed at the launcher, so this pass does not verify the TV UI or device-to-phone flow. The Lightsail relay is a single-process demo with in-memory pairing/session state, so restarts invalidate active pairings and it is not production-ready.
 
 On the TV: Selene → tools → Pair phone. On the phone: open the displayed `/?join=1` address and enter the six-digit code. Codes expire after five minutes and are single-use. Eight attempts per connecting address per minute are allowed, with bounded in-memory tracking. A proxy can make several users share that limit. The token remains a capability for one paired viewer, not a household account system.
 
@@ -124,11 +126,11 @@ If using a restricted phone proxy, allow:
 | POST | `/api/private/join` | Exchange the short code for its token |
 | GET | `/api/private/<token>` | Current session and TV position stream; disable proxy buffering |
 | GET | `/api/private/<token>/captions` | Original WebVTT caption track |
-| POST | `/api/private/<token>/hold`, `/ask`, `/return`, `/end` | Token-scoped personal actions |
+| POST | `/api/private/<token>/hold`, `/ask`, `/return`, `/end`, `/thread`, `/thread-check` | Token-scoped personal actions |
 
 TV/session/model-owner routes stay on the existing trusted device boundary. The phone token does not authorize `/api/playback`, `/api/return`, pairing replacement or ending the TV session. The relay remains a local prototype with process-local sessions, not an authenticated public multi-household service.
 
-## Coverage and honest limits
+## Historical replay coverage hypotheses, not current measured benefits
 
 | Research group | Original rows | What this implementation provides |
 | --- | --- | --- |

@@ -1,10 +1,21 @@
-// Paste into the TV WebView's console while the film is playing.
+// Paste into the TV WebView console before pressing Play or during playback.
 // One local 10-second observation, no playback commands or network requests.
 // This measures progress and decoder counters, not perceived audio quality.
 (() => {
   const video = document.querySelector('video');
-  if (!video || video.paused || video.ended || video.seeking || document.hidden) {
-    throw new Error('Start the film and keep the TV WebView visible before measuring.');
+  if (!video || document.hidden) throw new Error('Keep a TV video element visible before observing.');
+  const snapshot = () => ({code: video.error?.code ?? null, message: video.error?.message ?? '',
+    currentTime: video.currentTime, readyState: video.readyState, networkState: video.networkState,
+    mp4Support: video.canPlayType('video/mp4')});
+  if (video.error) {console.error('Existing media startup error', snapshot()); return;}
+  if (video.paused || video.ended || video.seeking || video.readyState < 2) {
+    console.info('Watching startup for 30 seconds. Press Play.', snapshot());
+    const cleanup = () => {clearTimeout(deadline); video.removeEventListener('error', failed); video.removeEventListener('playing', ready);};
+    const failed = () => {cleanup(); console.error('Media startup error', snapshot());};
+    const ready = () => {cleanup(); console.info('Playback started. Run this script again for the 10-second progress sample.', snapshot());};
+    const deadline = setTimeout(() => {cleanup(); console.warn('No playback start within 30 seconds', snapshot());}, 30000);
+    video.addEventListener('error', failed, {once: true}); video.addEventListener('playing', ready, {once: true});
+    return;
   }
   const started = performance.now(), position = video.currentTime, rate = video.playbackRate;
   const quality = video.getVideoPlaybackQuality?.();

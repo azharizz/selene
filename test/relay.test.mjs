@@ -16,8 +16,8 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     SELENE_SCENE_CONTEXT_URL: 'https://scene.test.invalid'});
   process.env.SELENE_PRIVATE_URL = 'http://mirror.test.invalid'; // Host configured, but pairing requires HTTPS.
   const realFetch = globalThis.fetch;
-  let sceneReads = 0, modelReads = 0, nextState = 'clarification', offerLife = false, sceneUnavailable = false, modelUnavailable = false, reviewIssue = '';
-  let reviewedPlayback;
+  let sceneReads = 0, modelReads = 0, nextState = 'clarification', sceneUnavailable = false, modelUnavailable = false, reviewIssue = '';
+  let reviewedPlayback, generatedMessages;
   // Only remote network boundaries are fixtures. Routing, tools, schema, review and policy are real code.
   globalThis.fetch = async (url, options) => {
     if (url === 'https://scene.test.invalid') {
@@ -35,17 +35,17 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     modelReads++;
     if (modelUnavailable) throw new TypeError('Private upstream failure details');
     const body = JSON.parse(options.body);
+    if (body.response_format?.json_schema.name === 'selene_moment_response') generatedMessages = body.messages;
     if (body.response_format?.json_schema.name === 'selene_grounding_review') reviewedPlayback = JSON.parse(body.messages.at(-1).content).viewer.play_state;
     const message = body.tool_choice === 'required'
       ? {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}
       : body.response_format.json_schema.name === 'selene_grounding_review'
-        ? {content: JSON.stringify({supported: true, issue: reviewIssue, pause_requested: false, life_requested: offerLife})}
+        ? {content: JSON.stringify({supported: true, issue: reviewIssue, pause_requested: false})}
         : (() => {
           const tool = body.messages.find(message => message.role === 'tool');
           const context = tool ? JSON.parse(tool.content) : JSON.parse(body.messages.find(message => message.role === 'user').content.split('runtime data:\n')[1]).playback_context;
-          return {content: JSON.stringify({version: '1.0', state: nextState, answer: nextState === 'clarification' ? 'Which person do you mean?' : 'From your description, you mean the passer.',
+          return {content: JSON.stringify({version: '1.0', state: nextState, answer: nextState === 'clarification' ? 'Which person do you mean?' : context.follow_thread ? `Supported development at ${context.at_seconds}.` : 'From your description, you mean the passer.',
             visual: {status: 'none', svg: '', animations: [], description: ''}, intervention: {playback: 'keep_watching', audio: 'silent'},
-            life_connection: {offered: offerLife, question: offerLife ? 'Have you tried this yourself?' : '', recipient: 'everyone'},
             grounding: {content_id: context.content_id, scene_id: context.scene_id, at_seconds: context.at_seconds, evidence_ids: [context.return_window?.interval_evidence_ids[0] ?? context.facts.at(-1).id], graph_ids: []}, new_connections: []})};
         })();
     return Response.json({choices: [{finish_reason: 'stop', message}]});
@@ -68,14 +68,18 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const {session_id} = session;
   const input = {snapshot: {package_id: 'test.provider', session_id: 7, content_id: 'test-title', catalog_name: 'test', title: 'Test title', provider_name: 'Test', at_seconds: 10},
     request: 'Who is that?', scene_detail: '', scene_answer: '', continuation: null, play_state: 'playing', playback_choice: 'keep_watching',
-    need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', life_connection: false};
-  assert.equal((await post('/api/private/life', {visible: true}, session_id)).status, 409);
+    need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone',};
   assert.equal((await post('/api/companion/moment', {...input, guessed_age: 80}, session_id)).status, 400);
   assert.equal((await post('/api/companion/moment', input, session_id, {Origin: 'https://another.invalid'})).status, 403);
   assert.equal((await post('/api/companion/moment', {...input, scene_detail: 'x'.repeat(32769)}, session_id)).status, 413);
   assert.equal(modelReads, 0);
   const own = await (await post('/api/session', {})).json();
   assert.match(own.story.video, /^\/media\//, 'the TV plays from its same-origin relay');
+  for (const [query, status] of [['content_id=sintel-excerpt&at_seconds=33', 200], ['content_id=sintel-excerpt&at_seconds=-1', 400], ['content_id=sintel-excerpt', 400], ['content_id=unknown&at_seconds=33', 404]]) {
+    const response = await fetch(`${base}/api/examples?${query}`, {headers: {Host: 'localhost:0'}});
+    assert.equal(response.status, status);
+    if (status === 200) assert.deepEqual((await response.json()).examples.map(example => example.id), ['missed-fast-dialogue']);
+  }
   const storyResponse = await fetch(`${base}/api/story`, {headers: {Host: 'localhost:0'}});
   assert.match((await storyResponse.json()).video, /^\/media\//);
   const mediaResponse = await fetch(`${base}/media/the-red-kite.mp4`, {headers: {Host: 'media.test.invalid', Range: 'bytes=0-31'}});
@@ -100,8 +104,8 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.ok(answer.grounding.evidence_ids.includes('viewer-clarification'));
   assert.equal((await post('/api/private/pair', {}, session_id)).status, 503, 'a phone address requires HTTPS');
 
-  process.env.SELENE_PRIVATE_URL = 'https://mirror.test.invalid'; offerLife = true;
-  assert.equal((await post('/api/companion/moment', {...input, need: 'Slower answer voice', life_connection: true}, session_id)).status, 200);
+  process.env.SELENE_PRIVATE_URL = 'https://mirror.test.invalid';
+  assert.equal((await post('/api/companion/moment', {...input, need: 'Slower answer voice',}, session_id)).status, 200);
   for (const host of ['mirror.test.invalid', 'media.test.invalid']) {
     const headers = {Host: host, 'Content-Type': 'application/json'};
     for (const path of ['/api/session', '/api/playback', '/api/return', '/api/private/pair', '/api/session/end']) {
@@ -117,14 +121,12 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const reader = stream.body.getReader();
   const initial = new TextDecoder().decode((await reader.read()).value);
   assert.match(initial, /"slower_answer_voice":true/);
-  assert.equal(initial.includes('Have you tried'), false, 'unconfirmed personal question stays on the TV');
-  await post('/api/private/life', {visible: true}, session_id);
-  assert.match(new TextDecoder().decode((await reader.read()).value), /Have you tried/);
+  assert.match(initial, /From your description, you mean the passer/);
   await post('/api/private/close', {}, session_id);
   assert.match(new TextDecoder().decode((await reader.read()).value), /"type":"closed"/);
   assert.equal((await reader.read()).done, true);
   assert.equal((await fetch(`${base}/api/private/${token}`, {headers: {Host: 'localhost:0'}})).status, 404);
-  sceneUnavailable = true; offerLife = false;
+  sceneUnavailable = true;
   const fallback = await post('/api/companion/moment', {...input, scene_detail: 'I mean the passer.'}, session_id);
   assert.equal(fallback.status, 200);
   assert.ok((await fallback.json()).grounding.evidence_ids.includes('viewer-scene-detail'));
@@ -143,7 +145,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal((await post('/api/companion/moment', {...input, request: 'A new question for review.'}, session_id)).status, 502, 'a contradictory approval cannot release a flagged response');
   assert.equal(modelReads - readsBeforeRejection, 5, 'one evidence call, two drafts and two reviews; no retry loop');
   // Private playback uses a separate lane and the same permitted source, never TV transport commands.
-  reviewIssue = ''; offerLife = false; nextState = 'response';
+  reviewIssue = ''; nextState = 'response';
   const version = own.story.content_version;
   const playback = {content_id: own.story.id, content_version: version, sequence: 1, epoch: 0, at_seconds: 35, play_state: 'playing', playback_rate: 1};
   assert.equal((await post('/api/playback', playback, session_id)).status, 409, 'a companion session cannot publish an own-player timeline');
@@ -179,22 +181,27 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal(bootstrap.story.id, own.story.id);
   assert.equal(bootstrap.story.facts, undefined);
   assert.match(bootstrap.story.video, /^https:\/\/media\.test\.invalid\//, 'the private phone replay uses HTTPS media');
-  const pause = await post(`${personalPath}/hold`, {content_version: version, epoch: 0});
+  const pause = await post(`${personalPath}/hold`, {content_version: version, epoch: 0, sequence: 1, at_seconds: 35});
   assert.equal(pause.status, 201);
   const held = await pause.json();
   assert.equal(held.playback.play_state, 'playing');
   const preferences = {need: 'Explain simply', language: 'English', recipient: 'everyone'};
-  const privateQuestion = {branch_id: held.hold.id, request: 'Explain this line.', at_seconds: 35, clarification: false, ...preferences};
+  const privateQuestion = {branch_id: held.hold.id, request: 'I am grandma. Explain this line simply.', at_seconds: 35, clarification: false, new_topic: true, ...preferences};
   assert.equal((await post(`${personalPath}/ask`, {...privateQuestion, at_seconds: 50})).status, 400, 'future evidence is unavailable');
   const privateAnswer = await post(`${personalPath}/ask`, privateQuestion);
   assert.equal(privateAnswer.status, 200);
   assert.equal((await privateAnswer.json()).moment.grounding.at_seconds, 35);
+  assert.match(generatedMessages[0].content, /phone diagram is displayed at 280 to 440 pixels wide/);
+  assert.match(generatedMessages[0].content, /Honor communication needs explicitly volunteered/);
+  const personalRuntime = JSON.parse(generatedMessages.find(message => message.role === 'user').content.split('runtime data:\n')[1]);
+  assert.equal(personalRuntime.viewer_request, privateQuestion.request);
+  assert.equal(personalRuntime.recipient, 'everyone', 'explicit wording needs do not create a guessed demographic selection');
   const advanced = {...playback, sequence: 2, at_seconds: 45};
   await post('/api/playback', advanced, own.session_id);
   assert.equal((await readEvent()).type, 'playback', 'private questions do not publish a shared response');
   const returnInput = {content_version: version, epoch: 0, from_seconds: held.hold.from_seconds, ...preferences};
   const beforeReturn = modelReads;
-  const bridge = await post(`${personalPath}/return`, {...returnInput, branch_id: held.hold.id});
+  const bridge = await post(`${personalPath}/return`, {...returnInput, branch_id: held.hold.id, sequence: 2, through_seconds: 45});
   assert.equal(bridge.status, 200);
   assert.equal(modelReads - beforeReturn, 2, 'private return supplies evidence directly: one draft and one grounding review');
   const returned = await bridge.json();
@@ -211,13 +218,50 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const endPersonal = {branch_id: held.hold.id};
   assert.equal((await post(`${personalPath}/end`, endPersonal)).status, 200);
   assert.equal((await post(`${personalPath}/end`, endPersonal)).status, 200, 'a lost close response is safe to retry');
-  const replacement = await (await post(`${personalPath}/hold`, {content_version: version, epoch: 0})).json();
+  const replacement = await (await post(`${personalPath}/hold`, {content_version: version, epoch: 0, sequence: 3, at_seconds: 45})).json();
   assert.equal((await post(`${personalPath}/end`, endPersonal)).status, 409, 'a stale close must not delete a newer branch');
   await post('/api/playback', {...playback, sequence: 4, epoch: 1, at_seconds: 10}, own.session_id);
   await readEvent();
   assert.equal((await post(`${personalPath}/ask`, {...privateQuestion, branch_id: replacement.hold.id})).status, 409, 'seeking the TV invalidates the saved phone branch');
+
+  // Optional MCP shares the real private action boundary and has no TV-owner capability.
+  delete process.env.SELENE_MCP_ENABLED;
+  const mcpHeaders = {Host: 'mirror.test.invalid', Accept: 'application/json, text/event-stream', Authorization: `Bearer ${personalToken}`, 'MCP-Protocol-Version': '2025-11-25'};
+  const rpc = (method, params = {}, extra = {}) => post('/api/mcp', {jsonrpc: '2.0', id: 1, method, params}, null, {...mcpHeaders, ...extra});
+  assert.equal((await rpc('tools/list')).status, 404, 'the optional endpoint is disabled by default');
+  process.env.SELENE_MCP_ENABLED = '1';
+  assert.equal((await rpc('tools/list', {}, {Authorization: ''})).status, 401);
+  assert.equal((await rpc('tools/list', {}, {Authorization: `Bearer ${own.session_id}`})).status, 401, 'a TV session ID is not a private capability');
+  assert.equal((await rpc('tools/list', {}, {Origin: 'https://foreign.invalid'})).status, 403);
+  assert.equal((await rpc('tools/list', {}, {'MCP-Protocol-Version': 'old'})).status, 400);
+  assert.equal((await rpc('tools/list', {}, {Accept: 'application/json'})).status, 406);
+  assert.equal((await fetch(`${base}/api/mcp`, {headers: mcpHeaders})).status, 405);
+  assert.equal((await (await rpc('tools/list')).json()).error.code, -32600);
+  const initialized = await (await rpc('initialize', {protocolVersion: '2025-11-25', capabilities: {}, clientInfo: {name: 'regression', version: '1'}})).json();
+  assert.equal(initialized.result.protocolVersion, '2025-11-25');
+  assert.equal((await post('/api/mcp', {jsonrpc: '2.0', method: 'notifications/initialized'}, null, mcpHeaders)).status, 202);
+  assert.equal((await post('/api/mcp', {jsonrpc: '2.0', method: 'notifications/cancelled', params: {requestId: 999}}, null, mcpHeaders)).status, 202, 'a cancellation for an already completed request is harmless');
+  const tools = (await (await rpc('tools/list')).json()).result.tools;
+  assert.ok(tools.some(tool => tool.name === 'catch_me_up')); assert.ok(tools.some(tool => tool.name === 'follow_thread'));
+  assert.equal(tools.some(tool => /pause|play|seek/.test(tool.name)), false);
+  const call = async (name, args = {}) => (await (await rpc('tools/call', {name, arguments: args})).json()).result;
+  assert.equal((await (await rpc('tools/call', {name: 'get_viewing_context', arguments: {session_id}})).json()).error.code, -32602, 'cross-session arguments are a protocol error');
+  const current = (await call('get_viewing_context')).structuredContent;
+  assert.equal(current.playback.at_seconds, 10); assert.equal(current.playback.epoch, 1);
+  assert.equal('story' in current, false, 'MCP does not send the unviewed transcript');
+  const mcpHold = (await call('save_place', {content_version: version, epoch: 1, sequence: 4, at_seconds: 10})).structuredContent.hold;
+  const mcpAnswer = (await call('ask_question', {...privateQuestion, branch_id: mcpHold.id, at_seconds: 10})).structuredContent;
+  assert.equal(mcpAnswer.moment.grounding.at_seconds, 10);
+  assert.equal((await call('ask_question', {...privateQuestion, branch_id: mcpHold.id, at_seconds: 90})).isError, true);
+  assert.ok((await call('follow_thread', {enabled: true, answer_id: mcpAnswer.id})).structuredContent.thread);
+  await post('/api/playback', {...playback, sequence: 5, epoch: 1, at_seconds: 35}, own.session_id); await readEvent();
+  assert.equal((await call('check_thread', {content_version: version, epoch: 1, sequence: 5, at_seconds: 35})).structuredContent.updated, true);
+  const mcpReturn = (await call('catch_me_up', {...returnInput, epoch: 1, branch_id: mcpHold.id, sequence: 5, from_seconds: 10, through_seconds: 35})).structuredContent;
+  assert.equal(mcpReturn.status, 'ready'); assert.equal(mcpReturn.through_seconds, 35);
+  assert.equal((await call('get_viewing_context')).structuredContent.playback.play_state, 'playing');
   await post('/api/private/pair', {}, own.session_id);
   assert.equal((await readEvent()).type, 'closed');
+  assert.equal((await rpc('tools/list')).status, 401, 're-pairing revokes the MCP capability too');
   assert.equal((await post(`${personalPath}/hold`, {content_version: version, epoch: 1})).status, 410, 're-pairing revokes the previous token');
   await post('/api/session/end', {session_id: own.session_id});
 
