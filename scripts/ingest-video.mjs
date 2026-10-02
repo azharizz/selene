@@ -89,7 +89,7 @@ export async function ingest(options, observer = observe) {
   if (existsSync(target) || existsSync(content)) throw new Error('This content ID already exists; choose a new ID');
   const temporary = await mkdtemp(join(mediaRoot, '.ingest-')); let published = false;
   try {
-    media('ffmpeg', ['-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe', '-ss', String(offset), '-i', videoPath, '-t', String(duration), '-map', '0:v:0', '-map', '0:a:0?', '-vf', "scale='min(960,iw)':-2", '-c:v', 'libx264', '-preset', 'fast', '-crf', '27', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-ac', '2', '-movflags', '+faststart', join(temporary, 'video.mp4')]);
+    media('ffmpeg', ['-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe', '-ss', String(offset), '-i', videoPath, '-t', String(duration), '-map', '0:v:0', '-map', '0:a:0?', '-vf', "scale='min(960,iw)':-2:in_color_matrix=auto:out_color_matrix=bt709,format=yuv420p", '-c:v', 'libx264', '-preset', 'fast', '-crf', '27', '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-color_range', 'tv', '-x264-params', 'colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited', '-c:a', 'aac', '-ac', '2', '-movflags', '+faststart', join(temporary, 'video.mp4')]);
     const facts = []; const frames = [];
     // ponytail: sparse frames cannot describe intervening motion; shorter sampling or clips when needed.
     for (let at = 0; at < duration; at += interval) {

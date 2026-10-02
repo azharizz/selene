@@ -113,10 +113,6 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .mirror-panel {display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 28px; color: var(--muted)}
 .mirror-panel p {margin: 0}
 .mirror-panel code {color: var(--accent); overflow-wrap: anywhere}
-.private-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 28px; align-items: center; font-size: calc(clamp(22px, 1.67vw, 32px) * var(--selene-text-scale)); color: var(--muted)}
-.private-heading span:last-child {margin-left: auto}
-.private-app .moment.full {top: 16%}
-.private-error {position: absolute; left: 5%; right: 5%; bottom: 5%; padding: 18px; background: var(--surface); color: #ffb5a7}
 .life-question {display: flex; flex-direction: column; gap: 20px}
 .life-question .small {margin: 0}
 .companion-heading {position: absolute; top: 5%; left: 5%; right: 5%; display: flex; gap: 48px; align-items: center; font-size: calc(clamp(21px, 1.67vw, 32px) * var(--selene-text-scale)); color: var(--muted)}
@@ -155,7 +151,6 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
   .playback-status {display: none}
   .request-options {gap: 16px}
   .preference-select {align-items: flex-start; flex-direction: column; gap: 16px}
-  .private-heading {gap: 16px; flex-wrap: wrap}
 }
 @media (prefers-reduced-motion: reduce) {* {scroll-behavior: auto; transition: none !important} button:focus {transform: none}}
 
@@ -175,3 +170,54 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .demo-controls summary {cursor: pointer; padding: 6px 0}
 .demo-controls summary:focus {outline: 2px solid var(--ink); outline-offset: 2px}
 .ask-sheet button:focus, .selene-toolbar button:focus {outline-offset: 1px; transform: none}
+
+/* The phone is a temporary personal timeline, with browser-owned video controls. */
+.personal-app {height: 100%; overflow: auto; width: min(100%, 520px); margin: 0 auto; padding: max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom)); font-size: 1rem; line-height: 1.4}
+.personal-app h1 {font-size: 1.375rem; letter-spacing: -.02em; line-height: 1.2}
+.personal-app button, .personal-app select, .personal-app textarea, .personal-app input {font: inherit; min-height: 44px; border-radius: 8px}
+.personal-app button {padding: 8px 12px}
+.personal-app button:focus {outline-offset: 2px; transform: none}
+.personal-app select, .personal-app textarea {padding: 8px}
+.personal-app [role=alert] {margin: 10px 0}
+.personal-app a {color: var(--ink); text-underline-offset: 3px}
+.personal-heading {display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px}
+.personal-heading .wordmark {font-size: 1.625rem}
+.personal-heading > span:last-child:not(.wordmark) {font-size: .875rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right}
+.personal-title {font-size: .875rem; color: var(--muted); margin-bottom: 10px}
+.personal-note {font-size: .875rem; color: var(--muted); margin: 8px 0}
+.personal-start {display: grid; gap: 12px; padding-top: 16px}
+.personal-start > button {justify-self: start}
+.personal-start .personal-note {margin: 0}
+.personal-video {background: #000; border-radius: 8px; overflow: hidden}
+.personal-video video {height: auto; aspect-ratio: 16/9; max-height: 42vh}
+.personal-position {display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums}
+.personal-position button {font-size: .875rem; padding: 6px}
+.personal-caption {margin: 0 0 10px; padding: 8px 10px; background: var(--surface); font-size: 1rem}
+.personal-caption > span {font-size: .875rem; color: var(--muted); font-variant-numeric: tabular-nums}
+.personal-answer {display: flex; align-items: center; gap: 8px; padding: 10px; margin: 8px 0; border-radius: 8px; background: var(--surface)}
+.personal-answer > p {flex: 1; min-width: 0; line-height: 1.4}
+.personal-answer .visual {flex: 0 0 56px; width: 56px; height: 48px; max-height: none}
+.personal-answer > button {flex-shrink: 0; padding: 6px; font-size: .875rem}
+.personal-question {display: flex; align-items: center; gap: 6px; margin: 10px 0}
+.personal-question textarea {flex: 1; min-width: 0}
+.personal-question button {width: 44px; padding: 8px; flex-shrink: 0}
+.personal-working {display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; font-size: .875rem; color: var(--muted)}
+.personal-working button {width: 44px; padding: 8px}
+.personal-actions {display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px}
+.personal-options, .personal-sources {margin-top: 14px; font-size: .875rem}
+.personal-options summary, .personal-sources summary {padding: 10px 0; min-height: 44px; cursor: pointer; color: var(--muted)}
+.personal-app summary:focus, .personal-app input:focus {outline: 2px solid var(--ink); outline-offset: 2px}
+.personal-options label {display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0}
+.personal-options select {max-width: 62%; font-size: 1rem}
+.personal-options button {margin: 6px 6px 0 0; font-size: .875rem}
+.personal-sources p {margin: 10px 0}
+.personal-sources p > span {display: block; color: var(--muted); margin-bottom: 3px}
+.personal-credit {font-size: .75rem; color: var(--muted); margin-top: 16px}
+.personal-join {display: grid; grid-template-columns: 1fr auto; gap: 8px}
+.personal-join label {grid-column: 1/-1; font-size: .875rem; color: var(--muted)}
+.personal-join input {min-width: 0; width: 100%; background: var(--surface); color: var(--ink); border: 1px solid #737986; padding: 8px 12px; letter-spacing: .15em; font-variant-numeric: tabular-nums; caret-color: var(--accent)}
+.personal-tools .option-list {align-items: stretch}
+.pair-address {overflow-wrap: anywhere}
+.app .pair-sheet .pair-code {font-size: calc(32px * var(--selene-text-scale)); font-variant-numeric: tabular-nums; letter-spacing: .14em; color: var(--ink)}
+.return-toast .answer .small {font-size: calc(14px * var(--selene-text-scale))}
+@media (max-width: 360px) {.personal-answer {flex-wrap: wrap}.personal-answer > p {flex-basis: 65%}.personal-options label {align-items: flex-start; flex-direction: column}.personal-options select {max-width: 100%; width: 100%}}

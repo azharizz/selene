@@ -11,6 +11,8 @@ Vega-first Fire TV app. Native Media Controls discovers real opt-in playback ses
 People watching films, shows, or sport who want to understand the current moment without a persistent chat. Family View defaults to everyone; preferences are explicit and optional. No inferred age, disability, household presence, or consent.
 
 ## Current experience decisions
+On 30 September 2026 the user selected Personal Pause and Guided Return for the next own-player experience. One paired phone can hold/replay permitted media, ask privately and request a bounded return while the TV keeps its own playback controls. A shared film marker uses the same return operation after a chosen family conversation. Silent phone playback with original captions is the confirmed default. This is a code-only implementation phase; testing is explicitly deferred. Details and limitations: [personal-pause.md](docs/personal-pause.md).
+
 Confirmed by the user on 20 September 2026: open directly into one question about the selected playback; put viewing preferences behind an optional action. Minimize typing, clicks, sections, repeated text, and unbounded lists. Keep keyboard/D-pad input alongside capability-gated voice. A quick question invokes the real agent, never a canned answer.
 
 ## Brand commitments

@@ -26,4 +26,12 @@ The response is a small top-right toast: a 76 by 56px SVG beside the answer, wit
 
 The original player inherits these controls and styles but remains explicitly labelled as a demo. UI preview fixtures are test-only and never part of the production bundle.
 
-During watching, the launcher contains only Ask Selene, answer preferences and dismiss. The question box is at most 480px wide with one input row and two explanation shortcuts. Demo-only playback controls are under preferences, separate from the companion toolbar.
+During own-player watching, the launcher contains only Ask Selene, Selene tools and dismiss. Tools holds pairing, Hold our place / Bring us back, and answer preferences. The question box is at most 480px wide with one input row and two explanation shortcuts. Demo-only playback controls remain under preferences.
+
+## Personal playback, code phase 30 September 2026
+
+The phone surface preserves the charcoal palette and system font. It is a scrolling column capped at 520px, with 16px body text, 22px headings, 14px secondary text and 44px touch targets. Its personal video uses browser controls and an original caption track. It starts held and muted. A short original line, a single question row and Bring me back are the main tasks; speed and answer preferences use one native disclosure.
+
+The phone answer pairs a compact 56 by 48px schematic with text. Existing finite WAAPI geometry and reduced-motion behavior are reused. A return replaces the question area with its sampled time boundary and Back to TV / Replay from here. Source details are optional; no answer expansion is required. Further TV progress is shown without an automatic recap loop.
+
+TV pairing uses a small existing sheet with an HTTPS address and a six-digit code. Shared returns use the existing compact toast and retain a deliberately paused TV state. These source changes have not been rendered or device-tested yet, at the user's request.

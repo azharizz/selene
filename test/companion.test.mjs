@@ -89,19 +89,38 @@ test('late notifications from a closed provider cannot invalidate a new provider
   app.componentWillUnmount();
 });
 
-test('own-player native rewind and forward use the web player relative seek contract', async () => {
+test('own-player native transport and audio focus preserve buffering and explicit voice priority', async () => {
   let callbacks;
-  const messages = [];
+  const messages = [], states = [];
   const code = await build({entryPoints: ['src/OwnPlayerSession.ts'], bundle: true, write: false, platform: 'node', format: 'cjs', plugins: [{name: 'player-session-boundary', setup(builder) {
     builder.onResolve({filter: /^@amazon-devices\/react-native-kepler$/}, () => ({path: 'player', namespace: 'boundary'}));
     builder.onLoad({filter: /.*/, namespace: 'boundary'}, () => ({contents: 'export const PlayerSession=globalThis.player; export const AudioFocusMode={AUDIO_FOCUS_NONE:0}; export const ErrorCode={},PlayerMediaOps={},PlayerState={},PlayerTrackRating={},PlayerRepeatMode={},PlayerShuffleMode={};'}));
   }}]});
-  const context = {module: {exports: {}}, player: {create: () => true, setPlayerSessionCallback: value => {callbacks = value;}, destroy() {}}};
+  const context = {module: {exports: {}}, player: {create: () => true, setPlayerSessionCallback: value => {callbacks = value;}, setPlaybackState: value => states.push(value), destroy() {}}};
   vm.runInNewContext(code.outputFiles[0].text, context);
   const player = new context.module.exports.OwnPlayerSession(message => messages.push(message));
   player.start(); callbacks.onRewind(10); callbacks.onFastForward(20);
   assert.equal(messages[1].position_ms, -10000); assert.equal(messages[1].relative, true);
   assert.equal(messages[2].position_ms, 20000); assert.equal(messages[2].relative, true);
+  const report = {position_ms: 1000, duration_ms: 96000, muted: false, volume: 1};
+  player.update({...report, state: 'playing'});
+  const primary = states.at(-1).audioFocus;
+  assert.equal(primary, 'AudioFocusPrimary');
+  player.update({...report, state: 'buffering'});
+  assert.equal(states.at(-1).audioFocus, primary);
+  assert.equal(states.at(-1).state, 'PlayerStateBuffering');
+  player.setAudioFocus(true);
+  const voiceFocus = states.at(-1).audioFocus;
+  assert.equal(voiceFocus, 'AudioFocusPausedOrUnMixable');
+  player.update({...report, state: 'playing'});
+  player.update({...report, state: 'buffering'});
+  assert.equal(states.at(-1).audioFocus, voiceFocus);
+  player.setAudioFocus(false);
+  assert.equal(states.at(-1).audioFocus, primary);
+  for (const state of ['paused', 'stopped']) {
+    player.update({...report, state});
+    assert.equal(states.at(-1).audioFocus, 'AudioFocusNone');
+  }
   player.stop();
 });
 test('empty endpoints and failed discovery are distinct; late clients are destroyed', async () => {

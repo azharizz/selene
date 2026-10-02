@@ -1,0 +1,659 @@
+{
+  "id": "offside-rule",
+  "title": "Offside Rule Explained",
+  "subtitle": "Captioned excerpt",
+  "duration": 96,
+  "video": "/media/offside-rule/video-probe-bt709.mp4",
+  "poster": "/media/offside-rule/frame-0.jpg",
+  "scenes": [
+    {
+      "id": "offside-rule-interval-1",
+      "start": 0,
+      "end": 12,
+      "label": "Moment 1"
+    },
+    {
+      "id": "offside-rule-interval-2",
+      "start": 12,
+      "end": 24,
+      "label": "Moment 2"
+    },
+    {
+      "id": "offside-rule-interval-3",
+      "start": 24,
+      "end": 36,
+      "label": "Moment 3"
+    },
+    {
+      "id": "offside-rule-interval-4",
+      "start": 36,
+      "end": 48,
+      "label": "Moment 4"
+    },
+    {
+      "id": "offside-rule-interval-5",
+      "start": 48,
+      "end": 60,
+      "label": "Moment 5"
+    },
+    {
+      "id": "offside-rule-interval-6",
+      "start": 60,
+      "end": 72,
+      "label": "Moment 6"
+    },
+    {
+      "id": "offside-rule-interval-7",
+      "start": 72,
+      "end": 84,
+      "label": "Moment 7"
+    },
+    {
+      "id": "offside-rule-interval-8",
+      "start": 84,
+      "end": 96,
+      "label": "Moment 8"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "caption-1",
+      "start": 0.089,
+      "end": 5.5,
+      "text": "The simpleshow explains the offside rule.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-2",
+      "start": 5.5,
+      "end": 7.9,
+      "text": "This is Philip.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-3",
+      "start": 7.9,
+      "end": 10.8,
+      "text": "He‘s a passionate football fan who, with his friends,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-4",
+      "start": 10.8,
+      "end": 15.5,
+      "text": "watches every game that their favourite teams play.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-5",
+      "start": 15.5,
+      "end": 17.7,
+      "text": "And this is Philip’s girlfriend Marie.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-6",
+      "start": 17.7,
+      "end": 20.65,
+      "text": "The two are totally in love,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-7",
+      "start": 20.65,
+      "end": 24.029,
+      "text": "but there is one issue that can cause tension between the pair:",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-8",
+      "start": 24.029,
+      "end": 28.5,
+      "text": "Marie never comes along to the stadium because she doesn’t understand the rules.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-9",
+      "start": 28.5,
+      "end": 31.349,
+      "text": "Especially the offside rule –",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-10",
+      "start": 31.349,
+      "end": 35.12,
+      "text": "it‘s waaaaay too complicated. What is it anyway?",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-11",
+      "start": 35.12,
+      "end": 38.46,
+      "text": "Philip draws a football pitch.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-12",
+      "start": 38.46,
+      "end": 41.66,
+      "text": "He‘s the goalkeeper and his mates are the defenders.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-13",
+      "start": 41.66,
+      "end": 46.07,
+      "text": "Marie and her friend are the strikers on the opposing team.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-14",
+      "start": 46.07,
+      "end": 50.149,
+      "text": "If at some point Marie passes the ball to her friend",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-15",
+      "start": 50.149,
+      "end": 54.16,
+      "text": "who happens to be standing closer to Philip’s goal than one of his defenders,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-16",
+      "start": 54.16,
+      "end": 57.789,
+      "text": "that’s offside. A goal scored in this situation",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-17",
+      "start": 57.789,
+      "end": 59.5,
+      "text": "would be disallowed.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-18",
+      "start": 59.5,
+      "end": 62,
+      "text": "It would be allowed if Marie’s friend was standing anywhere",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-19",
+      "start": 62,
+      "end": 64.299,
+      "text": "on the same line as the defender.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-20",
+      "start": 64.299,
+      "end": 68.17,
+      "text": "Philip also explains that the offside rule doesn’t always apply,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-21",
+      "start": 68.17,
+      "end": 71.54,
+      "text": "for example if Marie’s friend had the ball passed to her while she was still",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-22",
+      "start": 71.54,
+      "end": 73.86,
+      "text": "standing in her own half.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-23",
+      "start": 73.86,
+      "end": 78.4,
+      "text": "Marie is thrilled and now accompanies Philip to a game.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-24",
+      "start": 78.4,
+      "end": 81.46,
+      "text": "The lovely Marie is quickly surrounded by his football buddies.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-25",
+      "start": 81.46,
+      "end": 85.6,
+      "text": "Suddenly Philip is the one caught out by the offside trap.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-26",
+      "start": 85.6,
+      "end": 88.17,
+      "text": "Time to get back on the ball!",
+      "source": "imported_caption"
+    }
+  ],
+  "facts": [
+    {
+      "id": "frame-12000-1",
+      "available_at": 12,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-12000.jpg",
+      "source_interval": {
+        "start": 12,
+        "end": 12
+      },
+      "text": "Three cartoon-style male figures with striped shirts are depicted on a white background, suggesting a drawing or animation.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-12000-2",
+      "available_at": 12,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-12000.jpg",
+      "source_interval": {
+        "start": 12,
+        "end": 12
+      },
+      "text": "The figure on the left holds a striped scarf above his head with both hands, showing a happy expression.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-12000-3",
+      "available_at": 12,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-12000.jpg",
+      "source_interval": {
+        "start": 12,
+        "end": 12
+      },
+      "text": "The middle figure stands with his hands at his sides and a smiling face.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-12000-4",
+      "available_at": 12,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-12000.jpg",
+      "source_interval": {
+        "start": 12,
+        "end": 12
+      },
+      "text": "The figure on the right holds a striped scarf horizontally with both hands in front of him, also smiling.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-24000-1",
+      "available_at": 24,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-24000.jpg",
+      "source_interval": {
+        "start": 24,
+        "end": 24
+      },
+      "text": "A line drawing of a boy and a girl standing side by side and holding hands is visible in the lower center.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-24000-2",
+      "available_at": 24,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-24000.jpg",
+      "source_interval": {
+        "start": 24,
+        "end": 24
+      },
+      "text": "The boy is wearing a hoodie and pants, smiling and looking forward.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-24000-3",
+      "available_at": 24,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-24000.jpg",
+      "source_interval": {
+        "start": 24,
+        "end": 24
+      },
+      "text": "The girl is wearing a t-shirt and a skirt, looking forward with a slight frown.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-24000-4",
+      "available_at": 24,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-24000.jpg",
+      "source_interval": {
+        "start": 24,
+        "end": 24
+      },
+      "text": "Above them, a drawing of two dark storm clouds with lightning bolts and rain is visible.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-36000-1",
+      "available_at": 36,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-36000.jpg",
+      "source_interval": {
+        "start": 36,
+        "end": 36
+      },
+      "text": "A white background fills the frame.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-36000-2",
+      "available_at": 36,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-36000.jpg",
+      "source_interval": {
+        "start": 36,
+        "end": 36
+      },
+      "text": "A blurred hand and arm are visible in the lower right, appearing to be in motion.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-36000-3",
+      "available_at": 36,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-36000.jpg",
+      "source_interval": {
+        "start": 36,
+        "end": 36
+      },
+      "text": "Dark shapes, possibly hair or clothing, are blurred around the moving hand.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-48000-1",
+      "available_at": 48,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-48000.jpg",
+      "source_interval": {
+        "start": 48,
+        "end": 48
+      },
+      "text": "A hand is visible, partially covering the soccer field.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-48000-2",
+      "available_at": 48,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-48000.jpg",
+      "source_interval": {
+        "start": 48,
+        "end": 48
+      },
+      "text": "A line drawing depicts a soccer field with two goals.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-48000-3",
+      "available_at": 48,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-48000.jpg",
+      "source_interval": {
+        "start": 48,
+        "end": 48
+      },
+      "text": "The drawing includes two goalies, one of whom is standing inside a goal.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-48000-4",
+      "available_at": 48,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-48000.jpg",
+      "source_interval": {
+        "start": 48,
+        "end": 48
+      },
+      "text": "Six other soccer players, four male and two female, are on the field.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-1",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "A hand is visible in the foreground, obscuring part of the image.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-2",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "A drawing of a soccer field with players, a referee, and goals is visible.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-3",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "One goal has an 'X' drawn over it, indicating it is disallowed.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-60000-4",
+      "available_at": 60,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-60000.jpg",
+      "source_interval": {
+        "start": 60,
+        "end": 60
+      },
+      "text": "One player is visible with a soccer ball near the right goal.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-72000-1",
+      "available_at": 72,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-72000.jpg",
+      "source_interval": {
+        "start": 72,
+        "end": 72
+      },
+      "text": "A soccer referee stands holding a checkered flag near the top of a soccer field.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-72000-2",
+      "available_at": 72,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-72000.jpg",
+      "source_interval": {
+        "start": 72,
+        "end": 72
+      },
+      "text": "A soccer ball is in a goal at the left side of the field.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-72000-3",
+      "available_at": 72,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-72000.jpg",
+      "source_interval": {
+        "start": 72,
+        "end": 72
+      },
+      "text": "A cartoon drawing shows five soccer players and one referee on a soccer field.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-72000-4",
+      "available_at": 72,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-72000.jpg",
+      "source_interval": {
+        "start": 72,
+        "end": 72
+      },
+      "text": "Two players are near the center of the field, actively engaged with a soccer ball.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-84000-1",
+      "available_at": 84,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-84000.jpg",
+      "source_interval": {
+        "start": 84,
+        "end": 84
+      },
+      "text": "Four cartoon characters are in the foreground, two men, one woman, and one man, from left to right, all wearing striped shirts.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-84000-2",
+      "available_at": 84,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-84000.jpg",
+      "source_interval": {
+        "start": 84,
+        "end": 84
+      },
+      "text": "The woman in the center has her right hand raised, fingers curled, with her thumb extended.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-84000-3",
+      "available_at": 84,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-84000.jpg",
+      "source_interval": {
+        "start": 84,
+        "end": 84
+      },
+      "text": "In the background, a cartoon stadium with spectators is visible.",
+      "verification": "unverified single-frame model observation"
+    },
+    {
+      "id": "frame-84000-4",
+      "available_at": 84,
+      "source": "model_observation",
+      "frame": "/media/offside-rule/frame-84000.jpg",
+      "source_interval": {
+        "start": 84,
+        "end": 84
+      },
+      "text": "A cartoon figure is standing near the stadium, facing away from the viewer.",
+      "verification": "unverified single-frame model observation"
+    }
+  ],
+  "ingestion": {
+    "version": 1,
+    "source_url": "https://commons.wikimedia.org/wiki/File:Offside_Rule_%E2%80%93_explained_in_two_minutes!.webm",
+    "license_url": "https://creativecommons.org/licenses/by/3.0",
+    "credit": "Juergen Wild, Birgit Opitz & simpleshow foundation (CC BY 3.0)",
+    "permission_acknowledged": true,
+    "source_offset_seconds": 0,
+    "source_sha256": "41b5a95c58cc36a2d43dcaaa9c6ae3910f5dcdeee35a7aa749d00f4dd93fdc71",
+    "caption_sha256": "8ef1355fa9c5f69acd381d811fc6516339bfeac2efd45dee0d14296bb182a30e",
+    "video_sha256": "38ea1a39eafe7cda6bc503a3455d0a56943808ee37db090a5956d09c487f11c5",
+    "model": "google/gemini-2.5-flash",
+    "sample_interval_seconds": 12,
+    "frames": [
+      {
+        "at_seconds": 0,
+        "image": "/media/offside-rule/frame-0.jpg",
+        "evidence_ids": []
+      },
+      {
+        "at_seconds": 12,
+        "image": "/media/offside-rule/frame-12000.jpg",
+        "evidence_ids": [
+          "frame-12000-1",
+          "frame-12000-2",
+          "frame-12000-3",
+          "frame-12000-4"
+        ]
+      },
+      {
+        "at_seconds": 24,
+        "image": "/media/offside-rule/frame-24000.jpg",
+        "evidence_ids": [
+          "frame-24000-1",
+          "frame-24000-2",
+          "frame-24000-3",
+          "frame-24000-4"
+        ]
+      },
+      {
+        "at_seconds": 36,
+        "image": "/media/offside-rule/frame-36000.jpg",
+        "evidence_ids": [
+          "frame-36000-1",
+          "frame-36000-2",
+          "frame-36000-3"
+        ]
+      },
+      {
+        "at_seconds": 48,
+        "image": "/media/offside-rule/frame-48000.jpg",
+        "evidence_ids": [
+          "frame-48000-1",
+          "frame-48000-2",
+          "frame-48000-3",
+          "frame-48000-4"
+        ]
+      },
+      {
+        "at_seconds": 60,
+        "image": "/media/offside-rule/frame-60000.jpg",
+        "evidence_ids": [
+          "frame-60000-1",
+          "frame-60000-2",
+          "frame-60000-3",
+          "frame-60000-4"
+        ]
+      },
+      {
+        "at_seconds": 72,
+        "image": "/media/offside-rule/frame-72000.jpg",
+        "evidence_ids": [
+          "frame-72000-1",
+          "frame-72000-2",
+          "frame-72000-3",
+          "frame-72000-4"
+        ]
+      },
+      {
+        "at_seconds": 84,
+        "image": "/media/offside-rule/frame-84000.jpg",
+        "evidence_ids": [
+          "frame-84000-1",
+          "frame-84000-2",
+          "frame-84000-3",
+          "frame-84000-4"
+        ]
+      }
+    ],
+    "limitation": "Sparse, unverified single-frame observations; no continuous action capture or audio description.",
+    "created_at": "2026-10-02T01:55:15.278Z"
+  }
+}

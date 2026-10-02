@@ -58,7 +58,7 @@ export const responseSchema = object({
   grounding: object({
     content_id: {...text(100), minLength: 1}, scene_id: text(80),
     at_seconds: {type: 'number', minimum: 0},
-    evidence_ids: {...list(text(80), 20), description: 'Exact IDs of the supporting scene facts, completed transcript lines or validated graph connections returned by tools. Never invent IDs.'},
+    evidence_ids: {...list(text(80), 20), description: 'Exact IDs of the supporting scene facts, completed transcript lines or validated graph connections supplied by the host or returned by tools. Never invent IDs.'},
     graph_ids: {...list(text(80)), description: 'IDs of validated graph connections used, or an empty array.'},
   }),
   new_connections: list(object({
@@ -73,6 +73,21 @@ export const reviewSchema = object({
 });
 
 const ajv = new Ajv({allErrors: true});
+const version = {type: 'string', pattern: '^[a-f0-9]{64}$'};
+const epoch = {type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER};
+const position = {type: 'number', minimum: 0, maximum: 86400};
+const personalPreferences = Object.fromEntries(['need', 'language', 'recipient'].map(key => [key, requestSchema.properties[key]]));
+export const validPlayback = ajv.compile(object({content_id: text(100), content_version: version, epoch, sequence: epoch,
+  at_seconds: position, play_state: choice(['playing', 'paused', 'buffering', 'ended']), playback_rate: {type: 'number', minimum: 0.25, maximum: 4}}));
+const holdSchema = object({content_version: version, epoch});
+holdSchema.properties.from_seconds = position;
+export const validHold = ajv.compile(holdSchema);
+export const validPersonalAsk = ajv.compile(object({branch_id: {...text(36), minLength: 36}, request: {...text(600), minLength: 1},
+  at_seconds: position, clarification: {type: 'boolean'}, ...personalPreferences}));
+const returnProperties = {content_version: version, epoch, from_seconds: position, ...personalPreferences};
+export const validReturn = ajv.compile(object(returnProperties));
+export const validPersonalReturn = ajv.compile(object({...returnProperties, branch_id: {...text(36), minLength: 36}}));
+export const validPersonalEnd = ajv.compile(object({branch_id: {...text(36), minLength: 36}}));
 const validRequestShape = ajv.compile(requestSchema);
 export function validRequest(input) {if (!validRequestShape(input)) return false; const selected = getStory(input.content_id); return Boolean(selected && input.at_seconds <= selected.duration);}
 export const validCompanionRequest = ajv.compile(companionRequestSchema);

@@ -77,7 +77,11 @@ export class OwnPlayerSession {
     this.publish();
   }
 
-  private audioFocusForPlayback() {return this.latest.state === 'playing' ? AudioFocusMode.AUDIO_FOCUS_PRIMARY : AudioFocusMode.AUDIO_FOCUS_NONE;}
+  private audioFocusForPlayback() {
+    // Buffering is still an active playback attempt. Do not release focus on every stall.
+    return this.latest.state === 'playing' || this.latest.state === 'buffering'
+      ? AudioFocusMode.AUDIO_FOCUS_PRIMARY : AudioFocusMode.AUDIO_FOCUS_NONE;
+  }
 
   private publish() {
     if (!this.active) return;

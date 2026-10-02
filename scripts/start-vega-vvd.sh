@@ -9,6 +9,8 @@ sdk_version="$("$vega_bin" --version | awk '/Active SDK Version:/ {print $4; exi
 vvd_root="${VVD_ROOT:-$vega_home/sdk/vega-sdk/main/$sdk_version/vvd}"
 vvd_bin="$vvd_root/bin/virtualdevice"
 instances_path="$vvd_root/instances"
+# Match the demo's 720p media; use VVD_DISPLAY_RES=1920,1080 for a full-HD run.
+display_res="${VVD_DISPLAY_RES:-1280,720}"
 
 if [[ ! -x "$vvd_bin" ]]; then
   echo "Vega virtual-device binary not found: $vvd_bin" >&2
@@ -27,11 +29,12 @@ fi
   --instances-path "$instances_path" \
   --log-path "$vvd_root" \
   --name default_instance \
+  --display-res "$display_res" \
   --gl-accel-off \
   "${gui_args[@]}" \
   --virtualizer-log file
 
-echo "Vega virtual device is running with software rendering. Keep this command alive; stop it with: vega virtual-device stop"
+echo "Vega virtual device is running at $display_res with software rendering. Keep this command alive; stop it with: vega virtual-device stop"
 while true; do
   sleep 3600
 done

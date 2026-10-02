@@ -38,7 +38,8 @@ export function validateVisual(visual) {
   if (!labels && geometry < 2) throw new Error('An isolated shape does not explain the answer. Draw a recognizable schematic or relationship, with at least two non-background shapes.');
   if (!visual.description.trim()) throw new Error('Visual lacks an accessible explanation');
   for (const a of visual.animations) {
-    if (!ids.has(a.target_id) || a.keyframes.length !== 2 || a.duration_ms + a.delay_ms > 4000 || a.keyframes.some(k => !transform.test(k.transform))) throw new Error('Unsafe animation');
+    if (!ids.has(a.target_id)) throw new Error(`Animation target "${a.target_id}" needs a matching id attribute on the SVG geometry.`);
+    if (a.keyframes.length !== 2 || a.duration_ms + a.delay_ms > 4000 || a.keyframes.some(k => !transform.test(k.transform))) throw new Error('Unsafe animation');
     const target = ids.get(a.target_id);
     if (['svg', 'text', 'tspan'].includes(target.tagName) || target.getElementsByTagName('text').length) throw new Error('Keep visual labels stable');
     if (a.keyframes.some(k => [...k.transform.matchAll(/translate\(([^)]+)\)/g)].some(match => match[1].split(',').some(value => Math.abs(parseFloat(value)) > 40)))) throw new Error('Animation moves outside its safe area');

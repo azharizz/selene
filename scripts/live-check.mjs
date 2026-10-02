@@ -41,7 +41,11 @@ for (const [name, input, context] of selected) {
   }
   assert.equal(validResponse(result), true);
   assert.equal(result.state, 'response'); assert.ok(result.answer.trim());
-  if (name === 'ingested-caption') assert.equal(result.visual.status, 'ready', 'caption meaning must include a grounded SVG');
+  if (name === 'ingested-caption') {
+    assert.equal(result.visual.status, 'ready', 'caption meaning must include a grounded SVG');
+    assert.ok(result.visual.animations.length > 0, 'the grounded caption SVG must animate');
+  }
+  if (name === 'ingested-frame') assert.match(result.answer, /A sampled frame appears to show/i, 'visual claims must be qualified as an unverified sampled-frame observation');
   if (name === 'translation') assert.match(result.answer, /\b(ibu|layang|membuat|dibuat)\b/i, 'the Indonesian translation must not silently remain English');
   if (input.life_connection) assert.equal(result.life_connection.offered, true);
   if (context) {assert.equal(result.grounding.content_id, context.content_id); assert.equal(result.new_connections.length, 0);}

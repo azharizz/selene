@@ -47,6 +47,7 @@ test('safe SVG remains renderable; active and remote content is rejected', () =>
 test('animation is finite data, with known target and conservative keyframes', () => {
   const animation = {target_id: 'connection', duration_ms: 600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'translate(0px, 8px)'}, {opacity: 1, transform: 'translate(0px, 0px)'}]};
   assert.equal(validateVisual({...visual, animations: [animation]}).animations.length, 1);
+  assert.throws(() => validateVisual({...visual, animations: [{...animation, target_id: 'missing'}]}), /Animation target "missing" needs a matching id attribute/);
   for (const a of [{...animation, target_id: 'label'}, {...animation, target_id: 'missing'}, {...animation, duration_ms: 4000, delay_ms: 1000}, {...animation, keyframes: [{opacity: 1, transform: 'rotate(3000deg)'}, {opacity: 1, transform: 'none'}]}]) assert.throws(() => validateVisual({...visual, animations: [a]}));
 });
 test('reviewed visual reuse stays in its viewing session, scene and spoiler boundary', () => {
@@ -80,7 +81,7 @@ test('fabricated citations, changed recipients and stale context fail closed', (
   const oversized = result(); oversized.answer = 'x'.repeat(561);
   assert.throws(() => validateMoment(oversized, request), /\/answer must NOT have more than 560 characters/);
   const verbose = result(); verbose.answer = Array(36).fill('word').join(' ');
-  assert.throws(() => validateMoment(verbose, request), /at most 35 words/);
+  assert.throws(() => validateMoment(verbose, request), /Answer has 36 words; the limit is at most 35 words/);
   const future = result(); future.grounding.evidence_ids = ['f-new-memory'];
   assert.throws(() => validateMoment(future, request));
   const stale = result(); stale.grounding.at_seconds = 90;

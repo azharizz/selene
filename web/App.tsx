@@ -1,39 +1,35 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {Visual, type VisualArtifact} from './Visual';
+import {Visual} from './Visual';
 import {Voice, type VoiceState} from './voice';
 import {CompanionMoment, type CompanionBootstrap} from './CompanionMoment';
-import {PrivateMirror} from './PrivateMirror';
+import {PrivateMirror, JoinPhone} from './PrivateMirror';
 import {focusPanel, moveFocus} from './navigation';
 import './style.css';
 import {Brand, Icon} from './Brand';
 import {needs, recipients, readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
 import {accessibilitySettings, initialAccessibility, applyAccessibility, captionChoice, saveCaptionChoice, captionStyle, type AccessibilitySettings} from './accessibility';
+import {clock, personalRequest, type PersonalStory, type PersonalMoment, type ReturnResult, type Pairing} from './personal';
 
 type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
-type Story = {id: string; title: string; subtitle: string; duration: number; video: string; poster: string; scenes: {id: string; start: number; end: number; label: string}[]; transcript: {id: string; start: number; end: number; text: string}[]; ingestion?: {credit: string; license_url: string}};
+type Story = PersonalStory;
 type CatalogStory = {id: string; title: string; subtitle: string; duration: number; poster: string};
-type Moment = {
-  state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
-  intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
-  life_connection: {offered: boolean; question: string; recipient: Recipient};
-  grounding: {content_id: string; scene_id: string; at_seconds: number; evidence_ids: string[]};
-};
+type Moment = PersonalMoment;
 type Input = {
   request: string; content_id: string; at_seconds: number; play_state: 'playing' | 'paused' | 'ended';
   playback_choice: Choice; need: Need; language: Language; session: 'family' | 'solo'; recipient: Recipient; life_connection: boolean;
   continuation: {request: string; question: string; answer: string} | null;
 };
-type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'life' | 'preferences' | 'more' | 'exit' | 'error';
+type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'life' | 'preferences' | 'more' | 'exit' | 'error' | 'tools' | 'pair' | 'return';
 type State = {
   started: boolean; session: 'family' | 'solo'; screen: Screen; need: Need; language: Language; recipient: Recipient;
   request: string; moment: Moment | null; position: number; paused: boolean; captions: boolean; controls: boolean;
   accessibility: AccessibilitySettings;
-  error: string; voice: VoiceState; lifeStarted: boolean; anchorAt: number; clarifying: boolean; choice: Choice; background: boolean; mirror: {url: string} | null; returnScreen: 'watch' | 'ask';
+  error: string; voice: VoiceState; lifeStarted: boolean; anchorAt: number; clarifying: boolean; choice: Choice; background: boolean; mirror: Pairing | null; returnScreen: 'watch' | 'ask';
+  savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; preparingReturn: boolean; pairing: boolean;
 };
-type Bundle = {session_id: string; private_mirror_available?: boolean; story: Story; catalog?: CatalogStory[]};
+type Bundle = {session_id: string; story: Story; catalog?: CatalogStory[]};
 const locale: Record<Language, string> = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
-const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 const name = (value: string) => value[0].toUpperCase() + value.slice(1);
 const native = (window as Window & {ReactNativeWebView?: {postMessage: (message: string) => void}}).ReactNativeWebView;
 
@@ -48,6 +44,7 @@ export class App extends React.Component<Bundle, State> {
     started: false, screen: 'watch', ...readPreferences(),
     request: '', moment: null, position: 0, paused: true, captions: captionChoice(initialAccessibility().captions), accessibility: initialAccessibility(), controls: true, error: '', voice: 'idle',
     lifeStarted: false, anchorAt: 0, clarifying: false, choice: 'unspecified', background: document.hidden, mirror: null, returnScreen: 'watch',
+    savedPlace: null, returnResult: null, preparingReturn: false, pairing: false,
   };
   private video = React.createRef<HTMLVideoElement>();
   private surface = React.createRef<HTMLElement>();
@@ -58,6 +55,11 @@ export class App extends React.Component<Bundle, State> {
   private resumeAt = 0;
   private playbackRevision = 0;
   private lastNativeStateAt = 0;
+  private relayTimer: ReturnType<typeof setInterval> | null = null;
+  private relaySequence = 0;
+  private playbackEpoch = 0;
+  private pairingRequest: AbortController | null = null;
+  private buffering = false;
   private mounted = false;
   private voice = new Voice(() => this.video.current,
     voice => {if (this.mounted) this.setState({voice});},
@@ -77,6 +79,7 @@ export class App extends React.Component<Bundle, State> {
     window.addEventListener('pagehide', this.endSession);
     window.addEventListener('keydown', this.key);
     window.addEventListener('message', this.nativeMessage);
+    this.relayTimer = setInterval(() => {if (this.state.started && !document.hidden) this.postPlayerState();}, 2000);
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({title: this.props.story.title, artist: 'SELENE'});
       navigator.mediaSession.setActionHandler('play', this.play);
@@ -91,6 +94,8 @@ export class App extends React.Component<Bundle, State> {
   }
   componentWillUnmount() {
     this.mounted = false;
+    if (this.relayTimer) clearInterval(this.relayTimer);
+    this.pairingRequest?.abort();
     this.cancel(); this.endSession();
     document.removeEventListener('visibilitychange', this.visibility);
     window.removeEventListener('pagehide', this.endSession);
@@ -102,8 +107,15 @@ export class App extends React.Component<Bundle, State> {
     }
   }
   private cancel = () => {this.pending?.abort(); this.pending = null; this.voice.stop();};
+  private playbackState = () => {
+    const player = this.video.current;
+    if (player?.ended) return 'stopped' as const;
+    if (!player || player.paused) return 'paused' as const;
+    return this.buffering ? 'buffering' as const : 'playing' as const;
+  };
   private endSession = () => {
     this.cancel();
+    this.pairingRequest?.abort();
     if (this.sessionId) navigator.sendBeacon('/api/session/end', new Blob([JSON.stringify({session_id: this.sessionId})], {type: 'application/json'}));
     this.sessionId = '';
   };
@@ -118,10 +130,14 @@ export class App extends React.Component<Bundle, State> {
   };
   private focusPanel = focusPanel;
   private close = () => {
-    this.cancel(); this.lastInput = null; void this.stopMirror();
-    this.setState({screen: 'watch', moment: null, lifeStarted: false, controls: true, request: '', error: '', clarifying: false, choice: 'unspecified'});
+    this.cancel(); this.lastInput = null;
+    this.setState({screen: 'watch', moment: null, lifeStarted: false, controls: true, request: '', error: '', clarifying: false, choice: 'unspecified', returnResult: null, preparingReturn: false});
   };
   private dismiss = () => {this.close(); this.setState({controls: false});};
+  private closeReturn = () => {
+    if (['ready', 'no_gap'].includes(this.state.returnResult?.status ?? '')) this.setState({savedPlace: null});
+    this.dismiss();
+  };
   private play = () => {
     if (document.hidden) return;
     this.voice.stop();
@@ -132,15 +148,72 @@ export class App extends React.Component<Bundle, State> {
   };
   private postPlayerState = (force = false) => {
     const player = this.video.current;
-    if (!player || !native) return;
+    if (!player) return;
     if (!force && Date.now() - this.lastNativeStateAt < 1000) return;
     this.lastNativeStateAt = Date.now();
-    native.postMessage(JSON.stringify({type: 'selene:player-state', state: {
-      state: player.ended ? 'stopped' : player.readyState < 3 ? 'buffering' : player.paused ? 'paused' : 'playing',
+    native?.postMessage(JSON.stringify({type: 'selene:player-state', state: {
+      state: this.playbackState(),
       position_ms: Number.isFinite(player.currentTime) ? player.currentTime * 1000 : 0,
       duration_ms: Number.isFinite(player.duration) ? player.duration * 1000 : 0,
       muted: player.muted, volume: player.volume,
     }}));
+    void this.publishPlayback().catch(() => undefined); // A missing heartbeat makes phone help explicitly unavailable.
+  };
+  private captionAt = (position: number) => this.props.story.transcript.find(line => position >= line.start && position < line.end);
+  private timeUpdate = () => {
+    const position = this.video.current?.currentTime ?? 0;
+    // Refresh the displayed second or cue, including fractional caption boundaries.
+    // Native/phone reports and saved places still sample the exact video clock.
+    if (Math.floor(position) !== Math.floor(this.state.position) || this.captionAt(position) !== this.captionAt(this.state.position)) {
+      this.setState({position});
+    }
+    this.postPlayerState();
+  };
+  private publishPlayback = async (signal?: AbortSignal) => {
+    const player = this.video.current;
+    if (!player || !this.sessionId) throw new Error('Start the film before connecting a phone.');
+    // currentTime changes before the seeking event advances the epoch. Never publish that intermediate sample.
+    if (player.seeking) throw new Error('Wait for the TV to finish seeking, then try again.');
+    await personalRequest('/api/playback', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, signal,
+      body: JSON.stringify({content_id: this.props.story.id, content_version: this.props.story.content_version,
+        sequence: ++this.relaySequence, epoch: this.playbackEpoch, at_seconds: Math.min(this.props.story.duration, Math.max(0, player.currentTime)),
+        play_state: player.ended ? 'ended' : this.playbackState(), playback_rate: player.playbackRate})});
+  };
+  private playbackSeek = () => {
+    this.playbackEpoch++;
+    this.setState({savedPlace: null, returnResult: null});
+    if (!this.resumingResponse && (this.pending || this.state.screen !== 'watch')) this.close();
+    this.postPlayerState(true);
+  };
+  private savePlace = () => {
+    const player = this.video.current;
+    if (!player) return;
+    this.cancel();
+    this.setState({savedPlace: {at_seconds: player.currentTime, epoch: this.playbackEpoch}, screen: 'watch', controls: false, error: ''});
+  };
+  private bringUsBack = async () => {
+    const saved = this.state.savedPlace, player = this.video.current;
+    if (!saved || !player) return;
+    this.cancel(); this.lastInput = null;
+    const pending = new AbortController(); this.pending = pending;
+    this.setState({screen: 'loading', preparingReturn: true, returnResult: null, error: ''});
+    try {
+      await this.publishPlayback(pending.signal);
+      const {need, language, recipient} = this.state;
+      const result = await personalRequest('/api/return', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, signal: pending.signal,
+        body: JSON.stringify({content_version: this.props.story.content_version, epoch: saved.epoch, from_seconds: saved.at_seconds, need, language, recipient})}, 45000);
+      if (!this.mounted || this.pending !== pending || pending.signal.aborted || saved.epoch !== this.playbackEpoch) return;
+      if (player.paused) {
+        this.resumingResponse = true;
+        try {await player.play();} finally {this.resumingResponse = false;}
+      }
+      if (player.paused) throw new Error('Playback could not resume. Close the recap and press Play to try again.');
+      this.pending = null;
+      this.setState({returnResult: result as ReturnResult, screen: 'return', preparingReturn: false});
+    } catch (error) {
+      if (!this.mounted || this.pending !== pending || pending.signal.aborted) return;
+      this.pending = null; this.setState({screen: 'tools', preparingReturn: false, error: error instanceof Error ? error.message : 'This return is unavailable.'});
+    }
   };
   private nativeMessage = (event: MessageEvent) => {
     if (event.source !== window || event.origin !== location.origin) return;
@@ -176,12 +249,26 @@ export class App extends React.Component<Bundle, State> {
   };
   private toggleCaptions = () => {const captions = !this.state.captions; saveCaptionChoice(captions); this.setState({captions});};
   private systemCaptions = () => {saveCaptionChoice(null); this.setState({captions: captionChoice(this.state.accessibility.captions)});};
-  private start = (session: 'family' | 'solo') => {
+  private start = async (session: 'family' | 'solo') => {
+    if (!this.sessionId) {
+      this.cancel();
+      const pending = new AbortController(); this.pending = pending;
+      try {
+        const bundle = await openSession(this.props.story.id, pending.signal);
+        if (!this.mounted || pending.signal.aborted || this.pending !== pending) return;
+        if (bundle.story.content_version !== this.props.story.content_version) {window.location.reload(); return;}
+        this.sessionId = bundle.session_id; this.pending = null;
+        this.setState({mirror: null, pairing: false, savedPlace: null, returnResult: null});
+      } catch {
+        if (this.mounted && !pending.signal.aborted) {this.pending = null; this.setState({error: 'The viewing session could not start. Try again.'});}
+        return;
+      }
+    }
     this.setState({session, started: true, controls: false, error: ''}, this.play);
   };
   private openAsk = () => {
     this.voice.stop();
-    this.setState({screen: 'ask', anchorAt: this.video.current?.currentTime ?? this.state.position, request: '', clarifying: false, lifeStarted: false, error: '', choice: 'unspecified'});
+    this.setState({screen: 'ask', anchorAt: this.video.current?.currentTime ?? this.state.position, request: '', clarifying: false, lifeStarted: false, error: '', choice: 'unspecified', preparingReturn: false});
   };
   private back = () => {
     const {screen, voice, started, controls, clarifying} = this.state;
@@ -189,6 +276,7 @@ export class App extends React.Component<Bundle, State> {
     if (screen === 'exit') return this.exit();
     if (screen === 'preferences') return this.setState({screen: this.state.returnScreen});
     if (screen === 'more') return this.setState({screen: 'moment'});
+    if (screen === 'return') return this.closeReturn();
     if (screen === 'life' || (screen === 'ask' && clarifying)) {
       if (screen === 'life') void this.setMirrorLife(false);
       return this.setState({screen: 'moment', clarifying: false, lifeStarted: false, error: ''});
@@ -201,7 +289,8 @@ export class App extends React.Component<Bundle, State> {
   private exit = () => {
     this.video.current?.pause(); this.endSession();
     if (native) native.postMessage('selene:exit');
-    else this.setState({started: false, screen: 'watch', moment: null, controls: true, request: '', error: '', lifeStarted: false});
+    else this.setState({started: false, screen: 'watch', moment: null, controls: true, request: '', error: '', lifeStarted: false,
+      mirror: null, pairing: false, savedPlace: null, returnResult: null, preparingReturn: false});
   };
   private companion = () => {this.video.current?.pause(); this.endSession(); native?.postMessage('selene:companion');};
   private chooseStory = (id: string) => {
@@ -240,6 +329,7 @@ export class App extends React.Component<Bundle, State> {
       let response = await this.send(input, pending.signal);
       if (response.status === 410) {
         this.sessionId = (await openSession(this.props.story.id, pending.signal)).session_id;
+        this.setState({mirror: null, pairing: false});
         response = await this.send(input, pending.signal);
       }
       const result = await response.json();
@@ -272,22 +362,38 @@ export class App extends React.Component<Bundle, State> {
     return fetch('/api/moment', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: JSON.stringify(input), signal});
   }
   private openMirror = async () => {
-    if (!this.sessionId || !this.state.moment) return;
+    if (!this.sessionId || this.state.pairing) return;
+    this.setState({screen: 'pair', pairing: true, error: ''});
+    const pending = new AbortController(); this.pairingRequest?.abort(); this.pairingRequest = pending;
+    const sessionId = this.sessionId;
     try {
-      const response = await fetch('/api/private/pair', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: '{}'});
-      const result = await response.json();
-      if (!response.ok || typeof result.url !== 'string') throw new Error(result.error || 'Private mirroring is unavailable.');
-      this.setState({mirror: {url: result.url}}, () => {if (this.state.lifeStarted) void this.setMirrorLife(true);});
-    } catch (error) {this.setState({error: error instanceof Error ? error.message : 'Private mirroring is unavailable.'});}
+      await this.publishPlayback(pending.signal);
+      const result = await personalRequest('/api/private/pair', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': sessionId}, body: '{}', signal: pending.signal});
+      if (typeof result.code !== 'string') throw new Error('Phone pairing is unavailable.');
+      if (this.mounted && !pending.signal.aborted && this.sessionId === sessionId) this.setState({mirror: result as Pairing});
+    } catch (error) {if (this.mounted && !pending.signal.aborted) this.setState({error: error instanceof Error ? error.message : 'Phone pairing is unavailable.'});}
+    finally {if (this.mounted && this.pairingRequest === pending) {this.pairingRequest = null; this.setState({pairing: false});}}
   };
   private setMirrorLife = async (visible: boolean) => {
     if (!this.sessionId) return;
     await fetch('/api/private/life', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: JSON.stringify({visible})}).catch(() => undefined);
   };
   private stopMirror = async () => {
-    if (!this.state.mirror || !this.sessionId) {if (this.state.mirror) this.setState({mirror: null}); return;}
-    this.setState({mirror: null});
-    await fetch('/api/private/close', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': this.sessionId}, body: '{}'}).catch(() => undefined);
+    this.pairingRequest?.abort();
+    const pending = new AbortController(); this.pairingRequest = pending;
+    const sessionId = this.sessionId;
+    this.setState({pairing: true, error: ''});
+    try {
+      if (sessionId) {
+        await personalRequest('/api/private/close', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Selene-Session': sessionId}, body: '{}', signal: pending.signal})
+          .catch(error => {if (error.status !== 410) throw error;});
+      }
+      if (this.mounted && this.pairingRequest === pending && this.sessionId === sessionId) this.setState({mirror: null});
+    } catch {
+      if (this.mounted && this.pairingRequest === pending && !pending.signal.aborted) this.setState({error: 'The phone may still be connected. Try Disconnect phone again.'});
+    } finally {
+      if (this.mounted && this.pairingRequest === pending) {this.pairingRequest = null; this.setState({pairing: false});}
+    }
   };
   private connect = () => {this.voice.stop(); this.setState({screen: 'life', error: ''});};
   private pauseMoment = () => {
@@ -332,18 +438,30 @@ export class App extends React.Component<Bundle, State> {
 
   render() {
     const {story} = this.props;
-    const {started, screen, session, need, language, recipient, request, moment, position, paused, captions, controls, error, voice, lifeStarted, clarifying, background, mirror} = this.state;
-    const caption = story.transcript.find(line => position >= line.start && position < line.end);
+    const {started, screen, session, need, language, recipient, request, moment, position, paused, captions, controls, error, voice, lifeStarted, clarifying, background, mirror, savedPlace, returnResult} = this.state;
+    const caption = this.captionAt(position);
 
     return <main ref={this.surface} tabIndex={-1} className="app">
       <video ref={this.video} src={started && !background ? story.video : undefined} poster={story.poster} playsInline preload="metadata" disableRemotePlayback
         onLoadedMetadata={() => {if (this.video.current && this.resumeAt > 0) {this.video.current.currentTime = this.resumeAt; this.resumeAt = 0;} this.postPlayerState(true);}}
-        onTimeUpdate={() => {this.setState({position: this.video.current?.currentTime ?? 0}); this.postPlayerState();}}
-        onPlay={() => {this.playbackRevision++; this.setState({paused: false, started: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';}}
-        onPause={() => {this.playbackRevision++; this.setState({paused: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';}}
+        onTimeUpdate={this.timeUpdate}
+        onPlay={() => {this.buffering = false; this.playbackRevision++; this.setState({paused: false, started: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';}}
+        onPause={() => {this.buffering = false; this.playbackRevision++; this.setState({paused: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';}}
         onEnded={() => {this.voice.stop(); this.setState({paused: true, controls: true}); this.postPlayerState(true); if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';}}
-        onSeeking={() => {if (!this.resumingResponse && (this.pending || screen !== 'watch')) this.close();}}
-        onError={() => {if (!background) this.setState({error: 'The film could not load. Check the SELENE service, then reload the film.', controls: true});}} />
+        onSeeking={this.playbackSeek} onSeeked={() => {this.buffering = false; this.postPlayerState(true);}}
+        onWaiting={() => {this.buffering = true; this.postPlayerState(true);}}
+        onPlaying={() => {this.buffering = false; this.postPlayerState(true);}}
+        onRateChange={() => this.postPlayerState(true)}
+        onError={() => {
+          const player = this.video.current;
+          const mediaError = player?.error;
+          console.error('[SELENE_VIDEO_ERROR]', JSON.stringify({
+            code: mediaError?.code ?? null, message: mediaError?.message ?? '',
+            currentTime: player?.currentTime ?? null, duration: Number.isFinite(player?.duration) ? player?.duration : null,
+            readyState: player?.readyState ?? null, networkState: player?.networkState ?? null,
+          }));
+          if (!background) this.setState({error: `The film could not load${mediaError?.code ? ` (media error ${mediaError.code}${mediaError.message ? `: ${mediaError.message}` : ''})` : ''}. Check the SELENE service, then reload the film.`, controls: true});
+        }} />
 
       {!started && screen === 'watch' && <section className="welcome" data-panel ref={this.focusPanel}>
         <Brand />
@@ -357,16 +475,42 @@ export class App extends React.Component<Bundle, State> {
         </div>
       </section>}
 
-      {started && captions && caption && ['watch', 'loading', 'moment'].includes(screen) && <div className="captions" style={captionStyle(this.state.accessibility)} aria-label="Captions">{caption.text}</div>}
+      {started && captions && caption && ['watch', 'loading', 'moment', 'return', 'tools', 'pair'].includes(screen) && <div className="captions" style={captionStyle(this.state.accessibility)} aria-label="Captions">{caption.text}</div>}
 
       {started && screen === 'watch' && <>
-        {!controls && <button autoFocus className="quiet-control" onClick={() => this.setState({controls: true})}>Selene</button>}
+        {!controls && <button autoFocus className="quiet-control" onClick={savedPlace ? this.bringUsBack : () => this.setState({controls: true})}>{savedPlace ? 'Bring us back' : 'Selene'}</button>}
         {controls && <section className="selene-toolbar" data-panel ref={this.focusPanel} aria-label="Selene tools">
           <button data-initial className="primary" onClick={this.openAsk}>Ask Selene</button>
-          <button aria-label="Answer preferences" onClick={() => this.setState({screen: 'preferences', returnScreen: 'watch'})}><Icon name="settings"/></button>
+          <button aria-label="Selene tools" onClick={() => this.setState({screen: 'tools', error: ''})}><Icon name="more"/></button>
           <button aria-label="Hide Selene" onClick={() => this.setState({controls: false})}><Icon name="close"/></button>
         </section>}
       </>}
+
+      {screen === 'tools' && <section className="sheet personal-tools" data-panel ref={this.focusPanel}>
+        <div className="sheet-head"><h1>Watch together</h1><button data-initial aria-label="Close tools" onClick={this.close}><Icon name="close"/></button></div>
+        <div className="option-list"><button className="primary" onClick={savedPlace ? this.bringUsBack : this.savePlace}>{savedPlace ? 'Bring us back' : 'Hold our place'}</button>
+          <button onClick={() => {if (mirror) this.setState({screen: 'pair'}); else return this.openMirror();}}>{mirror ? 'Phone connection' : 'Pair phone'}</button>
+          <button onClick={() => this.setState({screen: 'preferences', returnScreen: 'watch'})}>Answer preferences</button></div>
+        <p className="small">{savedPlace ? `Saved at ${clock(savedPlace.at_seconds)}. Return explains the interval from here.` : 'Hold a place for a conversation. Playback stays under your control.'}</p>
+        {savedPlace && <button className="text-button" onClick={() => this.setState({savedPlace: null})}>Clear saved place</button>}
+        {error && <p role="alert">{error}</p>}
+      </section>}
+
+      {screen === 'pair' && <section className="sheet pair-sheet" data-panel ref={this.focusPanel}>
+        <div className="sheet-head"><h1>Use your phone</h1><button data-initial aria-label="Close pairing" onClick={this.close}><Icon name="close"/></button></div>
+        {mirror ? <><p>Open <span className="pair-address">{mirror.join_url}</span></p><p className="pair-code" aria-label={`Pairing code ${mirror.code.split('').join(' ')}`}>{mirror.code.slice(0, 3)} {mirror.code.slice(3)}</p>
+          <p className="small">One phone. Code expires after five minutes. The TV keeps its own controls.</p>
+          <div className="actions"><button disabled={this.state.pairing} onClick={this.openMirror}>New code</button><button disabled={this.state.pairing} onClick={this.stopMirror}>Disconnect phone</button></div></>
+          : <><p role="status">{this.state.pairing ? 'Creating your code…' : 'Pair a phone for personal replay and help.'}</p>{!this.state.pairing && <button onClick={this.openMirror}>Create code</button>}</>}
+        {error && <p role="alert">{error}</p>}
+      </section>}
+
+      {screen === 'return' && returnResult && <section className="moment compact return-toast" data-panel ref={this.focusPanel} aria-label="Guided return">
+        {returnResult.moment?.visual.status === 'ready' && <div className="visual"><Visual compact visual={returnResult.moment.visual}/></div>}
+        <div className="answer"><h2>{returnResult.moment?.answer.replace(/\u2014/g, ',') || (returnResult.status === 'unavailable' ? 'The recap could not be prepared. Close to try again.' : returnResult.status === 'no_gap' ? 'There was no gap at the sampled TV moment.' : 'There is not enough evidence for this gap. Replay it or ask someone watching with you.')}</h2>
+          <p className="small">{returnResult.status === 'ready' ? 'Covers' : 'Requested'} {clock(returnResult.from_seconds)} to {clock(returnResult.through_seconds)}{position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}</p></div>
+        <button data-initial aria-label="Close return" onClick={this.closeReturn}><Icon name="close"/></button>
+      </section>}
 
       {screen === 'ask' && <section className="sheet ask-sheet" data-panel ref={this.focusPanel} aria-labelledby="ask-title">
         <div className="sheet-head"><h1 id="ask-title" className={clarifying ? '' : 'sr-only'}>{clarifying && moment ? moment.answer.replace(/\u2014/g, ',') : 'Ask Selene'}</h1><button className="ask-close" aria-label="Close question" onClick={this.back}><Icon name="close"/></button></div>
@@ -379,7 +523,7 @@ export class App extends React.Component<Bundle, State> {
         {voice === 'listening' && <p className="privacy-note small">Listening. Review before sending.</p>}
       </section>}
 
-      {screen === 'loading' && <section className="loading-panel" data-panel ref={this.focusPanel} role="status"><p>Preparing your answer…</p><button data-initial aria-label="Cancel" onClick={this.close}><Icon name="close"/></button></section>}
+      {screen === 'loading' && <section className="loading-panel" data-panel ref={this.focusPanel} role="status"><p>{this.state.preparingReturn ? 'Finding your way back…' : 'Preparing your answer…'}</p><button data-initial aria-label="Cancel" onClick={this.close}><Icon name="close"/></button></section>}
 
       {screen === 'moment' && moment && <section className={`moment compact ${moment.visual.status === 'none' ? 'answer-only' : ''}`} data-panel ref={this.focusPanel} aria-label="Moment Response">
         <div className="moment-content"><div className="answer">
@@ -398,9 +542,9 @@ export class App extends React.Component<Bundle, State> {
         {!paused && <button onClick={() => {this.pauseMoment(); this.setState({screen: 'moment'});}}>Pause playback</button>}
         {!lifeStarted && moment?.state === 'response' && <button onClick={this.connect}>Life Connection</button>}
         {this.voice.canSpeak && paused && !this.state.accessibility.screenReader && <button onClick={this.readAloud}>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
-        {this.props.private_mirror_available && <button onClick={mirror ? this.stopMirror : this.openMirror}>{mirror ? 'Stop phone mirror' : 'Mirror on phone'}</button>}
+        <button onClick={() => {if (mirror) this.setState({screen: 'pair'}); else return this.openMirror();}}>Personal replay on phone</button>
         <button onClick={this.dismiss}>{paused ? 'Close, stay paused' : 'Dismiss'}</button>
-      </div>{mirror && <div className="mirror-panel"><p>Open on your phone:</p><code>{mirror.url}</code></div>}{error && <p role="alert">{error}</p>}</section>}
+      </div>{error && <p role="alert">{error}</p>}</section>}
 
       {screen === 'life' && <section className="sheet life-sheet" data-panel ref={this.focusPanel}>
         <div className="sheet-head"><h1>Bring it back to your life</h1><button onClick={this.back}><Icon name="back"/>Back</button></div><p>One question for a conversation of your own.</p>
@@ -461,4 +605,4 @@ const params = new URLSearchParams(location.search);
 const companion = params.get('companion') === '1';
 const privateToken = params.get('private');
 const bootstrap = (window as Window & {__SELENE_COMPANION__?: CompanionBootstrap}).__SELENE_COMPANION__;
-createRoot(document.getElementById('root')!).render(privateToken ? <PrivateMirror token={privateToken} /> : companion ? <CompanionMoment initial={bootstrap ?? null} /> : <Startup />);
+createRoot(document.getElementById('root')!).render(privateToken ? <PrivateMirror token={privateToken} /> : params.get('join') === '1' ? <JoinPhone/> : companion ? <CompanionMoment initial={bootstrap ?? null} /> : <Startup />);
