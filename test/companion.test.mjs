@@ -6,8 +6,8 @@ import {readFile} from 'node:fs/promises';
 
 const compiled = await build({entryPoints: ['src/Companion.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', loader: {'.png': 'dataurl'}, plugins: [{
   name: 'native-test-boundary', setup(builder) {
-    builder.onResolve({filter: /^(react|react-native|@amazon-devices\/(kepler-media-controls|webview))$/}, args => ({path: args.path, namespace: 'boundary'}));
-    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === 'react' ? 'export default {createElement:(type,props,...children)=>({type,props:{...props,children}}),createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0,Image=0; export const BackHandler={addEventListener:()=>({remove(){}})}; export const Animated={View:0,Text:0}, AccessibilityInfo={}, Easing={out:f=>f,inOut:f=>f,cubic:0,quad:0,linear:0}; export const useWindowDimensions=()=>({width:640,height:360});' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
+    builder.onResolve({filter: /^(react|react-native|@amazon-devices\/(kepler-media-controls|react-native-svg))$/}, args => ({path: args.path, namespace: 'boundary'}));
+    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === '@amazon-devices/react-native-svg' ? 'const C=0; export default C; export const Circle=0,Ellipse=0,G=0,Line=0,Path=0,Polygon=0,Polyline=0,Rect=0,Text=0,TSpan=0;' : path === 'react' ? 'export default {createElement:(type,props,...children)=>({type,props:{...props,children}}),createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0,Image=0; export const BackHandler={addEventListener:()=>({remove(){}})}; export const Animated={View:0,Text:0,Image:0,createAnimatedComponent:x=>x}, AccessibilityInfo={}, TextInput=0, Easing={out:f=>f,inOut:f=>f,cubic:0,quad:0,linear:0}; export const useWindowDimensions=()=>({width:640,height:360});' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
   },
 }]});
 function instance(locator) {
@@ -50,34 +50,29 @@ test('native discovery is read-only; commands target selected session and report
   assert.equal(provider.calls.at(-1)[0], 'destroy');
 });
 
-test('provider notifications during a command do not discard its bridge reply', async () => {
+test('provider notifications during a moment command still resolve with the confirmed state', async () => {
   const provider = endpoint();
   const app = instance({getMediaControlEndpoints: async () => [provider.client]});
   await app.scan(); await app.select(app.state.sessions[0]); await app.openMoment();
   await new Promise(resolve => setImmediate(resolve));
-  const replies = []; app.publish = message => replies.push(message);
   const read = provider.client.getSessionState;
   provider.client.getSessionState = async id => {provider.notify(); return read(id);};
-  const {appUrl} = JSON.parse(await readFile('src/config.json', 'utf8'));
-  await app.bridge(JSON.stringify({id: 1, action: 'refresh'}), `${appUrl.replace(/\/$/, '')}/?companion=1`);
-  assert.equal(replies.filter(message => message.type === 'selene:playback' && message.id === 1).length, 1);
+  const confirmed = await app.momentCommand('refresh');
+  assert.equal(confirmed.state, 'playing');
+  assert.deepEqual(app.state.momentPlayback, confirmed);
   app.componentWillUnmount();
 });
 
-test('companion accepts Vega messages without url only after a trusted load and resets on close', async () => {
+test('the moment is native; closing it resets the selection and refuses later commands', async () => {
   const provider = endpoint(), app = instance({getMediaControlEndpoints: async () => [provider.client]});
   await app.scan(); await app.select(app.state.sessions[0]); await app.openMoment();
-  const frame = app.render().props;
-  const message = url => ({nativeEvent: {data: JSON.stringify({action: 'close'}), ...(url !== undefined ? {url} : {})}});
-  assert.equal(frame.domStorageEnabled, true);
-  frame.onMessage(message()); assert(app.state.snapshot);
-  frame.onLoad({nativeEvent: {url: frame.source.uri}});
-  frame.onMessage(message('https://foreign.example/')); assert(app.state.snapshot);
-  frame.onLoadStart(); frame.onMessage(message()); assert(app.state.snapshot);
-  frame.onLoad({nativeEvent: {url: frame.source.uri}});
-  frame.onMessage(message());
+  const collect = node => !node || typeof node !== 'object' ? [] : [node, ...[node.props?.children ?? []].flat(Infinity).flatMap(collect)];
+  const moment = collect(app.render()).find(node => node.props?.snapshot && node.props?.command);
+  assert(moment, 'the snapshot renders the native CompanionMoment');
+  assert.equal(moment.props.snapshot.content_id, 'current');
+  moment.props.onClose();
   assert.equal(app.state.snapshot, null);
-  assert.equal(app.loadedUrl, null);
+  await assert.rejects(app.momentCommand('refresh'), /could not be confirmed/);
   app.componentWillUnmount();
 });
 
@@ -156,7 +151,7 @@ test('empty endpoints and failed discovery are distinct; late clients are destro
   assert.deepEqual(provider.calls, [['destroy']]);
 });
 test('application React code has no effect hooks', async () => {
-  for (const path of ['src/App.tsx', 'src/Companion.tsx', 'web/App.tsx', 'web/CompanionMoment.tsx', 'web/Visual.tsx']) {
+  for (const path of ['src/App.tsx', 'src/Companion.tsx', 'src/Player.tsx', 'src/CompanionMoment.tsx', 'web/App.tsx', 'web/CompanionMoment.tsx', 'web/Visual.tsx']) {
     assert.doesNotMatch(await readFile(path, 'utf8'), /\buse(?:Layout|Insertion)?Effect\b/);
   }
 });

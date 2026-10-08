@@ -1,24 +1,20 @@
 import React from 'react';
-import {Animated, AppState, BackHandler, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
-import type {NativeEventSubscription, TextStyle} from 'react-native';
+import {AppState, Image, ScrollView, StyleSheet, Text, View} from 'react-native';
+import type {NativeEventSubscription} from 'react-native';
 import type {IMediaControlClientAsync, MediaSessionState, ISubscription} from '@amazon-devices/kepler-media-controls';
-import {WebView} from '@amazon-devices/webview';
-import {appUrl} from './config.json';
 import type {AccessibilitySnapshot} from './Accessibility';
-import {Backdrop, Pulse, Reveal, Rule, Words, useFocusMotion} from './Motion';
+import {CompanionMoment} from './CompanionMoment';
+import type {Playback, Snapshot} from './CompanionMoment';
+import {Backdrop, Pulse, Reveal, Rule, Words} from './Motion';
+import {Button, accessibleText} from './ui';
 
-export function accessibleText(style: TextStyle, settings?: AccessibilitySnapshot): TextStyle {
-  const scale = settings?.textScale ?? 1;
-  return {...style, fontSize: style.fontSize === undefined ? undefined : style.fontSize * scale,
-    lineHeight: style.lineHeight === undefined ? undefined : style.lineHeight * scale,
-    color: settings?.highContrast ? '#ffffff' : style.color};
-}
+export {Button, accessibleText};
+const tileBox = {flex: 1, minWidth: 160};
+
 
 type Session = {client: IMediaControlClientAsync; state: MediaSessionState; packageId: string; title?: string; providerName?: string};
-type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
-type State = {busy: boolean; sessions: Session[]; selected: Session | null; title: string; message: string; snapshot: Snapshot | null; page: number};
-const momentUrl = `${appUrl.replace(/\/$/, '')}/?companion=1`;
-function playback(state: MediaSessionState, revision = 0, observing = false) {
+type State = {busy: boolean; sessions: Session[]; selected: Session | null; title: string; message: string; snapshot: Snapshot | null; page: number; momentPlayback: Playback};
+function playback(state: MediaSessionState, revision = 0, observing = false): Playback {
   return {state: state.playbackState.playbackStatus === 'PAUSED' ? 'paused' : state.playbackState.playbackStatus === 'PLAYING' ? 'playing' : 'unknown',
     can_pause: state.capabilities.actions.some(a => a.name === 'PAUSE'), can_play: state.capabilities.actions.some(a => a.name === 'PLAY'), revision, observing};
 }
@@ -36,15 +32,13 @@ function positionSeconds(state: MediaSessionState) {
 
 // Native client ownership stays here: discovery never sends a playback command.
 export class Companion extends React.Component<{onDemo: () => void; onImport: () => void; onReady: () => void; accessibility?: AccessibilitySnapshot}, State> {
-  state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message: 'Finding what’s playing…'};
+  state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message: 'Finding what’s playing…',
+    momentPlayback: {state: 'unknown', can_pause: false, can_play: false, revision: 0, observing: false}};
   private clients: IMediaControlClientAsync[] = [];
   private mounted = false;
   private pending = false;
   private revision = 0;
   private appState?: NativeEventSubscription;
-  private backSubscription?: NativeEventSubscription;
-  private frame = React.createRef<React.ElementRef<typeof WebView>>();
-  private loadedUrl: string | null = null;
   private subscription: ISubscription | null = null;
   private momentRevision = 0;
   private playbackVersion = 0;
@@ -56,30 +50,19 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
     this.appState = AppState.addEventListener('change', state => {
       if (state !== 'active') this.disconnect('Check playback apps again when you return.');
     });
-    this.backSubscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!this.state.snapshot) return false;
-      this.publish({type: 'selene:back'});
-      return true;
-    });
     this.props.onReady();
     this.scan();
   }
   componentWillUnmount() {
     this.mounted = false;
-    this.appState?.remove(); this.backSubscription?.remove();
+    this.appState?.remove();
     this.disconnect();
-  }
-  componentDidUpdate(previous: Readonly<Companion['props']>) {
-    if (previous.accessibility !== this.props.accessibility) this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});
   }
   private release() {this.stopObserving(); this.clients.forEach(client => client.destroy()); this.clients = [];}
   private stopObserving() {this.momentRevision++; this.subscription?.unsubscribe(); this.subscription = null;}
   private observed(state: MediaSessionState) {
     if (this.observedStatus !== state.playbackState.playbackStatus) {this.playbackVersion++; this.observedStatus = state.playbackState.playbackStatus;}
     return playback(state, this.playbackVersion, Boolean(this.subscription));
-  }
-  private publish(data: object) {
-    this.frame.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message',{source:window,origin:location.origin,data:${JSON.stringify(data).replace(/</g, '\\u003c')}}));true;`);
   }
   private watch = async (session: Session) => {
     const revision = this.momentRevision;
@@ -89,12 +72,11 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
         const state = states.find(value => value.id.id === session.state.id.id);
         if (!state) return;
         if (!sameMedia(state, session.state)) {this.disconnect('The viewing app changed content. Select its current session to ask again.'); return;}
-        this.setState({selected: {...session, state}});
-        this.publish({type: 'selene:provider', playback: this.observed(state)});
+        this.setState({selected: {...session, state}, momentPlayback: this.observed(state)});
       }});
       if (!this.mounted || revision !== this.momentRevision || !this.state.snapshot) {subscription.unsubscribe(); return;}
       this.subscription = subscription;
-      if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)});
+      if (this.state.selected) this.setState({momentPlayback: this.observed(this.state.selected.state)});
     } catch {
       // A provider may not support change notifications. Explicit controls still re-read its state.
       if (revision === this.momentRevision) this.subscription = null;
@@ -102,7 +84,6 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
   };
   private current(revision: number) {return this.mounted && revision === this.revision;}
   private disconnect = (message = 'Check closed. A playback command already sent may still finish.') => {
-    this.loadedUrl = null;
     this.revision++;
     this.pending = false;
     this.release();
@@ -221,46 +202,31 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
     const snapshot = {package_id: selectedSession.packageId, session_id: selectedSession.state.id.id, catalog_name: media.catalogName,
       content_id: media.contentId, title, provider_name: providerName, at_seconds: position};
     this.observedStatus = selectedSession.state.playbackState.playbackStatus; this.playbackVersion = 0;
-    this.setState({snapshot}, () => {void this.watch(selectedSession);});
+    this.setState({snapshot, momentPlayback: playback(selectedSession.state)}, () => {void this.watch(selectedSession);});
   };
   private closeMoment = () => {
-    this.loadedUrl = null;
     this.revision++; this.pending = false; this.stopObserving();
     this.setState({snapshot: null, selected: null, title: '', busy: false, message: 'Choose a title to ask about another moment.'});
   };
-  private bridge = async (data: string, url: string) => {
-    if (url !== momentUrl || !this.state.snapshot || data.length > 200) return;
-    let message;
-    try {message = JSON.parse(data);} catch {return;}
-    if (!message || typeof message !== 'object') return;
-    if (message.action === 'close') {this.closeMoment(); return;}
-    if (message.action === 'cancel') {this.revision++; this.pending = false; this.setState({busy: false}); return;}
-    if (!['play', 'pause', 'refresh'].includes(message.action) || !Number.isSafeInteger(message.id)) return;
-    if (message.expected_revision !== undefined && !Number.isSafeInteger(message.expected_revision)) return;
+  // Playback commands from the native moment panel: re-read the exact session, then report what it confirmed.
+  private momentCommand = async (action: 'play' | 'pause' | 'refresh', expectedRevision?: number): Promise<Playback> => {
     const momentRevision = this.momentRevision;
-    const pending = this.command(message.action, message.expected_revision);
-    const revision = this.revision;
-    const reported = await pending;
-    if (!this.current(revision) || this.momentRevision !== momentRevision || !this.state.snapshot) return;
-    const reply = {type: 'selene:playback', id: message.id,
-      playback: reported ? this.observed(reported) : null,
-      error: reported ? '' : 'The selected session changed or could not be confirmed. Close this moment and check the playback app.'};
-    // SDK bridge delivers data to React state. Generated visual code has no access to it.
-    this.publish(reply);
+    const reported = await this.command(action, expectedRevision);
+    if (!reported || this.momentRevision !== momentRevision || !this.state.snapshot) {
+      throw new Error('The selected session changed or could not be confirmed. Close this moment and check the playback app.');
+    }
+    const confirmed = this.observed(reported);
+    this.setState({momentPlayback: confirmed});
+    return confirmed;
   };
 
   render() {
-    const {busy, sessions, selected, message, snapshot, page} = this.state;
-    if (snapshot) return <WebView ref={this.frame} style={styles.page} source={{uri: momentUrl}} hasTVPreferredFocus allowSystemKeyEvents
-      javaScriptEnabled domStorageEnabled mixedContentMode="never" mediaPlaybackRequiresUserAction
-      injectedJavaScriptBeforeContentLoaded={`window.__SELENE_COMPANION__=${JSON.stringify({snapshot, playback: selected ? playback(selected.state) : null}).replace(/</g, '\\u003c')};window.__SELENE_A11Y__=${JSON.stringify(this.props.accessibility ?? {}).replace(/</g, '\\u003c')};true;`}
-      onShouldStartLoadWithRequest={event => [momentUrl, 'about:blank', 'about:srcdoc'].includes(event.url)}
-      onLoadStart={() => {this.loadedUrl = null;}}
-      onMessage={event => {void this.bridge(event.nativeEvent.data, event.nativeEvent.url ?? this.loadedUrl ?? '');}}
-      onLoad={event => {this.loadedUrl = event.nativeEvent.url === momentUrl ? momentUrl : null; if (this.state.selected) this.publish({type: 'selene:provider', playback: this.observed(this.state.selected.state)}); this.publish({type: 'selene:accessibility', settings: this.props.accessibility ?? {}});}}
-      onCloseWindow={this.closeMoment}
-      onError={() => {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}
-      onHttpError={event => {if (event.nativeEvent.isMainFrame) {this.closeMoment(); this.setState({message: 'SELENE could not load this moment. Check the SELENE service and try again.'});}}} />;
+    const {busy, sessions, message, snapshot, page} = this.state;
+    if (snapshot) return <View style={styles.page}>
+      <Backdrop busy={false}/>
+      <View style={styles.momentHeader}><Text allowFontScaling={false} style={accessibleText(styles.eyebrow, this.props.accessibility)}>{snapshot.title || snapshot.provider_name}</Text></View>
+      <CompanionMoment snapshot={snapshot} playback={this.state.momentPlayback} command={this.momentCommand} onClose={this.closeMoment} accessibility={this.props.accessibility ?? {}}/>
+    </View>;
     const pages = Math.ceil(sessions.length / 3);
     const visible = sessions.slice(page * 3, page * 3 + 3);
     const accessibility = this.props.accessibility;
@@ -277,7 +243,7 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
           <Rule delay={1150}/>
           {!sessions.length && <Reveal delay={1300}><Text allowFontScaling={false} style={accessibleText(styles.tagline, accessibility)}>Ask about the moment you’re watching. Selene explains it, then steps aside.</Text></Reveal>}
           <Reveal delay={1450} style={styles.status}><Pulse active={busy}/><Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)} accessibilityLiveRegion="polite">{busy ? 'Looking for shared playback.' : message}</Text></Reveal>
-          {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Reveal key={`${session.packageId}:${session.state.id.id}`} delay={index * 90} style={styles.tileBox}><Button accessibility={accessibility} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/></Reveal>)}</View>}
+          {visible.length > 0 && <View style={styles.sessionRow}>{visible.map((session, index) => <Reveal key={`${session.packageId}:${session.state.id.id}`} delay={index * 90} style={tileBox}><Button accessibility={accessibility} disabled={busy} preferred={index === 0} label={session.title || session.providerName || 'Playback app'} detail={`${session.providerName || session.packageId} · ${session.state.playbackState.playbackStatus.toLowerCase().replace(/_/g, ' ')}`} tile onPress={() => this.openMoment(session)}/></Reveal>)}</View>}
           {pages > 1 && <View style={styles.actions}><Button accessibility={accessibility} label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)}>Page {page + 1} of {pages}</Text><Button accessibility={accessibility} label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
           <View style={styles.actions}>
             <Reveal delay={1650}><Button accessibility={accessibility} label="Try the demo" preferred={!busy && !sessions.length} onPress={this.props.onDemo}/></Reveal>
@@ -288,21 +254,8 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
     </View>;
   }
 }
-export function Button({label, detail, onPress, disabled = false, preferred = false, tile = false, accessibility}: {label: string; detail?: string; onPress: () => void; disabled?: boolean; preferred?: boolean; tile?: boolean; accessibility?: AccessibilitySnapshot}) {
-  const [focused, setFocused] = React.useState(false);
-  const [width, setWidth] = React.useState(200);
-  const {lift, sweep, focus} = useFocusMotion();
-  return <Animated.View style={[tile ? styles.tileBox : styles.buttonBox, {transform: [{scale: lift.interpolate({inputRange: [0, 1], outputRange: [1, tile ? 1.04 : 1.07]})}]}]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={detail ? `${label}, ${detail}` : label} accessibilityState={{disabled}} disabled={disabled} hasTVPreferredFocus={preferred && !disabled}
-      onFocus={() => {setFocused(true); focus(true);}} onBlur={() => {setFocused(false); focus(false);}} onPress={onPress} onLayout={event => setWidth(event.nativeEvent.layout.width)}
-      style={[styles.button, tile && styles.tile, focused && styles.focused, disabled && styles.disabled]}>
-      {focused && <Animated.View pointerEvents="none" style={[styles.sheen, {transform: [{translateX: sweep.interpolate({inputRange: [0, 1], outputRange: [-48, width + 24]})}, {skewX: '-20deg'}]}]}/>}
-      <Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(tile ? styles.tileTitle : styles.buttonText, accessibility), focused && styles.focusedText]}>{label}</Text>{detail && <Text allowFontScaling={false} numberOfLines={2} style={[accessibleText(styles.tileDetail, accessibility), focused && styles.focusedText]}>{detail}</Text>}
-    </Pressable>
-  </Animated.View>;
-}
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#101114'}, content: {flexGrow: 1, paddingHorizontal: '6%', paddingVertical: '5%', gap: 12},
+  page: {flex: 1, backgroundColor: '#101114'}, momentHeader: {position: 'absolute', left: '6%', top: '7%'}, content: {flexGrow: 1, paddingHorizontal: '6%', paddingVertical: '5%', gap: 12},
   topbar: {flexDirection: 'row', alignItems: 'center'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 8}, mark: {width: 26, height: 26},
   brand: {fontSize: 24, fontWeight: '600', color: '#f1f1f1', letterSpacing: 0.5},
   main: {flex: 1, justifyContent: 'center', gap: 10},
@@ -312,10 +265,4 @@ const styles = StyleSheet.create({
   status: {flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6, maxWidth: 440},
   copy: {fontSize: 14, color: '#b9bdc6', lineHeight: 20, flexShrink: 1},
   actions: {flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 14}, sessionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginVertical: 8},
-  buttonBox: {alignSelf: 'flex-start', maxWidth: '100%'}, tileBox: {flex: 1, minWidth: 160},
-  button: {overflow: 'hidden', borderWidth: 2, borderColor: 'transparent', borderRadius: 10, backgroundColor: '#303238', paddingVertical: 12, paddingHorizontal: 22},
-  sheen: {position: 'absolute', top: -12, bottom: -12, left: 0, width: 30, backgroundColor: 'rgba(255,153,0,0.24)'},
-  tile: {flexGrow: 1, minHeight: 84, justifyContent: 'space-between', padding: 16, gap: 12}, tileTitle: {fontSize: 22, fontWeight: '600', color: '#f1f1f1'}, tileDetail: {fontSize: 16, color: '#b9bdc6'},
-  focused: {borderColor: '#f1f1f1', backgroundColor: '#f1f1f1'}, focusedText: {color: '#101114'}, disabled: {opacity: 0.45},
-  buttonText: {fontSize: 18, color: '#f1f1f1', fontWeight: '500'},
 });

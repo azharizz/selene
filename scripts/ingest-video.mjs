@@ -247,6 +247,12 @@ export async function ingest(options, transcriber = transcribe, transport, graph
     const poster = 'poster.jpg';
     await media('ffmpeg', ['-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe', '-i', join(temporary, 'video.mp4'),
       '-frames:v', '1', '-q:v', '3', join(temporary, poster)], signal);
+    // The native TV player feeds separate fragmented video/audio streams through MSE (stream copy, no re-encode).
+    const hasAudio = probe.streams?.some(stream => stream.codec_type === 'audio');
+    for (const [track, file] of [['0:v:0', 'video-v.mp4'], ...(hasAudio ? [['0:a:0', 'video-a.mp4']] : [])]) {
+      await media('ffmpeg', ['-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe', '-i', join(temporary, 'video.mp4'), '-map', track, '-c', 'copy',
+        '-movflags', 'frag_keyframe+empty_moov+default_base_moof', join(temporary, file)], signal);
+    }
     const scenes = [{id: `${id}-timeline`, start: 0, end: duration, label: title}];
     const mediaKind = autoDuration ? 'video' : 'excerpt';
     const evidenceNotice = captionSource === 'unavailable'

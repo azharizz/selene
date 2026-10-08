@@ -1,74 +1,90 @@
+/* global globalThis */
 import * as React from 'react';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {BackHandler} from 'react-native';
-import {WebView} from '@amazon-devices/webview';
 import {App} from '../src/App';
-import {appUrl} from '../src/config.json';
 
-jest.mock('@amazon-devices/webview', () => ({
-  WebView: 'WebView',
+jest.mock('@amazon-devices/react-native-w3cmedia', () => ({
+  VideoPlayer: class {
+    currentTime = 0; paused = true; ended = false; seeking = false; duration = 60; error = null;
+    initialize() {return Promise.resolve();}
+    deinitialize() {return Promise.resolve();}
+    addEventListener() {}
+    setSurfaceHandle() {}
+    clearSurfaceHandle() {}
+    play() {return Promise.resolve();}
+    pause() {}
+  },
+  MediaSource: class {addEventListener() {}},
+  KeplerVideoSurfaceView: 'KeplerVideoSurfaceView',
 }));
-
+jest.mock('@amazon-devices/react-native-svg', () => ({
+  __esModule: true, default: 'Svg', Circle: 'Circle', Ellipse: 'Ellipse', G: 'G', Line: 'Line', Path: 'Path', Polygon: 'Polygon', Polyline: 'Polyline', Rect: 'Rect', Text: 'SvgText', TSpan: 'TSpan',
+}));
+jest.mock('@amazon-devices/react-native-async-storage__async-storage', () => ({
+  __esModule: true, default: {getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined)},
+}));
 jest.mock('@amazon-devices/react-native-kepler', () => ({
   LogBox: {ignoreLogs: jest.fn()},
   usePreventHideSplashScreen: jest.fn(),
   useHideSplashScreenCallback: jest.fn(() => jest.fn()),
-  StyleSheet: {create: (styles: unknown) => styles, flatten: (styles: unknown) => Object.assign({}, ...[styles].flat(Infinity))},
+  StyleSheet: {create: (styles: unknown) => styles, flatten: (styles: unknown) => Object.assign({}, ...[styles].flat(Infinity)), absoluteFill: {}},
   AppState: {addEventListener: () => ({remove: jest.fn()})},
   View: 'View',
   Image: 'Image',
   Pressable: 'Pressable',
   ScrollView: 'ScrollView',
   Text: 'Text',
+  TextInput: 'TextInput',
   Animated: jest.requireActual('@amazon-devices/react-native-kepler').Animated,
   Easing: jest.requireActual('@amazon-devices/react-native-kepler').Easing,
   AccessibilityInfo: {isReduceMotionEnabled: () => Promise.resolve(true)},
-  useWindowDimensions: () => ({width: 1920, height: 1080}),
+  useWindowDimensions: () => ({width: 640, height: 360}),
   BackHandler: {exitApp: jest.fn(), addEventListener: jest.fn(() => ({remove: jest.fn()}))},
 }));
 
+const story = {id: 'football-match', content_version: 'a'.repeat(64), title: 'Football Match', subtitle: 'Captioned 3D match commentary', duration: 60,
+  video: '/media/football-match/video.mp4', poster: '/media/football-match/poster.jpg', scenes: [], transcript: []};
+const respond = (status: number, body: unknown) => Promise.resolve({ok: status < 400, status, json: async () => body});
+const latestBack = () => {const calls = (BackHandler.addEventListener as jest.Mock).mock.calls; return calls[calls.length - 1][1] as () => boolean;};
+
 describe('App', () => {
+  afterEach(() => {delete (globalThis as {fetch?: unknown}).fetch;});
+
   it('keeps the companion available when the native SDK is unavailable in Jest', async () => {
     const {getByText} = render(<App />);
     await waitFor(() => expect(getByText(/Playback discovery is unavailable/)).toBeTruthy());
   });
-  it('Back leaves a failed demo WebView instead of sending input into it', async () => {
+
+  it('Try the demo opens the native player for the relay story, without a WebView', async () => {
+    const fetch = jest.fn(() => respond(201, {session_id: 's1', story, catalog: [story]}));
+    (globalThis as {fetch?: unknown}).fetch = fetch;
     const app = render(<App />);
     await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
     fireEvent.press(app.getByText('Try the demo'));
-    fireEvent(app.UNSAFE_getByType(WebView), 'error');
-    expect(app.getByText('SELENE could not connect')).toBeTruthy();
-    const calls = (BackHandler.addEventListener as jest.Mock).mock.calls;
-    act(() => {expect(calls[calls.length - 1][1]()).toBe(true);});
+    await waitFor(() => expect(app.getByText('Watch demo')).toBeTruthy());
+    expect(app.getByText('Football Match')).toBeTruthy();
+    expect((fetch.mock.calls[0] as unknown[])[0]).toMatch(/\/api\/session$/);
+    expect(app.UNSAFE_queryAllByType('WebView' as never)).toHaveLength(0);
+  });
+
+  it('a relay failure offers retry and a way back to playback apps', async () => {
+    (globalThis as {fetch?: unknown}).fetch = jest.fn(() => Promise.reject(new Error('offline')));
+    const app = render(<App />);
+    await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
+    fireEvent.press(app.getByText('Try the demo'));
+    await waitFor(() => expect(app.getByText(/The story could not load/)).toBeTruthy());
+    fireEvent.press(app.getByLabelText('Connect to another playback app'));
     await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
   });
-  it('resource failures and cancelled loads do not cover the functioning player with a connection error', async () => {
+
+  it('Back on the welcome screen asks before leaving', async () => {
+    (globalThis as {fetch?: unknown}).fetch = jest.fn(() => respond(201, {session_id: 's1', story, catalog: [story]}));
     const app = render(<App />);
     await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
     fireEvent.press(app.getByText('Try the demo'));
-    const frame = () => app.UNSAFE_getByType(WebView);
-    fireEvent(frame(), 'load', {nativeEvent: {url: `${appUrl}/`}});
-    for (const error of [{url: `${appUrl}/media/the-red-kite.mp4`, code: -2}, {url: 'about:srcdoc', code: -2}, {url: `${appUrl}/`, code: -3}]) {
-      fireEvent(frame(), 'error', {nativeEvent: error});
-      expect(app.queryByText('SELENE could not connect')).toBeNull();
-    }
-    fireEvent(frame(), 'loadStart');
-    fireEvent(frame(), 'error', {nativeEvent: {url: `${appUrl}/`, code: -105}});
-    expect(app.getByText('SELENE could not connect')).toBeTruthy();
-  });
-  it('accepts a missing Vega message URL only after a trusted load, and clears trust on navigation', async () => {
-    const app = render(<App />);
-    await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
-    fireEvent.press(app.getByText('Try the demo'));
-    const frame = () => app.UNSAFE_getByType(WebView);
-    expect(frame().props.domStorageEnabled).toBe(true);
-    const send = (url?: string) => fireEvent(frame(), 'message', {nativeEvent: {data: 'selene:companion', ...(url !== undefined ? {url} : {})}});
-    send(); expect(frame()).toBeTruthy();
-    fireEvent(frame(), 'load', {nativeEvent: {url: `${appUrl}/`}});
-    send('https://untrusted.example/'); expect(frame()).toBeTruthy();
-    fireEvent(frame(), 'loadStart'); send(); expect(frame()).toBeTruthy();
-    fireEvent(frame(), 'load', {nativeEvent: {url: `${appUrl}/?story=sintel-excerpt`}});
-    send();
-    await waitFor(() => expect(app.getByText(/Playback discovery is unavailable/)).toBeTruthy());
+    await waitFor(() => expect(app.getByText('Watch demo')).toBeTruthy());
+    act(() => {expect(latestBack()()).toBe(true);});
+    expect(app.getByText('Leave SELENE?')).toBeTruthy();
   });
 });

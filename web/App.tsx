@@ -84,6 +84,7 @@ export class App extends React.Component<Bundle, State> {
     document.addEventListener('visibilitychange', this.visibility);
     window.addEventListener('pagehide', this.endSession);
     window.addEventListener('keydown', this.key);
+    window.addEventListener('focus', this.restoreFocus);
     window.addEventListener('message', this.nativeMessage);
     this.relayTimer = setInterval(() => {if (this.state.started && !document.hidden) this.postPlayerState();}, 2000);
     if ('mediaSession' in navigator) {
@@ -94,10 +95,12 @@ export class App extends React.Component<Bundle, State> {
       navigator.mediaSession.setActionHandler('seekforward', details => {this.traceControl('media-session', 'seekforward'); this.seek(details.seekOffset ?? 10);});
     }
   }
-  componentDidUpdate() {
+  componentDidUpdate() {this.restoreFocus();}
+  // Vega focuses the WebView after the page mounts, which can leave focus on <body>.
+  private restoreFocus = () => {
     const surface = this.surface.current;
     if (surface && (!surface.contains(document.activeElement) || document.activeElement?.matches(':disabled'))) this.focusPanel(surface.querySelector<HTMLElement>('[data-panel]') ?? surface);
-  }
+  };
   componentWillUnmount() {
     this.mounted = false;
     this.stopMediaDiagnostics?.();
@@ -108,6 +111,7 @@ export class App extends React.Component<Bundle, State> {
     document.removeEventListener('visibilitychange', this.visibility);
     window.removeEventListener('pagehide', this.endSession);
     window.removeEventListener('keydown', this.key);
+    window.removeEventListener('focus', this.restoreFocus);
     window.removeEventListener('message', this.nativeMessage);
     if ('mediaSession' in navigator) {
       for (const action of ['play', 'pause', 'seekbackward', 'seekforward'] as const) navigator.mediaSession.setActionHandler(action, null);
@@ -481,6 +485,12 @@ export class App extends React.Component<Bundle, State> {
     this.voice.listen(locale[this.state.language], request => {if (this.mounted) this.setState({request});});
   };
   private key = (event: KeyboardEvent) => {
+    if (this.surface.current && !this.surface.current.contains(document.activeElement)) {
+      this.restoreFocus();
+      // The first OK acts on the control that looks selected instead of being swallowed by <body>.
+      if (event.key === 'Enter' && document.activeElement instanceof HTMLButtonElement) {event.preventDefault(); document.activeElement.click(); return;}
+      if (event.key.startsWith('Arrow')) {event.preventDefault(); return;}
+    }
     const target = event.target instanceof HTMLElement ? event.target : this.surface.current;
     if (!target) return;
     if (['Escape', 'BrowserBack', 'GoBack'].includes(event.key) || event.keyCode === 27) {

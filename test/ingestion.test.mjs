@@ -52,7 +52,7 @@ test('real FFmpeg imports publish only poster/video plus the entire caption grap
     });
     assert.equal(calls, 1); assert.equal(result.movie_graph.status, 'ready'); assert.equal(result.scenes.at(-1).end, 6);
     assert.equal(result.ingestion.caption_source, 'supplied'); assert.equal(result.ingestion.sample_interval_seconds, undefined);
-    assert.deepEqual(await readdir(join(root, 'assets/media/test-clip')), ['poster.jpg', 'video.mp4']);
+    assert.deepEqual(await readdir(join(root, 'assets/media/test-clip')), ['poster.jpg', 'video-v.mp4', 'video.mp4']);
     await assert.rejects(importClip(options), /already exists/);
     await assert.rejects(importClip({...options, id: '../escape'}), /safe ID/);
     await assert.rejects(importClip({...options, id: 'not-permitted', permitted: false}), /Permission/);
@@ -164,7 +164,7 @@ test('full remote imports retain multi-hour captions without sampled history and
     assert.equal(story.duration, 10810); assert.equal(story.subtitle, 'Captioned video'); assert.equal(story.scenes.length, 1);
     assert.equal(story.ingestion.frames, undefined); assert.deepEqual(story.facts, []);
     assert.equal(story.transcript[0].start, 599); assert.equal(story.transcript[1].end, 10809.9);
-    assert.deepEqual(await readdir(join(root, 'assets/media/full-remote')), ['poster.jpg', 'video.mp4']);
+    assert.deepEqual(await readdir(join(root, 'assets/media/full-remote')), ['poster.jpg', 'video-v.mp4', 'video.mp4']);
     const started = performance.now();
     const result = await observeWindow(story, 10807, AbortSignal.timeout(10000), root);
     assert.ok(performance.now() - started < 10000, 'Late window must not decode the whole film');
@@ -173,7 +173,7 @@ test('full remote imports retain multi-hour captions without sampled history and
     await assert.rejects(observeWindow(story, 10810.001, undefined, root), /valid timestamp/);
     const local = await importClip({...fixtureOptions(root, video, 'long-local'), duration: 610});
     assert.equal(local.duration, 610); assert.equal(local.scenes.at(-1).end, 610); assert.equal(local.ingestion.frames, undefined);
-    assert.deepEqual(await readdir(join(root, 'assets/media/long-local')), ['poster.jpg', 'video.mp4']);
+    assert.deepEqual(await readdir(join(root, 'assets/media/long-local')), ['poster.jpg', 'video-v.mp4', 'video.mp4']);
     await assert.rejects(importClip({...options, id: 'past-end', offset: 10812}, undefined, transport), /actual video duration/);
     assert.equal((await readdir(join(root, 'assets/media'))).some(name => name.startsWith('.ingest-') || name === 'past-end'), false);
   } finally {await rm(root, {recursive: true, force: true});}
