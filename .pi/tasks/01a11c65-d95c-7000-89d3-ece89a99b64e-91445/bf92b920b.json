@@ -1,0 +1,28 @@
+{
+  "id": "bf92b920b",
+  "name": "Library disk usage",
+  "command": "ROOT=/Users/mekari/Library; printf '%s\\n' '=== TOP LEVEL ALLOCATED KiB ==='; du -x -k -d1 \"$ROOT\" 2>&1 | sort -nr; printf '%s\\n' '=== TARGET CHILDREN ==='; for name in 'Application Support' Caches Containers 'Group Containers' Developer; do p=\"$ROOT/$name\"; if [ -e \"$p\" ]; then printf '\\n--- %s ---\\n' \"$p\"; du -x -k -d2 \"$p\" 2>&1 | sort -nr | head -100; else printf '\\n--- ABSENT: %s ---\\n' \"$p\"; fi; done; printf '\\n=== DOCKER CLI ===\\n'; if command -v docker >/dev/null 2>&1; then docker system df 2>&1; else echo 'docker CLI unavailable'; fi",
+  "status": "completed",
+  "outputPath": ".pi/tasks/01a11c65-d95c-7000-89d3-ece89a99b64e-91445/bf92b920b.output",
+  "cwd": "/Users/mekari/Documents/nop/hacka_project/firetv/selene",
+  "startTime": 1791477804553,
+  "endTime": 1791477978693,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 92017,
+  "bytesWritten": 40240,
+  "isAgent": false,
+  "surviveReload": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "timeoutSeconds": 300,
+  "shellPolicy": {
+    "policy": "inherit",
+    "executable": "/bin/zsh",
+    "argvPrefix": [
+      "-c"
+    ],
+    "dialect": "posix"
+  }
+}

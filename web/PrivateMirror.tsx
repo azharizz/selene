@@ -243,7 +243,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     const pending = new AbortController(); this.threadPending = pending; this.nextThreadCheck = Date.now() + 15000;
     try {
       const result = await personalRequest(this.endpoint('thread-check'), {method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(this.sample(playback)), signal: pending.signal}, 45000) as {thread: FollowedThread | null; updated: boolean};
+        body: JSON.stringify(this.sample(playback)), signal: pending.signal}, 185000) as {thread: FollowedThread | null; updated: boolean};
       if (!this.mounted || pending.signal.aborted || this.threadPending !== pending || this.state.thread?.id !== thread.id) return;
       this.threadPending = null;
       if (!result.thread) {this.queuedThread = null; this.setState({thread: null, threadNotice: ''}); return;}

@@ -8,7 +8,8 @@ import type {SourceBuffer} from '@amazon-devices/react-native-w3cmedia';
 import {mediaUrl} from './api';
 
 const CHUNK = 4 * 1024 * 1024;
-const AHEAD_SECONDS = 90;
+// A bounded lead keeps large films (The Missing Crown is 182 MB) under the SourceBuffer quota.
+const AHEAD_SECONDS = 30;
 const EVENTS = ['loadedmetadata', 'play', 'pause', 'playing', 'waiting', 'seeking', 'seeked', 'ended', 'timeupdate', 'error'] as const;
 export type FilmEvent = typeof EVENTS[number];
 
@@ -96,14 +97,16 @@ export class NativeFilm {
     let next: {data: ArrayBuffer; total: number} | null = first;
     let offset = 0;
     while (next && !signal.aborted) {
-      // Keep a bounded lead over the playhead; short catalog films load completely.
-      while (!signal.aborted && this.bufferedEnd(buffer) - this.currentTime > AHEAD_SECONDS) await wait(1000);
+      while (!signal.aborted && this.bufferedEnd(buffer) - this.currentTime > AHEAD_SECONDS) await wait(500);
       await settled(buffer);
       try {buffer.appendBuffer(next.data);}
       catch (error) {
         if ((error as Error)?.name !== 'QuotaExceededError') throw error;
-        // ponytail: frees played media and retries; rewinding far into freed media refetches nothing (re-open the film).
-        buffer.remove(0, Math.max(0, this.currentTime - 30)); await settled(buffer); await wait(1000); continue;
+        // Full buffer: free media well behind the playhead (if any), let playback drain, then retry this chunk.
+        // ponytail: rewinding more than 10s into freed media is not refetched; re-open the film for that.
+        const behind = this.currentTime - 10;
+        if (behind > 1) {buffer.remove(0, behind); await settled(buffer);}
+        await wait(1000); continue;
       }
       await settled(buffer);
       offset += next.data.byteLength;

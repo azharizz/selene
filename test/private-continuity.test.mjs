@@ -27,13 +27,16 @@ function setup(t, storyId = 'the-red-kite') {
     assert.equal(url, 'https://model.test.invalid');
     const body = JSON.parse(options.body);
     if (behavior.unavailable) throw new Error('fixture unavailable');
+    if (body.tool_choice === 'required')
+      return Response.json({choices: [{message: {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}}]});
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
       return Response.json({choices: [{message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
     if (body.response_format.json_schema.name === 'selene_visual_feedback')
       return Response.json({choices: [{message: {content: JSON.stringify({action: 'keep', issue: '', response: null})}}]});
     const runtime = JSON.parse(body.messages.find(item => item.role === 'user').content.split('runtime data:\n')[1]);
-    const context = runtime.playback_context; calls.push(runtime);
+    // Phone requests fetch captions and facts through the tool; playback_context keeps the request boundary.
+    const context = JSON.parse(body.messages.find(item => item.role === 'tool').content); calls.push(runtime);
     await behavior.generating?.(runtime);
     const quiet = behavior.quiet && context.follow_thread;
     const id = behavior.future ? 'unseen-future' : context.follow_thread?.new_evidence_ids[0] ?? context.return_window?.interval_evidence_ids[0]

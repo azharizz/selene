@@ -94,9 +94,13 @@ test('provider failure is explicit and never masquerades as a completed recap', 
 test('a malformed grounding review retries the review without regenerating its recap', async () => {
   const story = getStory('the-red-kite'), saved = {...process.env}, fetch = globalThis.fetch;
   Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only'});
-  let generations = 0, reviews = 0;
+  let generations = 0, reviews = 0, toolRounds = 0;
   globalThis.fetch = async (_url, options) => {
     const body = JSON.parse(options.body);
+    if (body.tool_choice === 'required') {
+      toolRounds++;
+      return Response.json({choices: [{finish_reason: 'tool_calls', message: {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}}]});
+    }
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
       reviews++;
       const content = reviews === 1 ? '{invalid' : JSON.stringify({supported: true, issue: '', pause_requested: false});
@@ -114,6 +118,7 @@ test('a malformed grounding review retries the review without regenerating its r
     const result = await guidedReturn(story, 6, {at_seconds: 14, content_version: playerStory(story).content_version, epoch: 0, play_state: 'playing'},
       {need: 'Explain simply', language: 'English', recipient: 'everyone'});
     assert.equal(result.status, 'ready');
+    assert.equal(toolRounds, 1, 'phone catch-up retrieves its evidence through the tool round');
     assert.equal(generations, 1, 'a malformed reviewer response must not regenerate the answer');
     assert.equal(reviews, 2, 'retry only the malformed review once');
   } finally {

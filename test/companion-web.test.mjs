@@ -675,7 +675,9 @@ test('thread updates wait through typing and read-aloud, keep the marker, and ca
   context.fetch = async () => {calls++; return new Promise(resolve => {finish = resolve;});};
   const checking = phone.checkThread(); phone.editing = true; phone.state.request = 'My draft';
   const updated = {...thread, revision: 1, checked_through_seconds: 45,
-    help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45}}}};
+    help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45},
+      visual: {status: 'ready', description: 'A figure is revealed.', svg: '<svg viewBox="0 0 960 540"><g id="figure"><circle cx="480" cy="270" r="60" fill="#ffad33"/></g></svg>',
+        animations: [{target_id: 'figure', duration_ms: 1600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]}}}};
   finish({ok: true, json: async () => ({thread: updated, updated: true})}); await checking;
   assert.equal(phone.state.moment.answer, help.moment.answer); assert.ok(phone.queuedThread);
   streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'},
@@ -692,6 +694,11 @@ test('thread updates wait through typing and read-aloud, keep the marker, and ca
   phone.setState = oldSetState; deferred.forEach(args => phone.setState(...args));
   phone.pending = null; phone.state.busy = ''; phone.flushThread();
   assert.equal(phone.state.moment.answer, updated.help.moment.answer); assert.equal(phone.state.hold.from_seconds, 35);
+  const drawn = (tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(tree => drawn(tree))]);
+  phone.state.story = {...phone.state.story, title: 'Football Match'};
+  const diagram = drawn(phone.render()).find(node => node.type === context.module.exports.Visual);
+  assert.equal(diagram?.props.visual.svg, updated.help.moment.visual.svg, 'a Follow thread diagram is drawn on the phone');
+  assert.equal(diagram.props.personal, true);
   phone.receivePlayback({...playback, sequence: 3, at_seconds: 60}); phone.nextThreadCheck = 0;
   context.document.hidden = true; await phone.checkThread(); assert.equal(calls, 1);
   context.document.hidden = false; const next = phone.checkThread();

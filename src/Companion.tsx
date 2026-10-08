@@ -223,8 +223,6 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
   render() {
     const {busy, sessions, message, snapshot, page} = this.state;
     if (snapshot) return <View style={styles.page}>
-      <Backdrop busy={false}/>
-      <View style={styles.momentHeader}><Text allowFontScaling={false} style={accessibleText(styles.eyebrow, this.props.accessibility)}>{snapshot.title || snapshot.provider_name}</Text></View>
       <CompanionMoment snapshot={snapshot} playback={this.state.momentPlayback} command={this.momentCommand} onClose={this.closeMoment} accessibility={this.props.accessibility ?? {}}/>
     </View>;
     const pages = Math.ceil(sessions.length / 3);
@@ -255,7 +253,7 @@ export class Companion extends React.Component<{onDemo: () => void; onImport: ()
   }
 }
 const styles = StyleSheet.create({
-  page: {flex: 1, backgroundColor: '#101114'}, momentHeader: {position: 'absolute', left: '6%', top: '7%'}, content: {flexGrow: 1, paddingHorizontal: '6%', paddingVertical: '5%', gap: 12},
+  page: {flex: 1, backgroundColor: '#101114'}, content: {flexGrow: 1, paddingHorizontal: '6%', paddingVertical: '5%', gap: 12},
   topbar: {flexDirection: 'row', alignItems: 'center'}, logo: {flexDirection: 'row', alignItems: 'center', gap: 8}, mark: {width: 26, height: 26},
   brand: {fontSize: 24, fontWeight: '600', color: '#f1f1f1', letterSpacing: 0.5},
   main: {flex: 1, justifyContent: 'center', gap: 10},

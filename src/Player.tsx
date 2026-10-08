@@ -2,7 +2,7 @@
 // Native own-player (demo films and imports). Port of web/App.tsx without a WebView.
 // Voice input and read-aloud are absent: they relied on browser speech APIs that Vega's native runtime does not provide.
 import React from 'react';
-import {AppState, BackHandler, Image, ScrollView, StyleSheet, View} from 'react-native';
+import {AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {NativeEventSubscription} from 'react-native';
 import AsyncStorage from '@amazon-devices/react-native-async-storage__async-storage';
 import {KeplerVideoSurfaceView} from '@amazon-devices/react-native-w3cmedia';
@@ -11,10 +11,9 @@ import {clock, endSession, mediaUrl, openSession, request, RelayError} from './a
 import type {Bundle, CatalogStory, Choice, Example, Input, Moment, Pairing, ReturnResult, Story} from './api';
 import {NativeFilm} from './media';
 import type {FilmEvent} from './media';
-import {AskPanel, LoadingPanel, MomentPanel, plain} from './Moment';
+import {AskPanel, MomentPanel, plain} from './Moment';
 import {OwnPlayerSession} from './OwnPlayerSession';
-import {Body, Brand, Button, Captions, Field, Heading, LoadingMark, Panel, Row, palette} from './ui';
-import {Visual} from './Visual';
+import {Actions, Alert, Captions, Control, Field, LoadingPanel, P, Sheet, SheetHead, WelcomeShade, Wordmark, palette, px} from './ui';
 
 type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'preferences' | 'more' | 'exit' | 'error' | 'tools' | 'pair' | 'return' | 'credits' | 'films' | 'import';
 type Props = {importMp4: boolean; accessibility: AccessibilitySnapshot; onCompanion: () => void; onReady: () => void};
@@ -381,12 +380,13 @@ export class Player extends React.Component<Props, State> {
     const film = this.film;
     if (!bundle || !story) {
       if (screen === 'import') return <View style={styles.page}>{this.renderImport()}</View>;
-      return <View style={[styles.page, styles.centre]}>
-        <Brand size={28}/>
-        {loadError ? <><Body accessibility={a11y} live>{loadError}</Body>
-          <Row><Button preferred label="Try again" onPress={() => {void this.load();}} accessibility={a11y}/>
-            <Button label="Back to playback apps" accessibilityLabel="Connect to another playback app" onPress={this.props.onCompanion} accessibility={a11y}/></Row></>
-          : <Body muted accessibility={a11y}>Loading the story…</Body>}
+      return <View style={[styles.page, styles.startup]}>
+        <Wordmark size={px(28)}/>
+        {loadError ? <>
+          <P accessibility={a11y} live>{loadError}</P>
+          <Actions style={styles.welcomeActions}><Control variant="welcome" preferred primary label="Try again" onPress={() => {void this.load();}} accessibility={a11y}/>
+            <Control variant="welcome" text icon="back" label="Playback apps" accessibilityLabel="Connect to another playback app" onPress={this.props.onCompanion} accessibility={a11y}/></Actions>
+        </> : <P muted accessibility={a11y} live>Loading the story…</P>}
       </View>;
     }
     const caption = this.captionAt(position);
@@ -395,84 +395,87 @@ export class Player extends React.Component<Props, State> {
       : story.ingestion.caption_source === 'generated' ? 'Generated captions · automated transcription may be inaccurate.'
         : story.ingestion.caption_source === 'embedded' ? 'Embedded captions' : 'Supplied captions' : '';
     const showCaptions = started && captions && ['watch', 'loading', 'moment', 'return', 'tools', 'pair'].includes(screen);
+    const close = (label: string) => <Control icon="close" accessibilityLabel={label} preferred onPress={this.close} accessibility={a11y}/>;
     return <View style={styles.page}>
       {film && <KeplerVideoSurfaceView key={this.filmFor} style={styles.video} onSurfaceViewCreated={handle => film.attach(handle)} onSurfaceViewDestroyed={handle => film.detach(handle)}/>}
-      {!started && <Image source={{uri: mediaUrl(story.poster)}} style={styles.video} resizeMode="cover"/>}
+      {!started && <Image source={{uri: mediaUrl(story.poster)}} style={styles.video} resizeMode="contain"/>}
       {showCaptions && <Captions line={caption} accessibility={a11y}/>}
 
       {!started && screen === 'watch' && <View style={styles.welcome}>
-        <Brand size={26}/>
-        <Heading accessibility={a11y}>{story.title}</Heading>
-        <Body muted accessibility={a11y}>{story.subtitle} · {clock(story.duration)}</Body>
-        {captionStatus ? <Body small accessibility={a11y}>{captionStatus}</Body> : null}
-        {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-        <Row><Button preferred primary label={position > 0 ? 'Continue watching' : 'Watch demo'} onPress={this.start} accessibility={a11y}/>
-          <Button label="Films" onPress={() => this.setState({screen: 'films'})} accessibility={a11y}/></Row>
-        <Button small label="← Playback apps" accessibilityLabel="Connect to another playback app" onPress={this.companion} accessibility={a11y}/>
+        <WelcomeShade/>
+        <Wordmark size={px(28) * (a11y.textScale ?? 1)}/>
+        <View style={styles.welcomeCopy}>
+          <Text allowFontScaling={false} accessibilityRole="header" style={[styles.welcomeTitle, fontScale(32, a11y, 1.14)]}>{story.title}</Text>
+          <P muted accessibility={a11y} style={styles.welcomeLine}>{story.subtitle} · {clock(story.duration)}</P>
+          {captionStatus ? <P muted size={19} accessibility={a11y} style={styles.welcomeLine}>{captionStatus}</P> : null}
+          {error ? <Alert accessibility={a11y}>{error}</Alert> : null}
+          <Actions style={styles.welcomeActions}>
+            <Control variant="welcome" preferred primary icon="play" label={position > 0 ? 'Continue watching' : 'Watch demo'} onPress={this.start} accessibility={a11y}/>
+            <Control variant="welcome" label="Films" onPress={() => this.setState({screen: 'films'})} accessibility={a11y}/>
+          </Actions>
+          <View style={styles.playbackApps}><Control variant="sheet" text icon="back" label="Playback apps" accessibilityLabel="Connect to another playback app" onPress={this.companion} accessibility={a11y}/></View>
+        </View>
       </View>}
 
       {started && screen === 'watch' && (!controls
-        ? <View style={styles.quiet}><Button small preferred mark label={savedPlace ? '•' : ''} accessibilityLabel={savedPlace ? 'Bring us back' : 'Selene'}
-          onPress={() => {if (savedPlace) void this.bringUsBack(); else this.setState({controls: true});}} accessibility={a11y}/></View>
+        ? <QuietControl saved={Boolean(savedPlace)} onPress={() => {if (savedPlace) void this.bringUsBack(); else this.setState({controls: true});}}/>
         : <View style={styles.toolbar} accessibilityLabel="Selene tools">
-          {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-          <Row><Button preferred primary label="Ask Selene" onPress={this.openAsk} accessibility={a11y}/>
-            <Button label="Tools" accessibilityLabel="Selene tools" onPress={() => this.setState({screen: 'tools', error: ''})} accessibility={a11y}/>
-            <Button label="Hide" accessibilityLabel="Hide Selene" onPress={() => this.setState({controls: false})} accessibility={a11y}/></Row>
+          <Control variant="toolbar" preferred primary label="Ask Selene" onPress={this.openAsk} accessibility={a11y}/>
+          <Control variant="toolbar" square icon="more" accessibilityLabel="Selene tools" onPress={() => this.setState({screen: 'tools', error: ''})} accessibility={a11y}/>
+          <Control variant="toolbar" square icon="close" accessibilityLabel="Hide Selene" onPress={() => this.setState({controls: false})} accessibility={a11y}/>
         </View>)}
+      {started && screen === 'watch' && controls && error ? <View style={styles.watchAlert}><Alert accessibility={a11y}>{error}</Alert></View> : null}
 
-      {screen === 'films' && <Panel label="Choose a film">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>Films</Heading></View><Button small preferred label="Close" accessibilityLabel="Close films" onPress={this.close} accessibility={a11y}/></Row>
-        <ScrollView contentContainerStyle={styles.list}>
-          {(bundle.catalog ?? []).map((item: CatalogStory) => <Button key={item.id} small pressed={item.id === story.id} label={item.title} detail={clock(item.duration)}
+      {screen === 'films' && <Sheet label="Choose a film">
+        <SheetHead title="Films" accessibility={a11y}>{close('Close films')}</SheetHead>
+        <View style={styles.list}>
+          {(bundle.catalog ?? []).map((item: CatalogStory) => <Control key={item.id} block pressed={item.id === story.id} label={item.title} detail={clock(item.duration)}
             accessibilityLabel={`Open ${item.title}`} onPress={() => this.chooseStory(item.id)} accessibility={a11y}/>)}
-        </ScrollView>
-        <Row><Button small label="Import MP4" onPress={() => {this.film?.pause(); this.cancel(); this.setState({screen: 'import', error: ''});}} accessibility={a11y}/>
-          <Button small label="Film credits" onPress={() => this.setState({screen: 'credits'})} accessibility={a11y}/></Row>
-      </Panel>}
+        </View>
+        <Actions style={styles.gapTop}>
+          <Control label="Import MP4" onPress={() => {this.film?.pause(); this.cancel(); this.setState({screen: 'import', error: ''});}} accessibility={a11y}/>
+          <Control text label="Film credits" onPress={() => this.setState({screen: 'credits'})} accessibility={a11y}/>
+        </Actions>
+      </Sheet>}
 
       {screen === 'import' && this.renderImport()}
 
-      {screen === 'tools' && <Panel label="Watch together">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>Watch together</Heading></View>
-          <Button small label="Films" accessibilityLabel="Change film" onPress={() => this.setState({screen: 'films'})} accessibility={a11y}/>
-          <Button small preferred label="Close" accessibilityLabel="Close tools" onPress={this.close} accessibility={a11y}/></Row>
-        <Button primary label={savedPlace ? 'Bring us back' : 'Hold our place'} onPress={() => {if (savedPlace) void this.bringUsBack(); else this.savePlace();}} accessibility={a11y}/>
-        <Button label={mirror ? 'Phone connection' : 'Pair phone'} onPress={() => {if (mirror) this.setState({screen: 'pair'}); else void this.openMirror();}} accessibility={a11y}/>
-        <Button label="Playback" onPress={() => this.setState({screen: 'preferences'})} accessibility={a11y}/>
-        {savedPlace && <Row><Body muted accessibility={a11y}>Saved at {clock(savedPlace.at_seconds)}</Body>
-          <Button small label="Clear" accessibilityLabel="Clear saved place" onPress={() => this.setState({savedPlace: null})} accessibility={a11y}/></Row>}
-        {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-      </Panel>}
+      {screen === 'tools' && <Sheet label="Watch together">
+        <SheetHead title="Watch together" accessibility={a11y}>
+          <Control label="Films" accessibilityLabel="Change film" onPress={() => this.setState({screen: 'films'})} accessibility={a11y}/>
+          {close('Close tools')}
+        </SheetHead>
+        <Actions>
+          <Control primary label={savedPlace ? 'Bring us back' : 'Hold our place'} onPress={() => {if (savedPlace) void this.bringUsBack(); else this.savePlace();}} accessibility={a11y}/>
+          <Control label={mirror ? 'Phone connection' : 'Pair phone'} onPress={() => {if (mirror) this.setState({screen: 'pair'}); else void this.openMirror();}} accessibility={a11y}/>
+          <Control label="Playback" onPress={() => this.setState({screen: 'preferences'})} accessibility={a11y}/>
+        </Actions>
+        {savedPlace && <View style={styles.savedRow}><P muted size={16} accessibility={a11y}>Saved at {clock(savedPlace.at_seconds)}</P>
+          <Control label="Clear" accessibilityLabel="Clear saved place" onPress={() => this.setState({savedPlace: null})} accessibility={a11y}/></View>}
+        <Alert accessibility={a11y}>{error}</Alert>
+      </Sheet>}
 
-      {screen === 'pair' && <Panel label="Use your phone">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>Use your phone</Heading></View>
-          <Button small preferred label="Close" accessibilityLabel="Close pairing" onPress={this.close} accessibility={a11y}/></Row>
+      {screen === 'pair' && <Sheet label="Use your phone">
+        <SheetHead title="Use your phone" accessibility={a11y}>{close('Close pairing')}</SheetHead>
         {mirror ? <>
-          <Body muted accessibility={a11y}>Open {mirror.join_url}</Body>
-          <Heading accessibility={a11y}>{`${mirror.code.slice(0, 3)} ${mirror.code.slice(3)}`}</Heading>
-          <Body small accessibility={a11y}>One phone. Code expires after five minutes. The TV keeps its own controls.</Body>
-          <Row><Button small label="New code" disabled={pairing} onPress={() => {void this.openMirror();}} accessibility={a11y}/>
-            <Button small label="Disconnect phone" disabled={pairing} onPress={() => {void this.stopMirror();}} accessibility={a11y}/></Row>
+          <P muted accessibility={a11y}>Open {mirror.join_url}</P>
+          <Text allowFontScaling={false} accessibilityLabel={`Pairing code ${mirror.code.split('').join(' ')}`} style={[styles.pairCode, fontScale(32, a11y, 1.3)]}>{`${mirror.code.slice(0, 3)} ${mirror.code.slice(3)}`}</Text>
+          <P muted size={16} accessibility={a11y}>One phone. Code expires after five minutes. The TV keeps its own controls.</P>
+          <Actions style={styles.gapTop}><Control label="New code" disabled={pairing} onPress={() => {void this.openMirror();}} accessibility={a11y}/>
+            <Control label="Disconnect phone" disabled={pairing} onPress={() => {void this.stopMirror();}} accessibility={a11y}/></Actions>
         </> : <>
-          <Body muted live accessibility={a11y}>{pairing ? 'Creating your code…' : 'Pair a phone for private explanations.'}</Body>
-          <Button small label="Create code" disabled={pairing} onPress={() => {void this.openMirror();}} accessibility={a11y}/>
+          <P muted live accessibility={a11y}>{pairing ? 'Creating your code…' : 'Pair a phone for private explanations.'}</P>
+          <Actions style={styles.gapTop}><Control label="Create code" disabled={pairing} onPress={() => {void this.openMirror();}} accessibility={a11y}/></Actions>
         </>}
-        {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-      </Panel>}
+        <Alert accessibility={a11y}>{error}</Alert>
+      </Sheet>}
 
-      {screen === 'return' && returnResult && <Panel place="toast" label="Guided return">
-        <Row>
-          {returnResult.moment?.visual.status === 'ready' && <Visual visual={returnResult.moment.visual}/>}
-          <View style={styles.grow}><Body accessibility={a11y} live>{returnResult.quote ? `“${returnResult.quote.text}”` : returnResult.moment ? plain(returnResult.moment.answer)
-            : returnResult.status === 'unavailable' ? 'The recap could not be prepared. Close to try again.' : returnResult.status === 'no_gap' ? 'There was no gap at the sampled TV moment.'
-              : 'There is not enough evidence for this gap. Replay it or ask someone watching with you.'}</Body></View>
-        </Row>
-        {returnResult.quote && <Body small accessibility={a11y}>Original caption · {clock(returnResult.quote.at_seconds)} · Recap unavailable; close to retry.</Body>}
-        <Body small accessibility={a11y}>{returnResult.status === 'ready' ? 'Covers' : 'Requested'} {clock(returnResult.from_seconds)} to {clock(returnResult.through_seconds)}
-          {position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}</Body>
-        <Button small preferred label="Close" accessibilityLabel="Close return" onPress={this.closeReturn} accessibility={a11y}/>
-      </Panel>}
+      {screen === 'return' && returnResult && <MomentPanel moment={returnResult.moment?.visual.status === 'ready' ? returnResult.moment : null} onDismiss={this.closeReturn} dismissLabel="Close return" accessibility={a11y}
+        text={returnResult.quote ? `“${returnResult.quote.text}”` : returnResult.moment ? plain(returnResult.moment.answer)
+          : returnResult.status === 'unavailable' ? 'The recap could not be prepared. Close to try again.' : returnResult.status === 'no_gap' ? 'There was no gap at the sampled TV moment.'
+            : 'There is not enough evidence for this gap. Replay it or ask someone watching with you.'}
+        lines={[...(returnResult.quote ? [`Original caption · ${clock(returnResult.quote.at_seconds)} · Recap unavailable; close to retry.`] : []),
+          `${returnResult.status === 'ready' ? 'Covers' : 'Requested'} ${clock(returnResult.from_seconds)} to ${clock(returnResult.through_seconds)}${position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}`]}/>}
 
       {screen === 'ask' && <AskPanel clarification={clarifying && moment ? plain(moment.answer) : undefined} request={this.state.request} onChange={value => this.setState({request: value})}
         onSubmit={this.ask} onClose={this.goBack} error={error} accessibility={a11y}
@@ -484,81 +487,116 @@ export class Player extends React.Component<Props, State> {
       {screen === 'moment' && moment && <MomentPanel moment={moment} error={error} onDismiss={this.dismiss} onMore={() => this.setState({screen: 'more'})} accessibility={a11y}
         notice={story.ingestion && moment.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : undefined}/>}
 
-      {screen === 'more' && <Panel place="toast" label="This moment">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>This moment</Heading></View><Button small label="Back" onPress={this.goBack} accessibility={a11y}/></Row>
-        {!paused && <Button small preferred label="Pause playback" onPress={() => {this.film?.pause(); this.setState({choice: 'pause_to_explore', screen: 'moment'});}} accessibility={a11y}/>}
-        <Button small label="Explain on phone" onPress={() => {if (mirror) this.setState({screen: 'pair'}); else void this.openMirror();}} accessibility={a11y}/>
-        <Button small preferred={paused} label={paused ? 'Close, stay paused' : 'Dismiss'} onPress={this.dismiss} accessibility={a11y}/>
-      </Panel>}
+      {screen === 'more' && <Sheet label="This moment">
+        <SheetHead title="This moment" accessibility={a11y}><Control preferred icon="back" label="Back" onPress={this.goBack} accessibility={a11y}/></SheetHead>
+        <Actions>
+          {!paused && <Control label="Pause playback" onPress={() => {this.film?.pause(); this.setState({choice: 'pause_to_explore', screen: 'moment'});}} accessibility={a11y}/>}
+          <Control label="Explain on phone" onPress={() => {if (mirror) this.setState({screen: 'pair'}); else void this.openMirror();}} accessibility={a11y}/>
+          <Control label={paused ? 'Close, stay paused' : 'Dismiss'} onPress={this.dismiss} accessibility={a11y}/>
+        </Actions>
+      </Sheet>}
 
-      {screen === 'preferences' && <Panel label="Playback">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>Playback</Heading></View>
-          <Button small label="Close" accessibilityLabel="Close playback" onPress={this.goBack} accessibility={a11y}/></Row>
-        <Row><Button small label="−10s" accessibilityLabel="Back 10 seconds" onPress={() => this.seek(-10)} accessibility={a11y}/>
-          <Button small preferred label={ended ? 'Replay' : paused ? 'Play' : 'Pause'} onPress={() => {
+      {screen === 'preferences' && <Sheet label="Playback">
+        <SheetHead title="Playback" accessibility={a11y}><Control icon="close" accessibilityLabel="Close playback" preferred onPress={this.goBack} accessibility={a11y}/></SheetHead>
+        <Actions>
+          <Control label="−10s" accessibilityLabel="Back 10 seconds" onPress={() => this.seek(-10)} accessibility={a11y}/>
+          <Control label={ended ? 'Replay' : paused ? 'Play' : 'Pause'} onPress={() => {
             if (ended && this.film) this.film.currentTime = 0;
             if (ended || paused) this.play(); else this.film?.pause();
           }} accessibility={a11y}/>
-          <Button small label="+10s" accessibilityLabel="Forward 10 seconds" onPress={() => this.seek(10)} accessibility={a11y}/></Row>
-        <Button small pressed={captions && story.transcript.length > 0} disabled={!story.transcript.length} onPress={this.toggleCaptions} accessibility={a11y}
-          label={!story.transcript.length ? 'Captions unavailable' : captions ? 'Captions on' : 'Captions off'}/>
-        {a11y.captions !== undefined && <Button small label="Use TV caption setting" onPress={this.systemCaptions} accessibility={a11y}/>}
-        {captionStatus ? <Body small accessibility={a11y}>{captionStatus}</Body> : null}
-      </Panel>}
+          <Control label="+10s" accessibilityLabel="Forward 10 seconds" onPress={() => this.seek(10)} accessibility={a11y}/>
+          <Control pressed={captions && story.transcript.length > 0} disabled={!story.transcript.length} onPress={this.toggleCaptions} accessibility={a11y}
+            label={!story.transcript.length ? 'Captions unavailable' : captions ? 'Captions on' : 'Captions off'}/>
+          {a11y.captions !== undefined && <Control label="Use TV caption setting" onPress={this.systemCaptions} accessibility={a11y}/>}
+        </Actions>
+        {captionStatus ? <P muted size={16} accessibility={a11y} style={styles.gapTop}>{captionStatus}</P> : null}
+      </Sheet>}
 
-      {screen === 'credits' && <Panel label="Film credits">
-        <Row><View style={styles.grow}><Heading accessibility={a11y}>Film credits</Heading></View>
-          <Button small preferred label="Close" accessibilityLabel="Close credits" onPress={this.close} accessibility={a11y}/></Row>
-        <Body accessibility={a11y}>{story.ingestion?.credit ?? story.subtitle}</Body>
-        {story.ingestion?.license_url ? <Body small accessibility={a11y}>License: {story.ingestion.license_url}</Body> : null}
-        {captionStatus ? <Body small accessibility={a11y}>{captionStatus}</Body> : null}
-        {story.ingestion?.evidence_notice ? <Body small accessibility={a11y}>{story.ingestion.evidence_notice}</Body> : null}
-      </Panel>}
+      {screen === 'credits' && <Sheet label="Film credits">
+        <SheetHead title="Film credits" accessibility={a11y}>{close('Close credits')}</SheetHead>
+        <P accessibility={a11y}>{story.ingestion?.credit ?? story.subtitle}</P>
+        {story.ingestion?.license_url ? <P muted size={16} accessibility={a11y} style={styles.gapTop}>License: {story.ingestion.license_url}</P> : null}
+        {captionStatus ? <P muted size={16} accessibility={a11y} style={styles.gapTop}>{captionStatus}</P> : null}
+        {story.ingestion?.evidence_notice ? <P muted size={16} accessibility={a11y} style={styles.gapTop}>{story.ingestion.evidence_notice}</P> : null}
+      </Sheet>}
 
-      {screen === 'exit' && <Panel place="center" label="Leave SELENE?">
-        <Heading accessibility={a11y}>Leave SELENE?</Heading>
-        <Body muted accessibility={a11y}>The story will stop. Press Back again to leave.</Body>
-        <Row><Button small preferred label="Stay here" onPress={() => this.setState({screen: 'watch', controls: true})} accessibility={a11y}/>
-          <Button small label="Leave SELENE" onPress={this.exit} accessibility={a11y}/></Row>
-      </Panel>}
+      {screen === 'exit' && <Sheet label="Leave SELENE?">
+        <Text allowFontScaling={false} accessibilityRole="header" style={[styles.h2, fontScale(18, a11y, 1.3)]}>Leave SELENE?</Text>
+        <P muted accessibility={a11y} style={styles.gapTop}>The story will stop. Press Back again to leave.</P>
+        <Actions style={styles.gapTop}><Control preferred label="Stay here" onPress={() => this.setState({screen: 'watch', controls: true})} accessibility={a11y}/>
+          <Control label="Leave SELENE" onPress={this.exit} accessibility={a11y}/></Actions>
+      </Sheet>}
 
-      {screen === 'error' && <Panel place="center" label="This moment is unavailable">
-        <Heading accessibility={a11y}>This moment is unavailable</Heading>
-        <Body muted live accessibility={a11y}>{error}</Body>
-        <Row><Button small preferred label="Back to the story" onPress={this.close} accessibility={a11y}/>
-          <Button small label="Retry this moment" onPress={() => {if (this.lastInput) void this.deliver(this.lastInput, this.lastSeekTo);}} accessibility={a11y}/>
-          <Button small label="Edit request" onPress={() => this.setState({screen: 'ask', error: ''})} accessibility={a11y}/></Row>
-      </Panel>}
+      {screen === 'error' && <Sheet label="This moment is unavailable">
+        <Text allowFontScaling={false} accessibilityRole="header" style={[styles.h2, fontScale(18, a11y, 1.3)]}>This moment is unavailable</Text>
+        <Alert accessibility={a11y}>{error}</Alert>
+        <Actions style={styles.gapTop}><Control preferred label="Back to the story" onPress={this.close} accessibility={a11y}/>
+          <Control label="Retry this moment" onPress={() => {if (this.lastInput) void this.deliver(this.lastInput, this.lastSeekTo);}} accessibility={a11y}/>
+          <Control label="Edit request" onPress={() => this.setState({screen: 'ask', error: ''})} accessibility={a11y}/></Actions>
+      </Sheet>}
     </View>;
   }
 
+  // .media-import: sheet with labelled 18px inputs; the busy state is the loading square with a Cancel import action.
   private renderImport() {
     const a11y = this.props.accessibility;
     const {importing, importUrl, importTitle, error} = this.state;
-    if (importing) return <Panel place="center" label="Importing MP4">
-      <Body muted live accessibility={a11y}>Preparing the imported film. Cancel stops processing.</Body>
-      <LoadingMark label="Cancel import" onCancel={this.cancelImport}/>
-    </Panel>;
-    return <Panel label="Import MP4">
-      <Row><View style={styles.grow}><Heading accessibility={a11y}>Import MP4</Heading></View>
-        <Button small label="Cancel" onPress={() => this.state.bundle ? this.setState({screen: 'films', error: ''}) : this.props.onCompanion()} accessibility={a11y}/></Row>
-      <Body small accessibility={a11y}>Imports the full video. Import only media you have permission to use. Storage and model costs apply.</Body>
-      <Field preferred label="HTTPS MP4 URL" value={importUrl} maxLength={2048} placeholder="https://publisher.example/film.mp4" onChange={value => this.setState({importUrl: value})} accessibility={a11y}/>
-      <Field label="Title" value={importTitle} maxLength={500} placeholder="Title" onChange={value => this.setState({importTitle: value})} onSubmit={this.submitImport} accessibility={a11y}/>
-      <Body small accessibility={a11y}>Selene uses embedded captions or transcribes the audio. Without dialogue it explains images only.</Body>
-      <Button primary label="Import and open" onPress={() => {void this.submitImport();}} accessibility={a11y}/>
-      {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-    </Panel>;
+    if (importing) return <LoadingPanel label="Cancel import" onCancel={this.cancelImport}/>;
+    return <Sheet label="Import MP4">
+      <SheetHead title="Import MP4" accessibility={a11y}>
+        <Control preferred label="Cancel" onPress={() => this.state.bundle ? this.setState({screen: 'films', error: ''}) : this.props.onCompanion()} accessibility={a11y}/>
+      </SheetHead>
+      <P muted size={16} accessibility={a11y}>Imports the full video. Import only media you have permission to use. Storage and model costs apply.</P>
+      <View style={styles.form}>
+        <View style={styles.label}><P size={18} accessibility={a11y}>HTTPS MP4 URL</P>
+          <Field label="HTTPS MP4 URL" value={importUrl} maxLength={2048} placeholder="https://publisher.example/film.mp4" onChange={value => this.setState({importUrl: value})} accessibility={a11y}/></View>
+        <View style={styles.label}><P size={18} accessibility={a11y}>Title</P>
+          <Field label="Title" value={importTitle} maxLength={500} placeholder="" onChange={value => this.setState({importTitle: value})} onSubmit={this.submitImport} accessibility={a11y}/></View>
+        <P muted size={16} accessibility={a11y}>Without supplied or embedded captions, Selene can explain images but not dialogue.</P>
+        <Control primary label="Import and open" onPress={() => {void this.submitImport();}} accessibility={a11y}/>
+      </View>
+      <Alert accessibility={a11y}>{error}</Alert>
+    </Sheet>;
   }
 }
 
+// .quiet-control: 40px square at bottom/right 6%, surface #202228ed, the 24px crescent, accent saved-place dot.
+function QuietControl({saved, onPress}: {saved: boolean; onPress: () => void}) {
+  const [focused, setFocused] = React.useState(false);
+  return <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Bring us back' : 'Selene'} hasTVPreferredFocus onPress={onPress}
+    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={[styles.quiet, focused && styles.quietFocused]}>
+    {focused && <View pointerEvents="none" style={styles.quietRing}/>}
+    <Wordmark size={px(24)} markOnly/>
+    {saved && <View pointerEvents="none" style={styles.savedDot}/>}
+  </Pressable>;
+}
+
+const fontScale = (cssSize: number, accessibility: AccessibilitySnapshot, lineHeight = 1.45) => {
+  const size = px(cssSize) * (accessibility.textScale ?? 1);
+  return {fontSize: size, lineHeight: size * lineHeight};
+};
+
 const styles = StyleSheet.create({
   page: {flex: 1, backgroundColor: palette.page},
-  centre: {justifyContent: 'center', paddingHorizontal: '6%', gap: 16},
+  startup: {justifyContent: 'center', padding: '5%', gap: px(16)},
   video: {position: 'absolute', left: 0, top: 0, right: 0, bottom: 0},
-  welcome: {position: 'absolute', left: 0, top: 0, bottom: 0, width: '60%', paddingHorizontal: '6%', justifyContent: 'center', gap: 14, backgroundColor: 'rgba(16,17,20,0.88)'},
-  quiet: {position: 'absolute', right: '5%', bottom: '7%'},
-  toolbar: {position: 'absolute', left: '5%', bottom: '7%', gap: 8, padding: 12, borderRadius: 14, backgroundColor: 'rgba(32,34,40,0.92)'},
-  grow: {flex: 1},
-  list: {gap: 8},
+  welcome: {position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, padding: '5%', justifyContent: 'center', gap: px(32)},
+  welcomeCopy: {width: px(640), maxWidth: '90%', padding: px(8)},
+  welcomeTitle: {color: palette.ink, fontWeight: '600', letterSpacing: -0.025 * px(32)},
+  welcomeLine: {marginTop: px(10)},
+  welcomeActions: {marginTop: px(18), gap: px(12)},
+  playbackApps: {marginTop: px(16)},
+  quiet: {position: 'absolute', right: '6%', bottom: '6%', width: px(40), height: px(40), borderRadius: px(12), backgroundColor: 'rgba(32,34,40,0.93)', alignItems: 'center', justifyContent: 'center'},
+  quietFocused: {backgroundColor: palette.ink},
+  quietRing: {position: 'absolute', top: -px(4), bottom: -px(4), left: -px(4), right: -px(4), borderRadius: px(16), borderWidth: px(3), borderColor: palette.ink},
+  savedDot: {position: 'absolute', right: px(2), top: px(2), width: px(6), height: px(6), borderRadius: px(3), backgroundColor: palette.accent},
+  toolbar: {position: 'absolute', right: '5%', bottom: '5%', flexDirection: 'row', alignItems: 'center', gap: px(4), padding: px(6), borderRadius: px(12), backgroundColor: palette.surface},
+  watchAlert: {position: 'absolute', right: '5%', bottom: '14%', maxWidth: px(560)},
+  list: {gap: px(6), marginTop: px(8)},
+  gapTop: {marginTop: px(12)},
+  savedRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: px(8), marginTop: px(8)},
+  pairCode: {color: palette.ink, letterSpacing: 0.14 * px(32), marginTop: px(12)},
+  h2: {color: palette.ink, fontWeight: '500'},
+  form: {gap: px(14), marginTop: px(16)},
+  label: {gap: px(6)},
 });

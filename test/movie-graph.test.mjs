@@ -4,7 +4,7 @@ import {buildMovieGraph, validateMovieGraph, movieGraphAt} from '../server/movie
 import {sceneContext, movieGraphEvidence, createMemory, getStory} from '../server/context.mjs';
 import {quietResponse} from '../server/contract.mjs';
 import {validateMoment, explain} from '../server/agent.mjs';
-import {playerStory} from '../server/personal.mjs';
+import {playerStory, personalContext} from '../server/personal.mjs';
 
 const story = () => ({id: 'graph-test-film', title: 'Graph test', duration: 100, video: '/media/graph-test-film/video.mp4',
   ingestion: {model: 'caption-model'}, scenes: [{id: 'all', start: 0, end: 100, label: 'Entire film'}], facts: [],
@@ -149,4 +149,40 @@ test('ordinary imported answers receive ten raw images without a reviewer veto o
   })).state, 'response');
   assert.deepEqual([graphCalls, answers], [1, 2], 'graph is movie-local once, but each ordinary question freshly captures and generates');
   assert.equal(memory.responses.size, 0, 'fresh imported answers are not replayed from an earlier capture');
+});
+
+test('Follow thread on an ingested film sends the ten fresh frames and can return a diagram', async t => {
+  const film = getStory('football-match'), saved = {...process.env};
+  Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_API_KEY: 'test-only', AGENT_PROVIDER_MODEL: 'vision-answer-model'});
+  t.after(() => {for (const key of ['AGENT_PROVIDER_URL', 'AGENT_PROVIDER_API_KEY', 'AGENT_PROVIDER_MODEL']) saved[key] === undefined ? delete process.env[key] : process.env[key] = saved[key];});
+  const cue = film.transcript.filter(line => line.end <= 30).at(-1);
+  const context = {...personalContext(film, 30, null, 'Who is she?'), follow_thread: {question: 'Who is she?', new_evidence_ids: [cue.id]}};
+  const imageCount = message => (Array.isArray(message.content) ? message.content : []).filter(part => part.type === 'image_url').length;
+  const seen = {tool: 0, generation: 0, review: 0};
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    const body = JSON.parse(options.body), name = body.response_format?.json_schema.name;
+    if (body.tool_choice === 'required') {
+      seen.tool++;
+      return Response.json({choices: [{finish_reason: 'tool_calls', message: {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}}]});
+    }
+    if (name === 'selene_movie_caption_graph') return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({nodes: [], edges: []})}}]});
+    if (name === 'selene_grounding_review') {
+      seen.review++;
+      assert.equal(body.messages.reduce((sum, message) => sum + imageCount(message), 0), 10, 'the reviewer sees the same frames');
+      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
+    }
+    seen.generation++;
+    assert.equal(imageCount(body.messages.find(message => message.role === 'user')), 10, 'Follow thread is multimodal');
+    const value = {...quietResponse({content_id: film.id, at_seconds: 30}, context.scene_id), state: 'response', answer: 'A new caption answers who she is.',
+      visual: {status: 'ready', description: 'A figure is revealed.',
+        svg: '<svg viewBox="0 0 960 540"><g id="figure" fill="#ffad33"><circle cx="480" cy="180" r="60"/><rect x="420" y="260" width="120" height="170"/></g></svg>',
+        animations: [{target_id: 'figure', duration_ms: 1600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]}};
+    value.grounding.evidence_ids = [cue.id];
+    return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(value)}}]});
+  });
+  const input = {request: 'Who is she?', content_id: film.id, at_seconds: 30, play_state: 'playing', playback_choice: 'keep_watching',
+    need: 'Show visually', language: 'English', session: 'family', recipient: 'everyone'};
+  const moment = await explain(input, {memory: createMemory(), context});
+  assert.deepEqual(seen, {tool: 1, generation: 1, review: 1});
+  assert.equal(moment.visual.status, 'ready', 'a thread update keeps its diagram for the phone to draw');
 });

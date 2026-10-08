@@ -1,0 +1,28 @@
+{
+  "id": "bff852556",
+  "name": "Nested storage drilldown",
+  "command": "for p in '/System/Volumes/Data/Library/Application Support' /System/Volumes/Data/Library/Developer /System/Volumes/Data/Library/Updates /System/Volumes/Data/private/var /System/Volumes/Data/private/var/tmp /System/Volumes/Data/opt/homebrew/Cellar /System/Volumes/Data/opt/homebrew/var '/System/Volumes/Data/macOS Install Data/UpdateBundle' /System/Volumes/Data/private/var/vm; do printf '\\n--- %s ---\\n' \"$p\"; du -x -k -d1 \"$p\" 2>&1 | sort -nr; done",
+  "status": "completed",
+  "outputPath": ".pi/tasks/01a11c65-d97a-7000-a627-fc535c32cb47-91445/bff852556.output",
+  "cwd": "/Users/mekari/Documents/nop/hacka_project/firetv/selene",
+  "startTime": 1791477968109,
+  "endTime": 1791477981535,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 92866,
+  "bytesWritten": 41676,
+  "isAgent": false,
+  "surviveReload": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "timeoutSeconds": 600,
+  "shellPolicy": {
+    "policy": "inherit",
+    "executable": "/bin/zsh",
+    "argvPrefix": [
+      "-c"
+    ],
+    "dialect": "posix"
+  }
+}

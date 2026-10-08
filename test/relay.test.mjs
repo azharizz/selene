@@ -204,6 +204,8 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal((await privateAnswer.json()).moment.grounding.at_seconds, 35);
   const personalRuntime = JSON.parse(generatedMessages.find(message => message.role === 'user').content.split('runtime data:\n')[1]);
   assert.equal(personalRuntime.viewer_request, privateQuestion.request);
+  assert.ok(generatedMessages.some(message => message.role === 'tool'), 'phone questions retrieve evidence through the tool round');
+  assert.equal(personalRuntime.playback_context.transcript, undefined, 'captions arrive through the tool, not inline');
   assert.equal(personalRuntime.recipient, 'everyone', 'explicit wording needs do not create a guessed demographic selection');
   const advanced = {...playback, sequence: 2, at_seconds: 45};
   await post('/api/playback', advanced, own.session_id);
@@ -212,7 +214,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const beforeReturn = modelReads;
   const bridge = await post(`${personalPath}/return`, {...returnInput, branch_id: held.hold.id, sequence: 2, through_seconds: 45});
   assert.equal(bridge.status, 200);
-  assert.equal(modelReads - beforeReturn, 2, 'private return supplies evidence directly: one draft and one grounding review');
+  assert.equal(modelReads - beforeReturn, 3, 'private return retrieves evidence through the tool: one tool round, one draft and one grounding review');
   const returned = await bridge.json();
   assert.equal(returned.through_seconds, 45);
   assert.equal(returned.from_seconds, 35);

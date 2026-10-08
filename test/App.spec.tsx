@@ -19,7 +19,7 @@ jest.mock('@amazon-devices/react-native-w3cmedia', () => ({
   KeplerVideoSurfaceView: 'KeplerVideoSurfaceView',
 }));
 jest.mock('@amazon-devices/react-native-svg', () => ({
-  __esModule: true, default: 'Svg', Circle: 'Circle', Ellipse: 'Ellipse', G: 'G', Line: 'Line', Path: 'Path', Polygon: 'Polygon', Polyline: 'Polyline', Rect: 'Rect', Text: 'SvgText', TSpan: 'TSpan',
+  __esModule: true, default: 'Svg', Defs: 'Defs', LinearGradient: 'LinearGradient', Stop: 'Stop', Circle: 'Circle', Ellipse: 'Ellipse', G: 'G', Line: 'Line', Path: 'Path', Polygon: 'Polygon', Polyline: 'Polyline', Rect: 'Rect', Text: 'SvgText', TSpan: 'TSpan',
 }));
 jest.mock('@amazon-devices/react-native-async-storage__async-storage', () => ({
   __esModule: true, default: {getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined)},

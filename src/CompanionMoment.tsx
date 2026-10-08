@@ -7,8 +7,8 @@ import type {NativeEventSubscription} from 'react-native';
 import type {AccessibilitySnapshot} from './Accessibility';
 import {endSession, openSession, request, RelayError} from './api';
 import type {Choice, Moment} from './api';
-import {AskPanel, LoadingPanel, MomentPanel} from './Moment';
-import {Body, Button, Heading, Panel} from './ui';
+import {AskPanel, MomentPanel} from './Moment';
+import {Actions, Alert, Control, LoadingPanel, P, Sheet, SheetHead} from './ui';
 
 export type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
 export type Playback = {state: 'playing' | 'paused' | 'unknown'; can_pause: boolean; can_play: boolean; revision: number; observing: boolean};
@@ -144,23 +144,24 @@ export class CompanionMoment extends React.Component<Props, State> {
     const paused = playback.state === 'paused';
     return <>
       {screen === 'ask' && <AskPanel clarification={clarifying && moment ? moment.answer.replace(/—/g, ',') : undefined} request={text} onChange={value => this.setState({request: value})}
-        onSubmit={() => this.ask('unspecified')} onClose={this.goBack} error={error} placeholder="Why did that happen?" accessibility={a11y}
+        onSubmit={() => this.ask('unspecified')} onClose={this.goBack} error={error} busy={controlling} placeholder="Why did that happen?" accessibility={a11y}
         quick={[{label: 'Explain scene', onPress: () => this.ask('unspecified', 'Explain what just happened in this moment.')},
           {label: 'Explain dialogue', onPress: () => this.ask('unspecified', 'I missed that. Explain the last completed dialogue simply.')}]}/>}
       {screen === 'loading' && <LoadingPanel onCancel={this.goBack}/>}
       {screen === 'moment' && moment && <MomentPanel moment={moment} waiting={controlling} error={error} onDismiss={this.close} onMore={() => this.setState({screen: 'more', error: ''})} accessibility={a11y}/>}
-      {screen === 'more' && <Panel place="toast" label="This moment">
-        <Heading accessibility={a11y}>This moment</Heading>
-        <Button small preferred label="Back" onPress={this.goBack} accessibility={a11y}/>
-        {!paused && playback.can_pause && <Button small disabled={controlling} label="Pause playback" onPress={() => {
-          void this.pause().then(() => this.mounted && this.setState({screen: 'moment', error: ''}), failure => this.failed(failure));
-        }} accessibility={a11y}/>}
-        {paused && playback.can_play && <Button small disabled={controlling} label="Resume playback" onPress={() => {void this.resume();}} accessibility={a11y}/>}
-        {mirrorAvailable && <Button small label={mirror ? 'Stop phone mirror' : 'Mirror on phone'} onPress={() => {void (mirror ? this.stopMirror() : this.openMirror());}} accessibility={a11y}/>}
-        <Button small label={paused ? 'Close, stay paused' : 'Close moment'} onPress={this.close} accessibility={a11y}/>
-        {mirror && <Body muted accessibility={a11y}>Open on your phone: {mirror.url}</Body>}
-        {error ? <Body muted live accessibility={a11y}>{error}</Body> : null}
-      </Panel>}
+      {screen === 'more' && <Sheet label="This moment">
+        <SheetHead title="This moment" accessibility={a11y}><Control preferred icon="back" label="Back" onPress={this.goBack} accessibility={a11y}/></SheetHead>
+        <Actions>
+          {!paused && playback.can_pause && <Control disabled={controlling} label="Pause playback" onPress={() => {
+            void this.pause().then(() => this.mounted && this.setState({screen: 'moment', error: ''}), failure => this.failed(failure));
+          }} accessibility={a11y}/>}
+          {paused && playback.can_play && <Control disabled={controlling} label="Resume playback" onPress={() => {void this.resume();}} accessibility={a11y}/>}
+          {mirrorAvailable && <Control label={mirror ? 'Stop phone mirror' : 'Mirror on phone'} onPress={() => {void (mirror ? this.stopMirror() : this.openMirror());}} accessibility={a11y}/>}
+          <Control label={paused ? 'Close, stay paused' : 'Close moment'} onPress={this.close} accessibility={a11y}/>
+        </Actions>
+        {mirror && <P muted size={16} accessibility={a11y}>Open on your phone: {mirror.url}</P>}
+        <Alert accessibility={a11y}>{error}</Alert>
+      </Sheet>}
     </>;
   }
 }

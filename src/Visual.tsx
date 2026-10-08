@@ -7,6 +7,7 @@ import {AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View} 
 import Svg, {Circle, Ellipse, G, Line, Path, Polygon, Polyline, Rect, Text as SvgText, TSpan} from '@amazon-devices/react-native-svg';
 import {DOMParser} from '@xmldom/xmldom';
 import type {Animation, VisualArtifact} from './api';
+import {palette, px} from './ui';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const components: Record<string, React.ComponentType<any>> = {
@@ -73,7 +74,8 @@ export function parseVisual(visual: VisualArtifact, animate: boolean) {
   return {viewBox: root.getAttribute('viewBox') ?? '0 0 160 90', children};
 }
 
-export function Visual({visual, width = 160}: {visual: VisualArtifact; width?: number}) {
+// .moment.compact .visual: 160x90 CSS px; the fallback is 14px muted text.
+export function Visual({visual, width = px(160)}: {visual: VisualArtifact; width?: number}) {
   const [play, setPlay] = React.useState(0);
   const [still, setStill] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
@@ -96,10 +98,10 @@ export function Visual({visual, width = 160}: {visual: VisualArtifact; width?: n
 }
 
 const styles = StyleSheet.create({
-  frame: {backgroundColor: '#202228', borderRadius: 8, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent'},
-  focused: {borderColor: '#f1f1f1'},
-  replay: {position: 'absolute', right: 4, bottom: 2, color: '#b9bdc6', fontSize: 12},
-  fallback: {gap: 4},
-  fallbackText: {color: '#b9bdc6', fontSize: 14, lineHeight: 20},
-  small: {color: '#b9bdc6', fontSize: 12},
+  frame: {backgroundColor: palette.surface, borderRadius: px(6), overflow: 'hidden', borderWidth: px(2), borderColor: 'transparent'},
+  focused: {borderColor: palette.ink},
+  replay: {position: 'absolute', right: 0, bottom: 0, color: palette.ink, backgroundColor: palette.surface, fontSize: px(18), lineHeight: px(18), padding: px(3), borderRadius: px(4)},
+  fallback: {gap: px(4)},
+  fallbackText: {color: palette.muted, fontSize: px(14), lineHeight: px(14) * 1.4},
+  small: {color: palette.muted, fontSize: px(14)},
 });

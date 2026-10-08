@@ -1,0 +1,575 @@
+
+--- /System/Volumes/Data/Library/Application Support ---
+3800364	/System/Volumes/Data/Library/Application Support
+1562204	/System/Volumes/Data/Library/Application Support/JamfAppInstallers
+1150756	/System/Volumes/Data/Library/Application Support/Blackmagic Design
+540908	/System/Volumes/Data/Library/Application Support/Adobe
+391788	/System/Volumes/Data/Library/Application Support/com.apple.idleassetsd
+94304	/System/Volumes/Data/Library/Application Support/JAMF
+30192	/System/Volumes/Data/Library/Application Support/Google
+11712	/System/Volumes/Data/Library/Application Support/Microsoft
+6236	/System/Volumes/Data/Library/Application Support/Apple
+5828	/System/Volumes/Data/Library/Application Support/JamfConnect
+3300	/System/Volumes/Data/Library/Application Support/iLifeMediaBrowser
+1996	/System/Volumes/Data/Library/Application Support/JamfProtect
+532	/System/Volumes/Data/Library/Application Support/Script Editor
+160	/System/Volumes/Data/Library/Application Support/com.apple.TVIdleScreen
+152	/System/Volumes/Data/Library/Application Support/Firefox
+104	/System/Volumes/Data/Library/Application Support/BTServer
+96	/System/Volumes/Data/Library/Application Support/BraveSoftware
+68	/System/Volumes/Data/Library/Application Support/Self Service+
+8	/System/Volumes/Data/Library/Application Support/LockDown Browser OEM
+8	/System/Volumes/Data/Library/Application Support/CrashReporter
+4	/System/Volumes/Data/Library/Application Support/Mekari
+4	/System/Volumes/Data/Library/Application Support/ClaudeCode
+4	/System/Volumes/Data/Library/Application Support/App Store
+du: /System/Volumes/Data/Library/Application Support/com.apple.TCC: Operation not permitted
+du: /System/Volumes/Data/Library/Application Support/Mekari/state: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JamfProtect/groups: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JamfProtect/db: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JamfProtect/Quarantine: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JAMF/usage_reports: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JAMF/tmp: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JAMF/run: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JAMF/Offline Policies: Permission denied
+du: /System/Volumes/Data/Library/Application Support/JAMF/Downloads: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Google/GoogleUpdater/crx_cache: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/Crashpad: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Google/GoogleUpdater/150.0.7863.0: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Google/GoogleUpdater/149.0.7814.0: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Google/GoogleUpdater/148.0.7730.0: Permission denied
+du: /System/Volumes/Data/Library/Application Support/ApplePushService: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Apple/ParentalControls/Users: Permission denied
+du: /System/Volumes/Data/Library/Application Support/Apple/AssetCache/Data: Permission denied
+0	/System/Volumes/Data/Library/Application Support/livefsd
+0	/System/Volumes/Data/Library/Application Support/com.apple.backgroundassets.user
+0	/System/Volumes/Data/Library/Application Support/Reprise
+0	/System/Volumes/Data/Library/Application Support/ProApps
+0	/System/Volumes/Data/Library/Application Support/Mozilla
+
+--- /System/Volumes/Data/Library/Developer ---
+2314816	/System/Volumes/Data/Library/Developer/CommandLineTools
+2314816	/System/Volumes/Data/Library/Developer
+
+--- /System/Volumes/Data/Library/Updates ---
+752396	/System/Volumes/Data/Library/Updates
+751844	/System/Volumes/Data/Library/Updates/072-44426
+444	/System/Volumes/Data/Library/Updates/Rosetta
+
+--- /System/Volumes/Data/private/var ---
+8250536	/System/Volumes/Data/private/var
+6035092	/System/Volumes/Data/private/var/folders
+1048576	/System/Volumes/Data/private/var/vm
+994792	/System/Volumes/Data/private/var/db
+118576	/System/Volumes/Data/private/var/log
+48160	/System/Volumes/Data/private/var/protected
+4420	/System/Volumes/Data/private/var/logs
+836	/System/Volumes/Data/private/var/tmp
+72	/System/Volumes/Data/private/var/run
+4	/System/Volumes/Data/private/var/spool
+4	/System/Volumes/Data/private/var/sntpd
+4	/System/Volumes/Data/private/var/MobileSoftwareUpdate
+du: /System/Volumes/Data/private/var/tmp/SentryCrash: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/trace: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/saved: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/public: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/private: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/maildrop: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/incoming: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/hold: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/flush: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/deferred: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/defer: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/corrupt: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/bounce: Permission denied
+du: /System/Volumes/Data/private/var/spool/postfix/active: Permission denied
+du: /System/Volumes/Data/private/var/spool/mqueue: Permission denied
+du: /System/Volumes/Data/private/var/spool/cups: Permission denied
+du: /System/Volumes/Data/private/var/run/mds: Permission denied
+du: /System/Volumes/Data/private/var/run/jamf: Permission denied
+du: /System/Volumes/Data/private/var/run/com.jamf.protect: Permission denied
+du: /System/Volumes/Data/private/var/root: Permission denied
+du: /System/Volumes/Data/private/var/protected/trustd/private: Operation not permitted
+du: /System/Volumes/Data/private/var/protected/sfanalytics/FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000116: Permission denied
+du: /System/Volumes/Data/private/var/protected/sfanalytics/FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000106: Permission denied
+du: /System/Volumes/Data/private/var/protected/sfanalytics/FFFFEEEE-DDDD-CCCC-BBBB-AAAA000000F8: Permission denied
+du: /System/Volumes/Data/private/var/protected/sfanalytics/FFFFEEEE-DDDD-CCCC-BBBB-AAAA000000CD: Permission denied
+du: /System/Volumes/Data/private/var/protected/sfanalytics/FFFFEEEE-DDDD-CCCC-BBBB-AAAA00000059: Permission denied
+du: /System/Volumes/Data/private/var/protected/sfanalytics/4126D10C-2A47-46C3-AD8C-E98C7A290ECF: Permission denied
+du: /System/Volumes/Data/private/var/networkd/db: Operation not permitted
+du: /System/Volumes/Data/private/var/networkd/Library: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Public/Drop Box: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Pictures: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Music: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Movies: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Library: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Downloads: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Documents: Permission denied
+du: /System/Volumes/Data/private/var/mekariadmin/Desktop: Permission denied
+du: /System/Volumes/Data/private/var/ma: Permission denied
+du: /System/Volumes/Data/private/var/log/DiagnosticMessages: Permission denied
+du: /System/Volumes/Data/private/var/lib/pritunl-client: Permission denied
+du: /System/Volumes/Data/private/var/lib/postfix: Permission denied
+du: /System/Volumes/Data/private/var/jabberd: Permission denied
+du: /System/Volumes/Data/private/var/install: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000150000098/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000150000098/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000014r000096/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000014r000096/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000144000091/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000144000091/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000013800008t/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000013800008t/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012r00008p/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012r00008p/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012m00008n/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012m00008n/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012400008j/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000012400008j/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011w00008g/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011w00008g/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011m00008d/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011m00008d/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011h00008c/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000011h00008c/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000114000089/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000114000089/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010w000087/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010w000087/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010r000086/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010r000086/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010h000084/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000010h000084/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000108000082/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000108000082/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/dmd: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.routined/dv: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.pluginkit: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.nsurlsessiond: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.notificationcenter: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.lockoutagent: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.Spotlight: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000z000007r/0/com.apple.ScreenTimeAgent/Store: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000yw00007q/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000yw00007q/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000y800007k/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000y800007k/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000y800007k/0/com.apple.nsurlsessiond: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000xc00007b/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000xc00007b/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000tm00006n/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000tm00006n/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000sm00006d/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000sm00006d/C: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000sm00006d/0: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000s800006_/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000s800006_/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000s0000068/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000s0000068/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000bh00002w/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000bh00002w/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000b400002s/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000b400002s/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000b000002r/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n00000b000002r/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000084000021/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000084000021/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000006w00001q/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000006w00001q/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000044000011/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000044000011/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000003000000r/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n000003000000r/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/0/com.apple.revisiond/com.apple.revisiond.temp: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/0/com.apple.pluginkit: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/0/com.apple.icloud.searchpartyd/KeyMaps: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/0/com.apple.Spotlight: Permission denied
+du: /System/Volumes/Data/private/var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/0/com.apple.LaunchServices.dv: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/homed/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/duetexpertd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.triald/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.transparencyd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.syncdefaultsd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.studentd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.sharingd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.replayd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.remindd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.quicklook.ThumbnailsAgent/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.pluginkit/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.passd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.parsecd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.parsec-fbf/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.nsurlsessiond/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.imdpersistence.IMDPersistenceAgent/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.imagent/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.identityservicesd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.fileproviderd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.donotdisturbd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.desktopservices.ArchiveService/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.chrono/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.calaccessd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.appstoreagent/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.ap.promotedcontentd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.amsengagementd/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/com.apple.AUHelperService/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/T/TemporaryItems: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.siriactionsd/ShortcutsSandboxCache: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.quicklook.ThumbnailsAgent/com.apple.QuickLook.thumbnailcache: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.WorkflowKit.BackgroundShortcutRunner/ShortcutsSandboxCache: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.WebKit.WebContent.Sandbox: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.WebKit.Networking.Sandbox: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/C/com.apple.WebKit.GPU.Sandbox: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/dmd: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.routined/dv: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.progressd/ClassKit: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.nsurlsessiond: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.lockoutagent: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.exchangesync: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.SharedWebCredentials: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.ScreenTimeAgent/Store: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.LaunchServices.dv: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/mb/p4h08lqn1h77qtzdywxf55_r0000gn/0/com.apple.FeatureStore: Operation not permitted
+du: /System/Volumes/Data/private/var/folders/84/ld231_8x3c7bccx667m_8fsw0000gp/T: Permission denied
+du: /System/Volumes/Data/private/var/folders/84/ld231_8x3c7bccx667m_8fsw0000gp/C: Permission denied
+du: /System/Volumes/Data/private/var/folders/84/ld231_8x3c7bccx667m_8fsw0000gp/0/com.apple.LaunchServices.dv: Operation not permitted
+du: /System/Volumes/Data/private/var/dirs_cleaner: Permission denied
+du: /System/Volumes/Data/private/var/db/timed: Permission denied
+du: /System/Volumes/Data/private/var/db/terminus: Permission denied
+du: /System/Volumes/Data/private/var/db/sysdiagnose/com.apple.sysdiagnose: Operation not permitted
+du: /System/Volumes/Data/private/var/db/sudo: Permission denied
+du: /System/Volumes/Data/private/var/db/softwareupdate/Library/WebKit: Permission denied
+du: /System/Volumes/Data/private/var/db/softwareupdate/Library/Preferences: Permission denied
+du: /System/Volumes/Data/private/var/db/securityagent: Permission denied
+du: /System/Volumes/Data/private/var/db/searchparty: Operation not permitted
+du: /System/Volumes/Data/private/var/db/rmd: Permission denied
+du: /System/Volumes/Data/private/var/db/reportmemoryexception: Permission denied
+du: /System/Volumes/Data/private/var/db/os_eligibility: Operation not permitted
+du: /System/Volumes/Data/private/var/db/oah: Operation not permitted
+du: /System/Volumes/Data/private/var/db/nsurlsessiond: Permission denied
+du: /System/Volumes/Data/private/var/db/nearbyd: Permission denied
+du: /System/Volumes/Data/private/var/db/modelmanagerd: Permission denied
+du: /System/Volumes/Data/private/var/db/mmaintenanced: Permission denied
+du: /System/Volumes/Data/private/var/db/lockdown: Operation not permitted
+du: /System/Volumes/Data/private/var/db/locationd/Library: Permission denied
+du: /System/Volumes/Data/private/var/db/knowledgegraphd: Permission denied
+du: /System/Volumes/Data/private/var/db/installcoordinationd: Operation not permitted
+du: /System/Volumes/Data/private/var/db/hidd: Permission denied
+du: /System/Volumes/Data/private/var/db/geod: Permission denied
+du: /System/Volumes/Data/private/var/db/fseventsd: Permission denied
+du: /System/Volumes/Data/private/var/db/fpsd: Permission denied
+du: /System/Volumes/Data/private/var/db/dslocal/nodes/Default: Permission denied
+du: /System/Volumes/Data/private/var/db/diskimagesiod: Permission denied
+du: /System/Volumes/Data/private/var/db/diagnostics: Permission denied
+du: /System/Volumes/Data/private/var/db/dhcpclient: Permission denied
+du: /System/Volumes/Data/private/var/db/datadetectors: Permission denied
+du: /System/Volumes/Data/private/var/db/darwindaemon: Permission denied
+du: /System/Volumes/Data/private/var/db/coreml: Permission denied
+du: /System/Volumes/Data/private/var/db/com.apple.xpc.roleaccountd.staging: Permission denied
+du: /System/Volumes/Data/private/var/db/com.apple.security.cryptexd: Operation not permitted
+du: /System/Volumes/Data/private/var/db/com.apple.findmy.findmybeaconingd: Permission denied
+du: /System/Volumes/Data/private/var/db/com.apple.backgroundtaskmanagement: Operation not permitted
+du: /System/Volumes/Data/private/var/db/cmiodalassistants: Permission denied
+du: /System/Volumes/Data/private/var/db/caches/opendirectory: Permission denied
+du: /System/Volumes/Data/private/var/db/biome: Operation not permitted
+du: /System/Volumes/Data/private/var/db/audiomxd/Library: Permission denied
+du: /System/Volumes/Data/private/var/db/appstore/Library/Preferences: Permission denied
+du: /System/Volumes/Data/private/var/db/applepay: Permission denied
+du: /System/Volumes/Data/private/var/db/appinstalld: Operation not permitted
+du: /System/Volumes/Data/private/var/db/analyticsd: Permission denied
+du: /System/Volumes/Data/private/var/db/accessoryupdater: Permission denied
+du: /System/Volumes/Data/private/var/db/Spotlight: Operation not permitted
+du: /System/Volumes/Data/private/var/db/Spotlight-V100: Operation not permitted
+du: /System/Volumes/Data/private/var/db/SoC: Operation not permitted
+du: /System/Volumes/Data/private/var/db/Sandbox: Operation not permitted
+du: /System/Volumes/Data/private/var/db/MobileIdentityService: Operation not permitted
+du: /System/Volumes/Data/private/var/db/KernelExtensionManagement/Staging: Operation not permitted
+du: /System/Volumes/Data/private/var/db/ExtensibleSSO/Configuration: Operation not permitted
+du: /System/Volumes/Data/private/var/db/DumpPanic: Operation not permitted
+du: /System/Volumes/Data/private/var/db/DifferentialPrivacy: Operation not permitted
+du: /System/Volumes/Data/private/var/db/CoreDuet: Operation not permitted
+du: /System/Volumes/Data/private/var/db/ConfigurationProfiles/Store: Operation not permitted
+du: /System/Volumes/Data/private/var/backups: Permission denied
+du: /System/Volumes/Data/private/var/audit: Permission denied
+du: /System/Volumes/Data/private/var/at/tmp: Permission denied
+du: /System/Volumes/Data/private/var/at/tabs: Permission denied
+du: /System/Volumes/Data/private/var/agentx: Permission denied
+du: /System/Volumes/Data/private/var/OOPJit: Operation not permitted
+0	/System/Volumes/Data/private/var/yp
+0	/System/Volumes/Data/private/var/select
+0	/System/Volumes/Data/private/var/rpc
+0	/System/Volumes/Data/private/var/networkd
+0	/System/Volumes/Data/private/var/netboot
+0	/System/Volumes/Data/private/var/msgs
+0	/System/Volumes/Data/private/var/mobile
+0	/System/Volumes/Data/private/var/mekariadmin
+0	/System/Volumes/Data/private/var/mail
+0	/System/Volumes/Data/private/var/lib
+0	/System/Volumes/Data/private/var/empty
+0	/System/Volumes/Data/private/var/dextcores
+0	/System/Volumes/Data/private/var/containers
+0	/System/Volumes/Data/private/var/at
+
+--- /System/Volumes/Data/private/var/tmp ---
+836	/System/Volumes/Data/private/var/tmp
+612	/System/Volumes/Data/private/var/tmp/aud
+80	/System/Volumes/Data/private/var/tmp/io.sentry
+4	/System/Volumes/Data/private/var/tmp/SoftwareUpdateCore
+du: /System/Volumes/Data/private/var/tmp/SentryCrash: Permission denied
+0	/System/Volumes/Data/private/var/tmp/com.apple.wifianalyticsd
+
+--- /System/Volumes/Data/opt/homebrew/Cellar ---
+8502124	/System/Volumes/Data/opt/homebrew/Cellar
+1506980	/System/Volumes/Data/opt/homebrew/Cellar/llvm@20
+770312	/System/Volumes/Data/opt/homebrew/Cellar/openjdk
+595368	/System/Volumes/Data/opt/homebrew/Cellar/apache-spark
+474508	/System/Volumes/Data/opt/homebrew/Cellar/gcc
+386500	/System/Volumes/Data/opt/homebrew/Cellar/boost
+340032	/System/Volumes/Data/opt/homebrew/Cellar/openjdk@21
+313352	/System/Volumes/Data/opt/homebrew/Cellar/openjdk@17
+276644	/System/Volumes/Data/opt/homebrew/Cellar/go
+259612	/System/Volumes/Data/opt/homebrew/Cellar/pandoc
+181340	/System/Volumes/Data/opt/homebrew/Cellar/awscli
+153852	/System/Volumes/Data/opt/homebrew/Cellar/scala
+141476	/System/Volumes/Data/opt/homebrew/Cellar/opencode
+131644	/System/Volumes/Data/opt/homebrew/Cellar/mysql-client
+128088	/System/Volumes/Data/opt/homebrew/Cellar/php
+124120	/System/Volumes/Data/opt/homebrew/Cellar/postgresql@15
+90820	/System/Volumes/Data/opt/homebrew/Cellar/duckdb
+88516	/System/Volumes/Data/opt/homebrew/Cellar/python@3.14
+86368	/System/Volumes/Data/opt/homebrew/Cellar/icu4c@78
+83532	/System/Volumes/Data/opt/homebrew/Cellar/icu4c@76
+80620	/System/Volumes/Data/opt/homebrew/Cellar/openssl@3
+79984	/System/Volumes/Data/opt/homebrew/Cellar/glib
+79272	/System/Volumes/Data/opt/homebrew/Cellar/python@3.13
+78876	/System/Volumes/Data/opt/homebrew/Cellar/python@3.12
+78672	/System/Volumes/Data/opt/homebrew/Cellar/golang-migrate
+74040	/System/Volumes/Data/opt/homebrew/Cellar/node
+72616	/System/Volumes/Data/opt/homebrew/Cellar/hugo
+70948	/System/Volumes/Data/opt/homebrew/Cellar/babashka
+70064	/System/Volumes/Data/opt/homebrew/Cellar/cmake
+68040	/System/Volumes/Data/opt/homebrew/Cellar/binaryen
+66968	/System/Volumes/Data/opt/homebrew/Cellar/python@3.10
+62716	/System/Volumes/Data/opt/homebrew/Cellar/kubernetes-cli
+60776	/System/Volumes/Data/opt/homebrew/Cellar/fbthrift
+56852	/System/Volumes/Data/opt/homebrew/Cellar/helm
+54080	/System/Volumes/Data/opt/homebrew/Cellar/binutils
+53852	/System/Volumes/Data/opt/homebrew/Cellar/postgresql@14
+53744	/System/Volumes/Data/opt/homebrew/Cellar/ffmpeg
+52676	/System/Volumes/Data/opt/homebrew/Cellar/aliyun-cli
+41600	/System/Volumes/Data/opt/homebrew/Cellar/gettext
+40184	/System/Volumes/Data/opt/homebrew/Cellar/harfbuzz
+40096	/System/Volumes/Data/opt/homebrew/Cellar/libpq
+37544	/System/Volumes/Data/opt/homebrew/Cellar/gh
+35100	/System/Volumes/Data/opt/homebrew/Cellar/neovim
+34900	/System/Volumes/Data/opt/homebrew/Cellar/folly
+32676	/System/Volumes/Data/opt/homebrew/Cellar/poppler
+32424	/System/Volumes/Data/opt/homebrew/Cellar/freetds
+31512	/System/Volumes/Data/opt/homebrew/Cellar/uv
+28920	/System/Volumes/Data/opt/homebrew/Cellar/imagemagick
+27388	/System/Volumes/Data/opt/homebrew/Cellar/docker
+26844	/System/Volumes/Data/opt/homebrew/Cellar/lazygit
+23132	/System/Volumes/Data/opt/homebrew/Cellar/pcre2
+22752	/System/Volumes/Data/opt/homebrew/Cellar/betterleaks
+21652	/System/Volumes/Data/opt/homebrew/Cellar/zellij
+20652	/System/Volumes/Data/opt/homebrew/Cellar/nss
+20332	/System/Volumes/Data/opt/homebrew/Cellar/zsh
+19828	/System/Volumes/Data/opt/homebrew/Cellar/cryptography
+17060	/System/Volumes/Data/opt/homebrew/Cellar/x265
+16904	/System/Volumes/Data/opt/homebrew/Cellar/net-snmp
+15900	/System/Volumes/Data/opt/homebrew/Cellar/ncurses
+15872	/System/Volumes/Data/opt/homebrew/Cellar/libxcb
+15512	/System/Volumes/Data/opt/homebrew/Cellar/gnupg
+15356	/System/Volumes/Data/opt/homebrew/Cellar/openjpeg
+15300	/System/Volumes/Data/opt/homebrew/Cellar/coreutils
+15200	/System/Volumes/Data/opt/homebrew/Cellar/watchman
+14992	/System/Volumes/Data/opt/homebrew/Cellar/gnutls
+14164	/System/Volumes/Data/opt/homebrew/Cellar/lightsailctl
+13724	/System/Volumes/Data/opt/homebrew/Cellar/clojure
+13644	/System/Volumes/Data/opt/homebrew/Cellar/abseil
+13056	/System/Volumes/Data/opt/homebrew/Cellar/bash
+11992	/System/Volumes/Data/opt/homebrew/Cellar/texinfo
+10804	/System/Volumes/Data/opt/homebrew/Cellar/maven
+10652	/System/Volumes/Data/opt/homebrew/Cellar/aom
+10264	/System/Volumes/Data/opt/homebrew/Cellar/libx11
+9792	/System/Volumes/Data/opt/homebrew/Cellar/libtiff
+9612	/System/Volumes/Data/opt/homebrew/Cellar/openldap
+9320	/System/Volumes/Data/opt/homebrew/Cellar/cairo
+9268	/System/Volumes/Data/opt/homebrew/Cellar/xorgproto
+9068	/System/Volumes/Data/opt/homebrew/Cellar/tree-sitter
+8632	/System/Volumes/Data/opt/homebrew/Cellar/libvmaf
+8460	/System/Volumes/Data/opt/homebrew/Cellar/libheif
+7976	/System/Volumes/Data/opt/homebrew/Cellar/isl
+7828	/System/Volumes/Data/opt/homebrew/Cellar/simdjson
+7780	/System/Volumes/Data/opt/homebrew/Cellar/gawk
+7668	/System/Volumes/Data/opt/homebrew/Cellar/pyenv
+6644	/System/Volumes/Data/opt/homebrew/Cellar/ripgrep
+6644	/System/Volumes/Data/opt/homebrew/Cellar/libxml2
+6572	/System/Volumes/Data/opt/homebrew/Cellar/unbound
+6380	/System/Volumes/Data/opt/homebrew/Cellar/sdl3
+6064	/System/Volumes/Data/opt/homebrew/Cellar/krb5
+5904	/System/Volumes/Data/opt/homebrew/Cellar/curl
+5832	/System/Volumes/Data/opt/homebrew/Cellar/codex-asr
+5748	/System/Volumes/Data/opt/homebrew/Cellar/libunistring
+5248	/System/Volumes/Data/opt/homebrew/Cellar/rtk
+5232	/System/Volumes/Data/opt/homebrew/Cellar/sqlite
+5092	/System/Volumes/Data/opt/homebrew/Cellar/pcre
+4836	/System/Volumes/Data/opt/homebrew/Cellar/p11-kit
+4824	/System/Volumes/Data/opt/homebrew/Cellar/wget
+4580	/System/Volumes/Data/opt/homebrew/Cellar/fzf
+4336	/System/Volumes/Data/opt/homebrew/Cellar/x264
+4328	/System/Volumes/Data/opt/homebrew/Cellar/libvpx
+4308	/System/Volumes/Data/opt/homebrew/Cellar/simdutf
+4288	/System/Volumes/Data/opt/homebrew/Cellar/libtool
+4288	/System/Volumes/Data/opt/homebrew/Cellar/jpeg-turbo
+4284	/System/Volumes/Data/opt/homebrew/Cellar/wangle
+4264	/System/Volumes/Data/opt/homebrew/Cellar/fb303
+4060	/System/Volumes/Data/opt/homebrew/Cellar/libgcrypt
+4008	/System/Volumes/Data/opt/homebrew/Cellar/bison
+3912	/System/Volumes/Data/opt/homebrew/Cellar/autoconf
+3836	/System/Volumes/Data/opt/homebrew/Cellar/sbt
+3808	/System/Volumes/Data/opt/homebrew/Cellar/putty
+3760	/System/Volumes/Data/opt/homebrew/Cellar/pango
+3752	/System/Volumes/Data/opt/homebrew/Cellar/automake
+3456	/System/Volumes/Data/opt/homebrew/Cellar/sdl2-compat
+3392	/System/Volumes/Data/opt/homebrew/Cellar/gmp
+3312	/System/Volumes/Data/opt/homebrew/Cellar/svt-av1
+3228	/System/Volumes/Data/opt/homebrew/Cellar/mpfr
+3160	/System/Volumes/Data/opt/homebrew/Cellar/tidy-html5
+3052	/System/Volumes/Data/opt/homebrew/Cellar/fizz
+2996	/System/Volumes/Data/opt/homebrew/Cellar/redis
+2992	/System/Volumes/Data/opt/homebrew/Cellar/nettle
+2868	/System/Volumes/Data/opt/homebrew/Cellar/fd
+2808	/System/Volumes/Data/opt/homebrew/Cellar/freetype
+2784	/System/Volumes/Data/opt/homebrew/Cellar/xz
+2784	/System/Volumes/Data/opt/homebrew/Cellar/libpng
+2748	/System/Volumes/Data/opt/homebrew/Cellar/gpgme
+2704	/System/Volumes/Data/opt/homebrew/Cellar/readline
+2676	/System/Volumes/Data/opt/homebrew/Cellar/webp
+2408	/System/Volumes/Data/opt/homebrew/Cellar/unixodbc
+2384	/System/Volumes/Data/opt/homebrew/Cellar/libevent
+2316	/System/Volumes/Data/opt/homebrew/Cellar/zstd
+2288	/System/Volumes/Data/opt/homebrew/Cellar/luajit
+2180	/System/Volumes/Data/opt/homebrew/Cellar/docker-credential-helper
+2180	/System/Volumes/Data/opt/homebrew/Cellar/ccache
+2160	/System/Volumes/Data/opt/homebrew/Cellar/findutils
+2112	/System/Volumes/Data/opt/homebrew/Cellar/pycparser
+2068	/System/Volumes/Data/opt/homebrew/Cellar/fontconfig
+2056	/System/Volumes/Data/opt/homebrew/Cellar/pipx
+2036	/System/Volumes/Data/opt/homebrew/Cellar/edencommon
+1968	/System/Volumes/Data/opt/homebrew/Cellar/mpg123
+1960	/System/Volumes/Data/opt/homebrew/Cellar/cffi
+1944	/System/Volumes/Data/opt/homebrew/Cellar/lame
+1928	/System/Volumes/Data/opt/homebrew/Cellar/brotli
+1924	/System/Volumes/Data/opt/homebrew/Cellar/libgpg-error
+1832	/System/Volumes/Data/opt/homebrew/Cellar/libssh2
+1796	/System/Volumes/Data/opt/homebrew/Cellar/libomp
+1596	/System/Volumes/Data/opt/homebrew/Cellar/gd
+1576	/System/Volumes/Data/opt/homebrew/Cellar/apr
+1556	/System/Volumes/Data/opt/homebrew/Cellar/c-ares
+1528	/System/Volumes/Data/opt/homebrew/Cellar/oniguruma
+1508	/System/Volumes/Data/opt/homebrew/Cellar/libfido2
+1432	/System/Volumes/Data/opt/homebrew/Cellar/pixman
+1424	/System/Volumes/Data/opt/homebrew/Cellar/libngtcp2
+1412	/System/Volumes/Data/opt/homebrew/Cellar/little-cms2
+1400	/System/Volumes/Data/opt/homebrew/Cellar/nspr
+1320	/System/Volumes/Data/opt/homebrew/Cellar/libuv
+1304	/System/Volumes/Data/opt/homebrew/Cellar/tmux
+1296	/System/Volumes/Data/opt/homebrew/Cellar/libsodium
+1272	/System/Volumes/Data/opt/homebrew/Cellar/re2
+1244	/System/Volumes/Data/opt/homebrew/Cellar/jq
+1204	/System/Volumes/Data/opt/homebrew/Cellar/libzip
+1196	/System/Volumes/Data/opt/homebrew/Cellar/ada-url
+1152	/System/Volumes/Data/opt/homebrew/Cellar/libavif
+1132	/System/Volumes/Data/opt/homebrew/Cellar/fmt
+1120	/System/Volumes/Data/opt/homebrew/Cellar/opus
+1120	/System/Volumes/Data/opt/homebrew/Cellar/gdbm
+1100	/System/Volumes/Data/opt/homebrew/Cellar/libidn2
+1064	/System/Volumes/Data/opt/homebrew/Cellar/grep
+1012	/System/Volumes/Data/opt/homebrew/Cellar/apr-util
+996	/System/Volumes/Data/opt/homebrew/Cellar/libthai
+988	/System/Volumes/Data/opt/homebrew/Cellar/dav1d
+964	/System/Volumes/Data/opt/homebrew/Cellar/libffi
+960	/System/Volumes/Data/opt/homebrew/Cellar/gpgmepp
+928	/System/Volumes/Data/opt/homebrew/Cellar/luv
+920	/System/Volumes/Data/opt/homebrew/Cellar/zbar
+872	/System/Volumes/Data/opt/homebrew/Cellar/libnghttp2
+868	/System/Volumes/Data/opt/homebrew/Cellar/fribidi
+852	/System/Volumes/Data/opt/homebrew/Cellar/libtasn1
+828	/System/Volumes/Data/opt/homebrew/Cellar/m4
+796	/System/Volumes/Data/opt/homebrew/Cellar/utf8proc
+784	/System/Volumes/Data/opt/homebrew/Cellar/gflags
+744	/System/Volumes/Data/opt/homebrew/Cellar/lz4
+720	/System/Volumes/Data/opt/homebrew/Cellar/argon2
+700	/System/Volumes/Data/opt/homebrew/Cellar/libxext
+676	/System/Volumes/Data/opt/homebrew/Cellar/libusb
+672	/System/Volumes/Data/opt/homebrew/Cellar/gnu-sed
+648	/System/Volumes/Data/opt/homebrew/Cellar/mpdecimal
+648	/System/Volumes/Data/opt/homebrew/Cellar/hiredis
+640	/System/Volumes/Data/opt/homebrew/Cellar/lzo
+632	/System/Volumes/Data/opt/homebrew/Cellar/libnghttp3
+604	/System/Volumes/Data/opt/homebrew/Cellar/libassuan
+588	/System/Volumes/Data/opt/homebrew/Cellar/liblqr
+572	/System/Volumes/Data/opt/homebrew/Cellar/xxhash
+568	/System/Volumes/Data/opt/homebrew/Cellar/libksba
+536	/System/Volumes/Data/opt/homebrew/Cellar/giflib
+528	/System/Volumes/Data/opt/homebrew/Cellar/rlwrap
+520	/System/Volumes/Data/opt/homebrew/Cellar/pkgconf
+516	/System/Volumes/Data/opt/homebrew/Cellar/libmpc
+488	/System/Volumes/Data/opt/homebrew/Cellar/pinentry
+464	/System/Volumes/Data/opt/homebrew/Cellar/glog
+456	/System/Volumes/Data/opt/homebrew/Cellar/zlib-ng-compat
+456	/System/Volumes/Data/opt/homebrew/Cellar/ninja
+456	/System/Volumes/Data/opt/homebrew/Cellar/libde265
+448	/System/Volumes/Data/opt/homebrew/Cellar/unibilium
+448	/System/Volumes/Data/opt/homebrew/Cellar/byacc
+424	/System/Volumes/Data/opt/homebrew/Cellar/libvterm
+424	/System/Volumes/Data/opt/homebrew/Cellar/json-c
+400	/System/Volumes/Data/opt/homebrew/Cellar/potrace
+368	/System/Volumes/Data/opt/homebrew/Cellar/merve
+360	/System/Volumes/Data/opt/homebrew/Cellar/docker-completion
+344	/System/Volumes/Data/opt/homebrew/Cellar/libpsl
+340	/System/Volumes/Data/opt/homebrew/Cellar/lpeg
+320	/System/Volumes/Data/opt/homebrew/Cellar/uvwasi
+312	/System/Volumes/Data/opt/homebrew/Cellar/double-conversion
+308	/System/Volumes/Data/opt/homebrew/Cellar/libdatrie
+304	/System/Volumes/Data/opt/homebrew/Cellar/msgpack
+292	/System/Volumes/Data/opt/homebrew/Cellar/graphite2
+284	/System/Volumes/Data/opt/homebrew/Cellar/libcbor
+252	/System/Volumes/Data/opt/homebrew/Cellar/libxrender
+216	/System/Volumes/Data/opt/homebrew/Cellar/telnet
+216	/System/Volumes/Data/opt/homebrew/Cellar/gnu-getopt
+212	/System/Volumes/Data/opt/homebrew/Cellar/ca-certificates
+208	/System/Volumes/Data/opt/homebrew/Cellar/tree
+204	/System/Volumes/Data/opt/homebrew/Cellar/hdrhistogram_c
+200	/System/Volumes/Data/opt/homebrew/Cellar/snappy
+196	/System/Volumes/Data/opt/homebrew/Cellar/libxau
+192	/System/Volumes/Data/opt/homebrew/Cellar/npth
+176	/System/Volumes/Data/opt/homebrew/Cellar/llhttp
+172	/System/Volumes/Data/opt/homebrew/Cellar/libxdmcp
+128	/System/Volumes/Data/opt/homebrew/Cellar/libptytty
+112	/System/Volumes/Data/opt/homebrew/Cellar/nbytes
+104	/System/Volumes/Data/opt/homebrew/Cellar/blake3
+76	/System/Volumes/Data/opt/homebrew/Cellar/bb-cli
+
+--- /System/Volumes/Data/opt/homebrew/var ---
+777524	/System/Volumes/Data/opt/homebrew/var
+686740	/System/Volumes/Data/opt/homebrew/var/log
+42620	/System/Volumes/Data/opt/homebrew/var/postgresql@14
+39400	/System/Volumes/Data/opt/homebrew/var/postgresql@15
+8764	/System/Volumes/Data/opt/homebrew/var/cache
+0	/System/Volumes/Data/opt/homebrew/var/run
+0	/System/Volumes/Data/opt/homebrew/var/locate
+0	/System/Volumes/Data/opt/homebrew/var/homebrew
+0	/System/Volumes/Data/opt/homebrew/var/db
+
+--- /System/Volumes/Data/macOS Install Data/UpdateBundle ---
+11029264	/System/Volumes/Data/macOS Install Data/UpdateBundle
+11029252	/System/Volumes/Data/macOS Install Data/UpdateBundle/AssetData
+4	/System/Volumes/Data/macOS Install Data/UpdateBundle/META-INF
+
+--- /System/Volumes/Data/private/var/vm ---
+1048576	/System/Volumes/Data/private/var/vm
