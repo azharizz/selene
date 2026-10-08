@@ -50,3 +50,9 @@ Native entry uses a 32px heading, 18px body and two actions, with Demo preferred
 The demo picker has one Watch action, a short horizontal film selector and an optional credits icon. Film attribution remains reachable under Film credits. Quiet playback uses the crescent mark only; its accessible name identifies Selene or Bring us back. Loading is one animated mark with an accessible Cancel answer action. Back cancels it too.
 
 Audience, language and answer-style selectors are removed on TV as on phone. Questions communicate those needs. Only explicit slower read-aloud is retained across sessions. Own-player transport and captions are under Playback, with native accessibility settings still applied. A recap at the end of a film appears without restarting playback.
+
+## Motion landing, 8 October 2026
+
+The user asked for an expressive motion landing in the same palette. Only the native entry screen changes; watching surfaces keep their short, restrained transitions. Composition is tuned for the 640×360 dp TV layout: left text column (eyebrow, one-line 34px heading, orange rule, 16px tagline, 14px status line with a dot), and a lunar stage on the right.
+
+Motion in `src/Motion.tsx` animates only transform and opacity on the native driver, from four shared drivers: a one-shot 2.6s intro, a 9s ambient loop, a 14s orbit loop, and a scan loop that exists only while discovery is busy. The intro goes from a new-moon eclipse ring to the waxing crescent, then halo, tilted orbits and staggered text. The ambient loops cover twinkling star groups, a breathing halo, orbiting satellites that pass in front of and behind the moon, a gentle float and one meteor per cycle. Stars stay out of the text column. Focused buttons spring-lift and get one warm light sweep, and keep the white focus treatment. When the platform reports reduce motion, every element renders in its settled state.

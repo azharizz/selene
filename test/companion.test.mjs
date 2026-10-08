@@ -7,7 +7,7 @@ import {readFile} from 'node:fs/promises';
 const compiled = await build({entryPoints: ['src/Companion.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', loader: {'.png': 'dataurl'}, plugins: [{
   name: 'native-test-boundary', setup(builder) {
     builder.onResolve({filter: /^(react|react-native|@amazon-devices\/(kepler-media-controls|webview))$/}, args => ({path: args.path, namespace: 'boundary'}));
-    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === 'react' ? 'export default {createElement:(type,props,...children)=>({type,props:{...props,children}}),createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0,Image=0; export const BackHandler={addEventListener:()=>({remove(){}})};' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
+    builder.onLoad({filter: /.*/, namespace: 'boundary'}, ({path}) => ({contents: path === 'react' ? 'export default {createElement:(type,props,...children)=>({type,props:{...props,children}}),createRef:()=>({current:null}), Component: class {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}}};' : path === 'react-native' ? 'export const StyleSheet={create: x=>x}; export const AppState={addEventListener:()=>({remove(){}})}; export const Pressable=0,ScrollView=0,Text=0,View=0,Image=0; export const BackHandler={addEventListener:()=>({remove(){}})}; export const Animated={View:0,Text:0}, AccessibilityInfo={}, Easing={out:f=>f,inOut:f=>f,cubic:0,quad:0,linear:0}; export const useWindowDimensions=()=>({width:640,height:360});' : path === '@amazon-devices/webview' ? 'export const WebView=0;' : 'export const MediaControlComponentAsync={makeMediaControlEndpointLocator:()=>globalThis.locator}; export const Action={PLAY:{name:"PLAY"},PAUSE:{name:"PAUSE"}};'}));
   },
 }]});
 function instance(locator) {
@@ -228,7 +228,7 @@ test('readable playback tiles are paged and open a fresh moment in one selection
   }
   app.props.accessibility = {textScale: 1.5, highContrast: true};
   const copy = collect(app.render()).find(node => node.props?.accessibilityLiveRegion === 'polite');
-  assert.equal(copy.props.style.fontSize, 27); assert.equal(copy.props.style.lineHeight, 39); assert.equal(copy.props.style.color, '#ffffff');
+  assert.equal(copy.props.style.fontSize, 21); assert.equal(copy.props.style.lineHeight, 30); assert.equal(copy.props.style.color, '#ffffff');
   await app.openMoment(app.state.sessions[7]);
   assert.equal(app.state.snapshot.package_id, 'test.provider.7');
   assert.equal(providers[7].calls.some(([action]) => action === 'pause' || action === 'play'), false);

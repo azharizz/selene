@@ -20,6 +20,10 @@ jest.mock('@amazon-devices/react-native-kepler', () => ({
   Pressable: 'Pressable',
   ScrollView: 'ScrollView',
   Text: 'Text',
+  Animated: jest.requireActual('@amazon-devices/react-native-kepler').Animated,
+  Easing: jest.requireActual('@amazon-devices/react-native-kepler').Easing,
+  AccessibilityInfo: {isReduceMotionEnabled: () => Promise.resolve(true)},
+  useWindowDimensions: () => ({width: 1920, height: 1080}),
   BackHandler: {exitApp: jest.fn(), addEventListener: jest.fn(() => ({remove: jest.fn()}))},
 }));
 
