@@ -33,7 +33,8 @@ export async function verifyServedBuild(appUrl, story, build) {
     return response;
   };
   const served = await (await get(`/api/story?id=${encodeURIComponent(story.id)}`)).json();
-  const version = createHash('sha256').update(JSON.stringify(story)).digest('hex');
+  const {movie_graph, ...original} = story;
+  const version = createHash('sha256').update(JSON.stringify(original)).digest('hex');
   assert(served.id === story.id && served.video === story.video && served.content_version === version,
     'Relay catalog differs from disk. Restart the relay before testing.');
   for (const [path, expected] of [['/app.js', build.webSha256], ['/app.css', build.cssSha256], [story.video, build.mediaSha256]]) {

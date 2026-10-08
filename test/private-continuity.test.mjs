@@ -1,11 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {getStory, personalReferences, connections, createMemory} from '../server/context.mjs';
+import {getStory, movieGraphEvidence} from '../server/context.mjs';
 import {playerStory, recordPlayback, requireSample, personalContext, originalQuote} from '../server/personal.mjs';
 import {privateAction, privateState, THREAD_CHECK_MS} from '../server/private-actions.mjs';
 
 const preferences = {need: 'Show visually', language: 'English', recipient: 'everyone'};
 function setup(t, storyId = 'the-red-kite') {
+  // Browser startup must not age these explicit playback samples; stale-time checks advance their own clock.
+  t.mock.method(Date, 'now', () => 1_800_000_000_000);
   const story = getStory(storyId), session = {contentId: story.id, contentVersion: playerStory(story).content_version, duration: story.duration,
     playback: null, mirror: {hold: null, thread: null}};
   const report = (at, epoch = 0) => {
@@ -26,19 +28,23 @@ function setup(t, storyId = 'the-red-kite') {
     const body = JSON.parse(options.body);
     if (behavior.unavailable) throw new Error('fixture unavailable');
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
-      const payload = JSON.parse(body.messages.at(-1).content);
-      if (payload.context.follow_thread) assert.match(body.messages.map(item => item.content).join('\n'), /rephrasing the same fact is not an update/);
       return Response.json({choices: [{message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
+    if (body.response_format.json_schema.name === 'selene_visual_feedback')
+      return Response.json({choices: [{message: {content: JSON.stringify({action: 'keep', issue: '', response: null})}}]});
     const runtime = JSON.parse(body.messages.find(item => item.role === 'user').content.split('runtime data:\n')[1]);
     const context = runtime.playback_context; calls.push(runtime);
     await behavior.generating?.(runtime);
     const quiet = behavior.quiet && context.follow_thread;
     const id = behavior.future ? 'unseen-future' : context.follow_thread?.new_evidence_ids[0] ?? context.return_window?.interval_evidence_ids[0]
-      ?? context.references?.[0]?.id ?? context.transcript.at(-1)?.id ?? context.facts.at(-1).id;
+      ?? context.transcript.at(-1)?.id ?? context.facts.at(-1).id;
     const result = {version: '1.0', state: quiet ? 'quiet' : 'response', answer: quiet ? '' : `Supported explanation at ${context.at_seconds}.`,
-      visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-      grounding: {content_id: story.id, scene_id: context.scene_id, at_seconds: context.at_seconds, evidence_ids: quiet ? [] : [id], graph_ids: []}, new_connections: []};
+      visual: context.return_window || context.follow_thread ? {status: 'none', svg: '', description: '', animations: []}
+        : {status: 'ready', description: 'Two connected story elements.',
+          svg: '<svg viewBox="0 0 960 540"><g id="diagram"><circle cx="280" cy="270" r="90" fill="#ffad33"/><rect x="590" y="180" width="180" height="180" fill="#f1f1f1"/><line x1="370" y1="270" x2="590" y2="270" stroke="#ffad33" stroke-width="22"/></g></svg>',
+          animations: [{target_id: 'diagram', duration_ms: 1600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
+      intervention: {playback: 'keep_watching', audio: 'silent'},
+      grounding: {content_id: story.id, scene_id: context.scene_id, at_seconds: context.at_seconds, evidence_ids: quiet ? [] : [id], graph_ids: []}};
     return Response.json({choices: [{message: {content: JSON.stringify(result)}}]});
   });
   const hold = async from => (await privateAction(session, 'hold', {...sample(), ...(from === undefined ? {} : {from_seconds: from})})).hold;
@@ -50,13 +56,15 @@ function setup(t, storyId = 'the-red-kite') {
 test('Send and catch-up tap use independent confirmed samples; a completed interval never leaks into the next conversation', async t => {
   const {session, report, sample, hold, ask, calls, behavior} = setup(t);
   report(35); const held = await hold();
-  await ask(held, 20);
+  const first = await ask(held, 20);
   assert.equal(session.mirror.hold.from_seconds, 35);
   assert.equal(session.mirror.hold.question_at_seconds, 20);
   report(45);
   await ask(held, 20, 'Can you explain that word?', false);
   assert.equal(calls.at(-1).playback_context.at_seconds, 20);
   assert.match(calls.at(-1).playback_context.initial_request, /grandma/);
+  assert.deepEqual(calls.at(-1).playback_context.previous_help.visual, first.moment.visual);
+  assert.deepEqual(calls.at(-1).playback_context.previous_help.visual_feedback, [{action: 'keep', issue: ''}]);
   await assert.rejects(ask(held, 45, 'Why?', false), /original moment/);
   const tapped = sample(); report(46);
   behavior.generating = () => {report(50);};
@@ -100,23 +108,17 @@ test('failed and insufficient catch-up keep the original interval for retry', as
   behavior.unavailable = false; assert.equal((await returning()).status, 'ready'); assert.equal(session.mirror.hold, null);
 });
 
-test('quotes stay verbatim and completed; private references exclude generated memory and title relationships', async t => {
+test('quotes stay verbatim and completed; private contexts have no general or prior-answer graph memory', async t => {
   const {session, story, report, hold, ask, calls} = setup(t);
   report(35); const held = await hold(); const answer = await ask(held, 20);
   assert.equal(answer.quote.text, story.transcript[1].text);
   assert.notEqual(answer.quote.text, answer.moment.answer);
   const context = personalContext(story, 32);
   assert.equal(originalQuote({grounding: {evidence_ids: ['t3']}}, context)?.id, 't2', 'unfinished t3 is never quoted');
-  const refs = personalReferences('Explain the offside rule');
-  assert.deepEqual(refs.map(ref => ref.id), ['g-soccer-offside']); assert.equal(refs[0].source, 'reference');
-  assert.match(refs[0].source_url, /theifab.com/);
-  assert.deepEqual(personalReferences('Who is Arun?'), []);
-  assert.deepEqual(personalReferences('What happened when she plays with that ball?'), [], 'generic words cannot select an unrelated rule');
-  const memory = createMemory(); memory.connections.push({id: 'generated', scope: 'general', title_id: '*', validated: true});
-  assert.deepEqual(connections(35, '', memory, {...context, references: refs}), refs);
-  const rule = await ask(held, 20, 'Explain the offside rule', false);
-  assert.equal(calls.at(-1).playback_context.references[0].id, 'g-soccer-offside');
-  assert.equal(rule.evidence[0].source, 'reference'); assert.match(rule.evidence[0].source_url, /theifab.com/);
+  assert.deepEqual(movieGraphEvidence(context), []);
+  assert.equal(context.references, undefined);
+  await ask(held, 20, 'Who is Arun?', false);
+  assert.equal(calls.at(-1).playback_context.references, undefined);
   assert.equal(session.playback.play_state, 'playing');
 });
 
@@ -151,6 +153,8 @@ test('one opted-in thread stays quiet without developments, is throttled, and up
   await privateAction(session, 'thread', {enabled: true, answer_id: followup.id});
   await ask(held, 60, 'Explain another topic at this point', true);
   assert.equal(session.mirror.thread, null, 'an explicit new topic cancels following even at the same timestamp');
+  assert.equal(calls.at(-1).playback_context.previous_help, undefined);
+  assert.equal(calls.at(-1).playback_context.initial_request, 'Explain another topic at this point');
 });
 
 test('thread results are discarded after opt-out or revocation and cannot cite future evidence', async t => {

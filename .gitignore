@@ -21,3 +21,6 @@ evaluation/results*.json
 /video/
 /.impeccable/
 /.serena/
+
+# Local playback sources are supplied separately, not stored in Git.
+/assets/media/**/*.mp4

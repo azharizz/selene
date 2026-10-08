@@ -17,12 +17,12 @@ test('startup failure is observable before playback, safe for logs, and listener
     readyState: 0, networkState: 3, error: {code: 4, message: 'https://private.example/video?token=secret'}, canPlayType: () => 'maybe',
     buffered: {length: 1, start: () => 0, end: () => 96}, videoWidth: 960, videoHeight: 540, playbackRate: 1,
     getVideoPlaybackQuality: () => ({totalVideoFrames: 75, droppedVideoFrames: 2})});
-  const stop = context.module.exports.observeMedia(player, 'offside-rule');
+  const stop = context.module.exports.observeMedia(player, 'football-match');
   player.dispatchEvent(new Event('error'));
   assert.equal(records[0].errorCode, 4);
   assert.equal(records[0].currentTime, 0);
   assert.equal(records[0].duration, null);
-  assert.equal(records[0].contentId, 'offside-rule');
+  assert.equal(records[0].contentId, 'football-match');
   assert.equal(records[0].mp4Support, 'maybe');
   assert.deepEqual(records[0].buffered, [[0, 96]]);
   assert.equal(records[0].totalVideoFrames, 75);
@@ -30,12 +30,12 @@ test('startup failure is observable before playback, safe for logs, and listener
   assert.equal(records[0].videoWidth, 960);
   assert.equal(messages.length, 1);
   assert(!messages[0].includes('secret'));
-  context.module.exports.reportMedia(player, 'offside-rule', 'control', 'player-session:pause');
+  context.module.exports.reportMedia(player, 'football-match', 'control', 'player-session:pause');
   assert.equal(records[1].detail, 'player-session:pause');
   stop(); player.dispatchEvent(new Event('playing'));
   assert.equal(records.length, 2);
   context.window.ReactNativeWebView.postMessage = () => {throw new Error('bridge disconnected');};
-  assert.doesNotThrow(() => context.module.exports.reportMedia(player, 'offside-rule', 'control', 'keyboard:toggle'));
+  assert.doesNotThrow(() => context.module.exports.reportMedia(player, 'football-match', 'control', 'keyboard:toggle'));
 });
 
 test('device-flow assertions distinguish recap time from fallback text and resolve actual buttons', () => {

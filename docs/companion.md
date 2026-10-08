@@ -1,5 +1,7 @@
 # Third-party companion evidence
 
+**Current own-player catalog:** `football-match` and `the-missing-crown` only. Dated Sintel import/model results below are historical, not current-film verification. The current `npm run test:live -- --ingested` command targets the supplied Missing Crown captions and source frames; it does not rerun the old Sintel cases.
+
 ## Platform contract
 
 Amazon's [Media Controls getting-started guide](https://developer.amazon.com/docs/vega/0.24/media-controls-get-started) explicitly limits the provider manifest prerequisites to provider apps, excluding client methods. Its client example calls the endpoint locator without a privilege request. That supports using the documented client API; it does not establish that every device or provider grants access. SELENE declares the actual SDK module dependency `/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0`, does not invent a privilege, and does not register itself as a provider.
@@ -45,3 +47,63 @@ The implementation includes real client calls and explicit controls. The unavail
 The supported-client-to-agent flow and viewer-detail fallback are implemented. The optional scene-context adapter uses a real HTTPS/loopback endpoint boundary, but cannot claim coverage until an authorized source is configured. The September 19 code-only review added regression coverage and fixes; see [the current results](companion-review.md). No device, app or browser was opened for that review. Earlier device artifacts remain historical evidence. In-app overlays are still outside the supported capabilities; this is not a verified universal or Prime Video integration.
 
 During testing, exercise cancellation while discovery/state reads are pending, Back/background before dispatch, content changes before and after a control request, partial provider failures, missing position/metadata, remote focus and relay failure recovery. Then perform the real-device gates above. Unit checks cannot prove provider participation, permissions, overlay behavior or 10-foot rendering.
+
+## Capability investigation — 7 October 2026
+
+Target: assistance alongside existing Fire TV playback apps, not a requirement to watch inside SELENE. The current implementation is Vega-only. A universal overlay or automatic scene feed is **not** implemented or established by the public APIs.
+
+### Implementation decision
+
+Reuse the existing paths; no second discovery client, capture workaround, scene-feed simulator, or Android build was added:
+
+- `src/Companion.tsx`: actual endpoint discovery, explicit session selection, sampled identity/position, supported playback controls and change notifications.
+- `web/CompanionMoment.tsx` → `server/index.mjs`: actual companion request path, without borrowing the own-player catalog.
+- `server/external-context.mjs`: authorized scene-source adapter. See [the wire contract](scene-context.md); setting a URL does not prove authorization or provider coverage.
+- `scripts/ingest-video.mjs` → `server/context.mjs`: permitted local captioned-excerpt processing and timestamp-bounded evidence. This does not capture another app.
+
+Amazon's [Media Controls client documentation](https://developer.amazon.com/docs/vega/0.24/media-controls-get-started) requires provider participation; [playback features](https://developer.amazon.com/docs/vega/0.24/media-controls-attributes-features.html) determine optional position/control availability. Neither interface supplies the actual dialogue or screen pixels. Development screenshots are not a production scene feed; [Amazon's Appium guidance](https://developer.amazon.com/docs/vega/0.22/appium-commands.html) says not to capture DRM content.
+
+An Android/Fire OS implementation is a separate decision, not a Vega patch. [MediaProjection](https://developer.android.com/media/grow/media-projection) requires user consent; [secure windows](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_SECURE) and [source audio-capture policy](https://developer.android.com/media/platform/av-capture) constrain access. The overlay permission flow, remote focus, uninterrupted playback and app distribution remain device-specific verification gates. Do not use ADB-only permission grants or bypass protected playback.
+
+### Observed checks
+
+| Check | Result | Evidence limit |
+| --- | --- | --- |
+| Initial `vega device list`, before starting the installed VVD | `No devices found` | A stopped VVD was not evidence that the virtual-device installation was absent. See the device follow-up below. |
+| Initial `adb devices -l` | Empty device list | Later tester inspection found `emulator-5554`; that establishes an Android emulator, not a verified Fire OS target or a physical Fire TV. No capture, consent or overlay was exercised. |
+| Actual relay `/api/health` | `provider_configured: true`, `scene_context_configured: false` | Presence of model configuration is not proof of a licensed scene source. |
+| `npm run test:live -- --companion` | Live viewer-description answer and SVG; position alone was not called an offside offence. | Synthetic snapshot, not a real provider session. |
+| `npm run test:live -- --ingested` | Live caption explanation and qualified sampled-frame answer. | Existing authorized Sintel excerpt, not arbitrary streaming-app access. |
+| Fresh temporary Sintel import → live answer | Real FFmpeg processing and image-model call: 20 seconds, two captions, one sampled frame, four provisional observations. Answer cited `caption-2`: “Sit still” means stay in one place without moving. | Temporary import, no authored plot facts or prepared answer; no full-movie, audio-transcription or native playback proof. |
+| Actual `/api/companion/moment`, no scene details/feed | HTTP 200 clarification: “What happened just before the person left? The available scene information does not explain why they left.” | Live model with a synthetic snapshot; `provider-metadata` citation identifies the request, not a reason for the scene event. |
+| Tester: `node --test test/external-context.test.mjs` | One test passed, zero failed: identity/time matching, future-evidence filtering, mismatches, payload bound and cancellation. | Ephemeral local fixture only; no licensed endpoint, real provider scene or source-failure UI proof. |
+
+The temporary import and its media were removed. The relay session was ended. Existing live-check artifacts use only public/synthetic fixtures. No physical-device, protected-content or statistical reliability claim follows from these checks.
+
+### Remaining execution checklist
+
+- [x] Trace native selection → web request → relay grounding and authorized-source validation.
+- [x] Check documented platform boundaries and current device/configuration prerequisites.
+- [x] Exercise current live companion answers, imported evidence and missing-scene clarification.
+- [ ] **Real Vega provider gate:** connect a supported device with YouTube/Prime Video installed. Play content, open SELENE, select the actual provider and record package/session identity, sampled position and advertised actions. Observe foreground video/audio and Back behavior. Missing endpoints mean no verified support for that provider.
+- [ ] **Authorized source gate:** obtain a source with processing rights and exact provider-ID/time alignment; configure `SELENE_SCENE_CONTEXT_URL` and optional token only then. Exercise a real question and identity/time mismatch, unfinished-caption, source-failure and cancellation cases. Do not substitute public plot summaries or an invented feed.
+- [ ] **Separate Fire OS gate, if that platform is chosen:** connect an Android-based Fire TV and prove user-operable capture consent, eligible screen/audio capture and overlay/remote coexistence on authorized unprotected content. Record protected-content exclusions; do not claim universal coverage.
+- [x] **Permitted-source ingestion gate:** actual licensed local and HTTPS Sintel imports, unprepared questions and local playback were exercised. Current imports have no application video-duration/download-byte ceiling; captions may be supplied/embedded or explicitly unavailable. The current [import guide](improvement-verification.md#import-another-video) supersedes the former five-minute/512-MiB/40-frame restrictions. This proves source-file processing, not access to arbitrary streaming-app content.
+
+These unchecked gates need real hardware, an authorized source or a user-supplied asset. More application code cannot establish those prerequisites. Expand ingestion or build another platform only after the corresponding requirement and evidence justify it.
+
+### Existing VVD follow-up
+
+The installed virtual device was started with SDK `0.24.12112`; SELENE launched on its actual 1280 × 720 surface. The own-player fallback rendered The Red Kite, and native media diagnostics showed playback advancing from `0` to `11.234536`, `31.639588` and `67.641611` seconds. Selecting Pause changed the accessible control to Play; the native pause event recorded `currentTime: 74.058478`, `paused: true`, `ended: false`.
+
+Screenshot and accessibility evidence is retained under `artifacts/companion-vvd/2026-10-07/`. This proves the own-player fallback and pause transition on the VVD, not playback alongside YouTube/Prime, continuous scene capture or an authorized provider feed.
+
+A tester independently checked that `SELENE_SCENE_CONTEXT_URL` is absent from the process environment and the workspace `.env`, without exposing secret values. The focused adapter test passed against its local fixture; the authorized-source gate remains blocked. The test does not establish source licensing, optional scene-interval handling, source-failure UI behavior or production provider coverage.
+
+### Tester phone-join attempt
+
+The supplied `https://selene-phone-demo-v2.yyaex8bhyrtby.us-east-1.cs.amazonlightsail.com/?join=1` loaded the join screen and matches the configured TV relay host. Health returned HTTP 200 with the model configured and scene source unconfigured.
+
+The tester used the existing Appium connection and attempted the actual **Try the demo** route. In this attempt, SELENE disappeared from the accessibility tree and the launcher became visible before the Pair phone controls were reached. Screenshot requests timed out/aborted; restarting only Appium once did not restore screenshot transport. This is an automation/application-navigation blocker, not evidence that pairing or provider support is impossible.
+
+No genuine pairing code was obtained, so phone join, a private question, playback continuity during phone use and saved-place/return remain unverified. Prior own-player playback evidence is not evidence of this phone flow. See `artifacts/companion-vvd/2026-10-07/phone-join-report.json` and the accompanying phone screenshot/XML captures. The tester closed its browser tabs and released the recovered Appium session; the VVD remains running. No application code or configuration was changed.

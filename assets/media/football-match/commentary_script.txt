@@ -1,0 +1,21 @@
+OFFSIDE - 60s commentary script (verbatim)
+Voice: macOS 'Daniel' (en_GB). Timestamps = speech start - end.
+
+[00:00,300 - 00:05,725]  Good evening from a packed stadium. Harbor City in red, Northvale in blue, still goalless.
+[00:05,900 - 00:09,284]  City knocking it about in midfield... into the number ten.
+[00:09,900 - 00:11,176]  Lovely ball over the top!
+[00:11,400 - 00:14,667]  He's in behind, takes it down... but the flag is up!
+[00:15,000 - 00:17,426]  Offside! The striker can't believe it.
+[00:18,300 - 00:24,334]  Let's see it again. As the ball is played, he's a good yard beyond the last defender. Gone too early.
+[00:25,300 - 00:28,495]  Right call from the assistant. Free kick to Northvale.
+[00:30,400 - 00:33,338]  Late on now, and City are coming forward again.
+[00:33,600 - 00:36,345]  Neat interchange in the middle, the captain looks up...
+[00:39,000 - 00:40,009]  Here's the through ball!
+[00:40,600 - 00:42,843]  Perfectly timed, he's away from his marker...
+[00:43,150 - 00:44,599]  He scores! What a finish!
+[00:44,800 - 00:46,845]  Harbor City lead, and this place erupts!
+[00:47,000 - 00:52,120]  Watch the run again. Level with the defender as the pass is played, then he bursts clear.
+[00:52,800 - 00:56,636]  Cool as you like, low past the keeper. No flag this time!
+[00:57,000 - 00:58,415]  One-nil to Harbor City!
+
+Total: 150 words

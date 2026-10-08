@@ -22,19 +22,19 @@ export const App = () => {
   return <SessionApp onReady={hideSplash} />;
 };
 
-class SessionApp extends React.Component<{onReady: () => void}, {demo: boolean; accessibility: AccessibilitySnapshot}> {
-  state = {demo: false, accessibility: {} as AccessibilitySnapshot};
+class SessionApp extends React.Component<{onReady: () => void}, {screen: 'companion' | 'demo' | 'import'; accessibility: AccessibilitySnapshot}> {
+  state = {screen: 'companion' as 'companion' | 'demo' | 'import', accessibility: {} as AccessibilitySnapshot};
   private mounted = false;
   private settings = new Accessibility(accessibility => {if (this.mounted) this.setState({accessibility});});
   componentDidMount() {this.mounted = true; void this.settings.start();}
   componentWillUnmount() {this.mounted = false; this.settings.stop();}
   render() {
-    return this.state.demo ? <OwnPlayer onReady={this.props.onReady} accessibility={this.state.accessibility} onCompanion={() => this.setState({demo: false})} />
-      : <Companion onReady={this.props.onReady} accessibility={this.state.accessibility} onDemo={() => this.setState({demo: true})} />;
+    return this.state.screen !== 'companion' ? <OwnPlayer importMp4={this.state.screen === 'import'} onReady={this.props.onReady} accessibility={this.state.accessibility} onCompanion={() => this.setState({screen: 'companion'})} />
+      : <Companion onReady={this.props.onReady} accessibility={this.state.accessibility} onDemo={() => this.setState({screen: 'demo'})} onImport={() => this.setState({screen: 'import'})} />;
   }
 }
 
-class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () => void; accessibility: AccessibilitySnapshot}, {failed: boolean; attempt: number}> {
+class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () => void; accessibility: AccessibilitySnapshot; importMp4: boolean}, {failed: boolean; attempt: number}> {
   state = {failed: false, attempt: 0};
   private frame = React.createRef<React.ElementRef<typeof WebView>>();
   private loadedUrl: string | null = null;
@@ -85,7 +85,7 @@ class OwnPlayer extends React.Component<{onReady: () => void; onCompanion: () =>
   render() {
     const {failed, attempt} = this.state;
     return <View style={styles.container}>
-      <WebView ref={this.frame} key={attempt} style={styles.webview} source={{uri: appUrl}}
+      <WebView ref={this.frame} key={attempt} style={styles.webview} source={{uri: this.props.importMp4 ? `${appUrl}${appUrl.includes('?') ? '&' : '?'}import=mp4` : appUrl}}
         hasTVPreferredFocus allowsDefaultMediaControl javaScriptEnabled domStorageEnabled
         mediaPlaybackRequiresUserAction mixedContentMode="never"
         injectedJavaScriptBeforeContentLoaded={`window.__SELENE_A11Y__=${JSON.stringify(this.props.accessibility).replace(/</g, '\\u003c')};true;`}

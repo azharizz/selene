@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {getStory, connections, createMemory} from '../server/context.mjs';
+import {getStory, createMemory, movieGraphEvidence} from '../server/context.mjs';
 import {validPlayback, validHold, validPersonalAsk, validPersonalReturn} from '../server/contract.mjs';
 import {validateMoment} from '../server/agent.mjs';
 import {playerStory, recordPlayback, playbackSnapshot, requirePlayback, holdMoment, publicHold, personalContext, returnContext, guidedReturn, captionsVtt} from '../server/personal.mjs';
@@ -54,9 +54,7 @@ test('returns use source evidence from the declared interval without future or g
   const captionBoundary = returnContext(story, 8, {at_seconds: 22}, '');
   assert.deepEqual(captionBoundary.return_window.interval_evidence_ids, ['t1', 't2', 'f-family', 'f-found']);
   assert.equal(captionBoundary.transcript.some(line => line.id === 't3'), false);
-  const memory = createMemory();
-  memory.connections.push({id: 'generated-answer', validated: true, scope: 'general', title_id: '*', explanation: 'Guess'});
-  assert.deepEqual(connections(45, '', memory, context), []);
+  assert.deepEqual(movieGraphEvidence(context), []);
   assert.equal(personalContext(story, 20, {at_seconds: 45, answer: 'Later answer'}).previous_help, undefined);
   assert.throws(() => returnContext(story, 46, playback), /before your saved place/);
   const preferences = {need: 'Explain simply', language: 'English', recipient: 'everyone'};
@@ -69,12 +67,12 @@ test('returns use source evidence from the declared interval without future or g
 });
 
 test('shared-TV Guided Return enforces its 26-word limit', () => {
-  const story = getStory('offside-rule'), context = returnContext(story, 6, {at_seconds: 23}, '', 'shared_tv');
+  const story = getStory('football-match'), context = returnContext(story, 6, {at_seconds: 23}, '', 'shared_tv');
   const input = {request: 'Summarize the missed interval.', content_id: story.id, at_seconds: 23, play_state: 'playing', playback_choice: 'keep_watching',
     need: 'Explain simply', language: 'English', session: 'family', recipient: 'everyone', continuation: null};
   const makeMoment = answer => ({version: '1.0', state: 'response', answer, visual: {status: 'none', svg: '', description: '', animations: []},
     intervention: {playback: 'keep_watching', audio: 'silent'},
-    grounding: {content_id: story.id, scene_id: context.scene_id, at_seconds: 23, evidence_ids: [context.return_window.interval_evidence_ids[0]], graph_ids: []}, new_connections: []});
+    grounding: {content_id: story.id, scene_id: context.scene_id, at_seconds: 23, evidence_ids: [context.return_window.interval_evidence_ids[0]], graph_ids: []}});
   validateMoment(makeMoment('word '.repeat(26).trim()), input, context);
   assert.throws(() => validateMoment(makeMoment('word '.repeat(27).trim()), input, context), /at most 26 words/);
 });
@@ -109,7 +107,7 @@ test('a malformed grounding review retries the review without regenerating its r
       version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather’s table.',
       visual: {status: 'none', svg: '', description: '', animations: []},
       intervention: {playback: 'keep_watching', audio: 'silent'},
-      grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []}, new_connections: [],
+      grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []},
     })}}]});
   };
   try {
@@ -124,7 +122,7 @@ test('a malformed grounding review retries the review without regenerating its r
   }
 });
 
-test('caption-led Guided Return keeps interval observations available to generation', async () => {
+test('caption-led Guided Return never reuses removed historical frame observations', async () => {
   const story = getStory('sintel-excerpt'), saved = {...process.env}, fetch = globalThis.fetch;
   Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only'});
   const playback = {at_seconds: 36, content_version: playerStory(story).content_version, epoch: 0, play_state: 'playing'};
@@ -137,13 +135,12 @@ test('caption-led Guided Return keeps interval observations available to generat
       assert.equal(review.context.facts.some(fact => fact.source === 'model_observation'), false);
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
-    assert.match(body.messages[0].content, /When captions are sparse or do not describe the main visual development/);
     const runtime = JSON.parse(body.messages.at(-1).content.split('\n').at(-1));
     assert.deepEqual(runtime.playback_context.return_window.interval_evidence_ids, source.return_window.interval_evidence_ids);
-    assert.ok(runtime.playback_context.facts.some(fact => fact.source === 'model_observation'), 'generation can use interval visual evidence');
+    assert.equal(runtime.playback_context.facts.some(fact => fact.source === 'model_observation'), false, 'historical visual observations are not interval evidence');
     const moment = {version: '1.0', state: 'response', answer: 'Someone says they are nearly done, then tells someone to sit still.',
       visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-      grounding: {content_id: story.id, scene_id: source.scene_id, at_seconds: 36, evidence_ids: ['caption-1', 'caption-2'], graph_ids: []}, new_connections: []};
+      grounding: {content_id: story.id, scene_id: source.scene_id, at_seconds: 36, evidence_ids: ['caption-1', 'caption-2'], graph_ids: []}};
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
   };
   try {
@@ -166,23 +163,19 @@ test('Guided Return keeps a useful later caption instead of requiring every cue'
     const body = JSON.parse(options.body);
     if (body.response_format.json_schema.name === 'selene_grounding_review') {
       reviews++;
-      const reviewRules = body.messages.find(message => message.content.includes('For Guided Return'))?.content;
-      assert.match(reviewRules, /Do not name a specific uncited caption as a required omission/);
       const verdict = reviews === 1
         ? {supported: false, issue: 'Include the earlier “Good night, Scales” cue.', pause_requested: false}
         : {supported: true, issue: '', pause_requested: false};
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(verdict)}}]});
     }
     drafts++;
-    assert.match(body.messages[0].content, /Select the smallest useful set of cues/);
-    if (drafts > 1) assert.match(body.messages.at(-1).content, /do not replace a later event with an earlier line/);
     const moment = {version: '1.0', state: 'response',
       answer: drafts === 1
         ? 'The captions say “We’re almost done” and “sit still”; later, “Get him, Scales! Come on!”'
         : 'The captions say “sit still,” then “Good night, Scales”; later, “Get him, Scales! Come on!”',
       visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
       grounding: {content_id: story.id, scene_id: source.scene_id, at_seconds: 78,
-        evidence_ids: drafts === 1 ? ['caption-1', 'caption-2', 'caption-4'] : ['caption-2', 'caption-3', 'caption-4'], graph_ids: []}, new_connections: []};
+        evidence_ids: drafts === 1 ? ['caption-1', 'caption-2', 'caption-4'] : ['caption-2', 'caption-3', 'caption-4'], graph_ids: []}};
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
   };
   try {
@@ -213,9 +206,9 @@ test('a misleading optional return diagram is dropped while the reviewed recap s
     drafts++;
     const moment = {
       version: '1.0', state: 'response', answer: 'Maya asks for another kite. Arun made this one with her mother at Maya’s age.',
-      visual: {status: 'ready', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><rect x="40" y="40" width="880" height="460" fill="#202228"/><circle cx="300" cy="270" r="90" fill="#ffad33"/><rect x="570" y="180" width="180" height="180" fill="none" stroke="#f1f1f1" stroke-width="22"/><line id="connector" x1="410" y1="270" x2="530" y2="270" stroke="#ffad33" stroke-width="22"/></svg>', description: 'Two events in the story.', animations: [{target_id: 'connector', duration_ms: 900, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
+      visual: {status: 'ready', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540"><rect x="40" y="40" width="880" height="460" fill="#202228"/><circle cx="300" cy="270" r="90" fill="#ffad33"/><rect x="570" y="180" width="180" height="180" fill="none" stroke="#f1f1f1" stroke-width="22"/><line id="connector" x1="410" y1="270" x2="530" y2="270" stroke="#ffad33" stroke-width="22"/></svg>', description: 'Two events in the story.', animations: [{target_id: 'connector', duration_ms: 1500, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
       intervention: {playback: 'keep_watching', audio: 'silent'},
-      grounding: {content_id: story.id, scene_id: 'made-together', at_seconds: 36, evidence_ids: ['t3', 'f-history'], graph_ids: []}, new_connections: [],
+      grounding: {content_id: story.id, scene_id: 'made-together', at_seconds: 36, evidence_ids: ['t3', 'f-history'], graph_ids: []},
     };
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
   };
@@ -256,7 +249,7 @@ test('an early return requests bounded text without SVG and still reviews an inv
       version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather Arun’s kitchen table.',
       visual: {status: 'ready', svg: '<svg><script>invalid()</script></svg>', description: 'A kite.', animations: []},
       intervention: {playback: 'keep_watching', audio: 'silent'},
-      grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []}, new_connections: [],
+      grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1', 'f-family'], graph_ids: []},
     })}}]});
   };
   try {
@@ -278,7 +271,7 @@ test('return failures identify the stage without exposing provider bodies or acc
   Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'private-key'});
   const draft = {version: '1.0', state: 'response', answer: 'Maya brings a torn red kite to her grandfather’s table.',
     visual: {status: 'none', svg: '', description: '', animations: []}, intervention: {playback: 'keep_watching', audio: 'silent'},
-    grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1'], graph_ids: []}, new_connections: []};
+    grounding: {content_id: story.id, scene_id: 'the-cupboard', at_seconds: 14, evidence_ids: ['t1'], graph_ids: []}};
   const logs = [];
   console.error = value => logs.push(value);
   try {
@@ -296,9 +289,6 @@ test('return failures identify the stage without exposing provider bodies or acc
         calls++;
         const body = JSON.parse(options.body);
         const reviewing = body.response_format.json_schema.name === 'selene_grounding_review';
-        if (scenario === 'long' && !reviewing && calls > 1) assert.match(body.messages.at(-1).content, /preserve the most meaningful cited development/);
-        if (scenario === 'long' && !reviewing && calls === 1) assert.match(body.messages[0].content, /at most 20 words/);
-        if (scenario === 'long' && !reviewing && calls > 1) assert.match(body.messages.at(-1).content, /Shorten to at most 20 words; omit a secondary cue or optional sampled-frame detail/);
         if (scenario === 'generation_http' || (scenario === 'review_http' && reviewing)) return new Response('private upstream details', {status: 503});
         const result = reviewing ? {supported: false, issue: 'private viewer detail is not supported', pause_requested: false}
           : scenario === 'schema' ? {answer: 'private viewer detail'} : scenario === 'long' ? {...draft, answer: 'word '.repeat(27)} : draft;

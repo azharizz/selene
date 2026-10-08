@@ -1,0 +1,104 @@
+{
+  "id": "sintel-excerpt",
+  "title": "Sintel excerpt",
+  "subtitle": "Captioned excerpt",
+  "duration": 105,
+  "video": "/media/sintel-excerpt/video.mp4",
+  "poster": "/media/sintel-excerpt/frame-0.jpg",
+  "scenes": [
+    {
+      "id": "sintel-excerpt-interval-1",
+      "start": 0,
+      "end": 15,
+      "label": "Moment 1"
+    },
+    {
+      "id": "sintel-excerpt-interval-2",
+      "start": 15,
+      "end": 30,
+      "label": "Moment 2"
+    },
+    {
+      "id": "sintel-excerpt-interval-3",
+      "start": 30,
+      "end": 45,
+      "label": "Moment 3"
+    },
+    {
+      "id": "sintel-excerpt-interval-4",
+      "start": 45,
+      "end": 60,
+      "label": "Moment 4"
+    },
+    {
+      "id": "sintel-excerpt-interval-5",
+      "start": 60,
+      "end": 75,
+      "label": "Moment 5"
+    },
+    {
+      "id": "sintel-excerpt-interval-6",
+      "start": 75,
+      "end": 90,
+      "label": "Moment 6"
+    },
+    {
+      "id": "sintel-excerpt-interval-7",
+      "start": 90,
+      "end": 105,
+      "label": "Moment 7"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "caption-1",
+      "start": 22.25,
+      "end": 25.5,
+      "text": "We're almost done. Shhh...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-2",
+      "start": 25.75,
+      "end": 28.5,
+      "text": "Hey, sit still.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-3",
+      "start": 43.25,
+      "end": 47.25,
+      "text": "Good night, Scales.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-4",
+      "start": 65.35,
+      "end": 68.85,
+      "text": "Get him, Scales! Come on!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-5",
+      "start": 80.25,
+      "end": 83.25,
+      "text": "Scales?",
+      "source": "imported_caption"
+    }
+  ],
+  "facts": [],
+  "ingestion": {
+    "version": 1,
+    "source_url": "https://durian.blender.org/",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "credit": "Sintel © 2010 Blender Foundation | durian.blender.org. Trimmed and re-encoded excerpt; captions and visual observations imported automatically.",
+    "permission_acknowledged": true,
+    "source_offset_seconds": 185,
+    "source_sha256": "93df4e31869e879354a5055a8549fb9335df0f5f73f4963c9bf0db2c888bb704",
+    "caption_sha256": "4ed7e1f1bc5ff69fe33606960e4c048ba6766237bf33b132fef76e1a92cb64b2",
+    "video_sha256": "ed47b1fe19dfa2c80aac791607e83018982ab89d5d13d8ed42f49d255393e8f5",
+    "model": "google/gemini-2.5-flash",
+    "limitation": "No stored visual observations. Questions freshly capture a temporary temporal window; poster is catalog artwork only.",
+    "created_at": "2026-09-30T10:12:46.966Z"
+  }
+}

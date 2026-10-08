@@ -34,7 +34,7 @@ function positionSeconds(state: MediaSessionState) {
 }
 
 // Native client ownership stays here: discovery never sends a playback command.
-export class Companion extends React.Component<{onDemo: () => void; onReady: () => void; accessibility?: AccessibilitySnapshot}, State> {
+export class Companion extends React.Component<{onDemo: () => void; onImport: () => void; onReady: () => void; accessibility?: AccessibilitySnapshot}, State> {
   state: State = {busy: false, sessions: [], selected: null, title: '', snapshot: null, page: 0, message: 'Finding what’s playing…'};
   private clients: IMediaControlClientAsync[] = [];
   private mounted = false;
@@ -272,7 +272,7 @@ export class Companion extends React.Component<{onDemo: () => void; onReady: () 
           {pages > 1 && <View style={styles.actions}><Button accessibility={accessibility} label="Previous" disabled={busy || page === 0} onPress={() => this.setState({page: page - 1})}/><Text allowFontScaling={false} style={accessibleText(styles.copy, accessibility)}>Page {page + 1} of {pages}</Text><Button accessibility={accessibility} label="Next" disabled={busy || page + 1 === pages} onPress={() => this.setState({page: page + 1})}/></View>}
           <View style={styles.actions}>
             <Button accessibility={accessibility} label="Try the demo" preferred={!busy && !sessions.length} onPress={this.props.onDemo}/>
-            {busy ? <Button accessibility={accessibility} label="Cancel" preferred onPress={() => this.disconnect('Search cancelled.')}/> : <Button accessibility={accessibility} label={sessions.length ? 'Refresh apps' : 'Try again'} onPress={this.scan}/>}
+            {busy ? <Button accessibility={accessibility} label="Cancel" preferred onPress={() => this.disconnect('Search cancelled.')}/> : sessions.length ? <Button accessibility={accessibility} label="Refresh apps" onPress={this.scan}/> : <Button accessibility={accessibility} label="Import MP4" onPress={this.props.onImport}/>}
           </View>
         </View>
 

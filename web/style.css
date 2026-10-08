@@ -102,6 +102,9 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .answer h2 {font-size: calc(clamp(27px, 2.18vw, 42px) * var(--selene-text-scale)); line-height: 1.35}
 .visual {aspect-ratio: 16/9; min-width: 0; width: 100%; max-height: 36vh}
 .visual iframe {border: 0; width: 100%; height: 100%; display: block; pointer-events: none}
+.visual .animated-visual {position: relative; display: block; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: 6px; background: transparent}
+.visual-replay {position: absolute; right: 0; bottom: 0; font-size: 18px; line-height: 1; padding: 3px; border-radius: 4px; color: var(--ink); background: var(--surface)}
+@media (prefers-reduced-motion: reduce) {.visual-replay {display: none}}
 .visual-fallback {height: 100%; display: flex; flex-direction: column; gap: 20px; justify-content: center; padding: 24px; color: var(--muted); line-height: 1.4; border-left: 1px solid #737986}
 /* A toast, not a second viewing surface. SVG and answer share one row. */
 .moment.compact {left: auto; right: 5%; top: 5%; bottom: auto; width: min(560px, 46vw); max-height: 80%; overflow: auto; padding: 8px; border-radius: 12px; display: flex; align-items: center; gap: 8px}
@@ -112,7 +115,7 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .moment.compact .visual {order: -1; flex: 0 0 160px; width: 160px; height: 90px; max-height: none; aspect-ratio: 16 / 9}
 .moment.compact .visual-fallback {font-size: 14px; padding: 0; gap: 4px; border: 0; overflow: auto}
 .moment.compact footer {margin: 0; display: flex; flex-direction: column; gap: 0; flex: 0 0 32px}
-.moment.compact button {min-height: 32px; width: 32px; padding: 5px; font-size: 16px; background: transparent; border-radius: 8px}
+.moment.compact button:not(.animated-visual) {min-height: 32px; width: 32px; padding: 5px; font-size: 16px; background: transparent; border-radius: 8px}
 .moment.compact button:focus, .loading-panel button:focus {background: var(--ink); color: #101114; outline-offset: 1px; transform: none}
 .moment.full {inset: 5%; display: flex; flex-direction: column; overflow: auto}
 .moment.full .moment-content {flex: 1 0 auto; gap: 48px}
@@ -252,3 +255,12 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .film-list, .example-list {display: grid; gap: 6px; margin-top: 8px}
 .film-list button {display: flex; justify-content: space-between; gap: 12px; text-align: left}
 .example-list button {text-align: left}
+.media-import[hidden] {display: none}
+.media-import fieldset {border: 0; padding: 0; margin: 16px 0 0; display: grid; gap: 14px; min-width: 0}
+.media-import label {display: grid; gap: 6px; min-width: 0}
+.media-import input {width: 100%; min-width: 0; padding: 8px 10px; background: #191b20; color: var(--ink); border: 2px solid #737986; border-radius: 8px; font: inherit}
+.media-import input:focus {outline: 3px solid var(--ink); outline-offset: 3px; border-color: var(--ink)}
+.media-import input:disabled {opacity: .5}
+.media-import fieldset > button {justify-self: start}
+.media-import [role=alert]:focus {outline: 2px solid var(--ink); outline-offset: 4px}
+:root[data-high-contrast=true] .media-import input {border-color: #fff}

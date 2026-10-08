@@ -137,7 +137,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
   };
   private post = async (action: string, body: object, pending: AbortController) => {
     const result = await personalRequest(this.endpoint(action), {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), signal: pending.signal},
-      action === 'ask' || action === 'return' ? 45000 : 15000);
+      action === 'ask' ? 195000 : action === 'return' ? 45000 : 15000);
     if (!this.mounted || this.pending !== pending || pending.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
     return result;
   };

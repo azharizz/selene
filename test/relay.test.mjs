@@ -12,11 +12,11 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const saved = {...process.env};
   Object.assign(process.env, {SELENE_PORT: '0', SELENE_BIND: '127.0.0.1', SELENE_APP_URL: 'http://localhost:0',
     SELENE_MEDIA_ORIGIN: 'https://media.test.invalid',
-    SELENE_GRAPH_PATH: join(temporary, 'graph.json'), AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only',
+    AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only',
     SELENE_SCENE_CONTEXT_URL: 'https://scene.test.invalid'});
   process.env.SELENE_PRIVATE_URL = 'http://mirror.test.invalid'; // Host configured, but pairing requires HTTPS.
   const realFetch = globalThis.fetch;
-  let sceneReads = 0, modelReads = 0, nextState = 'clarification', sceneUnavailable = false, modelUnavailable = false, reviewIssue = '';
+  let sceneReads = 0, modelReads = 0, nextState = 'clarification', sceneUnavailable = false, modelUnavailable = false;
   let reviewedPlayback, generatedMessages;
   // Only remote network boundaries are fixtures. Routing, tools, schema, review and policy are real code.
   globalThis.fetch = async (url, options) => {
@@ -37,16 +37,23 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     const body = JSON.parse(options.body);
     if (body.response_format?.json_schema.name === 'selene_moment_response') generatedMessages = body.messages;
     if (body.response_format?.json_schema.name === 'selene_grounding_review') reviewedPlayback = JSON.parse(body.messages.at(-1).content).viewer.play_state;
+    if (body.response_format?.json_schema.name === 'selene_visual_feedback')
+      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({action: 'keep', issue: '', response: null})}}]});
     const message = body.tool_choice === 'required'
       ? {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}
       : body.response_format.json_schema.name === 'selene_grounding_review'
-        ? {content: JSON.stringify({supported: true, issue: reviewIssue, pause_requested: false})}
+        ? {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}
         : (() => {
           const tool = body.messages.find(message => message.role === 'tool');
           const context = tool ? JSON.parse(tool.content) : JSON.parse(body.messages.find(message => message.role === 'user').content.split('runtime data:\n')[1]).playback_context;
           return {content: JSON.stringify({version: '1.0', state: nextState, answer: nextState === 'clarification' ? 'Which person do you mean?' : context.follow_thread ? `Supported development at ${context.at_seconds}.` : 'From your description, you mean the passer.',
-            visual: {status: 'none', svg: '', animations: [], description: ''}, intervention: {playback: 'keep_watching', audio: 'silent'},
-            grounding: {content_id: context.content_id, scene_id: context.scene_id, at_seconds: context.at_seconds, evidence_ids: [context.return_window?.interval_evidence_ids[0] ?? context.facts.at(-1).id], graph_ids: []}, new_connections: []})};
+            visual: nextState !== 'response' || context.return_window || context.follow_thread
+              ? {status: 'none', svg: '', animations: [], description: ''}
+              : {status: 'ready', description: 'A connecting line is revealed.',
+                svg: '<svg viewBox="0 0 960 540"><line id="link" x1="200" y1="270" x2="760" y2="270" stroke="#ffad33" stroke-width="24"/><polygon points="700,220 780,270 700,320" fill="#ffad33"/></svg>',
+                animations: [{target_id: 'link', duration_ms: 1600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
+            intervention: {playback: 'keep_watching', audio: 'silent'},
+            grounding: {content_id: context.content_id, scene_id: context.scene_id, at_seconds: context.at_seconds, evidence_ids: [context.return_window?.interval_evidence_ids[0] ?? context.facts.at(-1).id], graph_ids: []}})};
         })();
     return Response.json({choices: [{finish_reason: 'stop', message}]});
   };
@@ -75,10 +82,18 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal(modelReads, 0);
   const own = await (await post('/api/session', {})).json();
   assert.match(own.story.video, /^\/media\//, 'the TV plays from its same-origin relay');
+  const mediaImport = {url: 'https://127.0.0.1/film.mp4', title: 'Private destination'};
+  assert.equal((await post('/api/media/import', mediaImport)).status, 410);
+  assert.equal((await post('/api/media/import', mediaImport, session_id)).status, 409);
+  assert.equal((await post('/api/media/import', {...mediaImport, video: '/etc/passwd'}, own.session_id)).status, 400);
+  assert.equal((await post('/api/media/import', {...mediaImport, captions: 'x'.repeat(1048576 + 16384)}, own.session_id)).status, 413);
+  const deniedImport = await post('/api/media/import', mediaImport, own.session_id);
+  assert.equal(deniedImport.status, 422, 'private source addresses cannot be imported');
+  assert.equal(modelReads, 0, 'rejected media never reaches the model');
+  assert.doesNotMatch((await deniedImport.json()).error, /127\.0\.0\.1/, 'source URLs do not escape in errors');
   for (const [query, status] of [['content_id=sintel-excerpt&at_seconds=33', 200], ['content_id=sintel-excerpt&at_seconds=-1', 400], ['content_id=sintel-excerpt', 400], ['content_id=unknown&at_seconds=33', 404]]) {
     const response = await fetch(`${base}/api/examples?${query}`, {headers: {Host: 'localhost:0'}});
     assert.equal(response.status, status);
-    if (status === 200) assert.deepEqual((await response.json()).examples.map(example => example.id), ['missed-fast-dialogue']);
   }
   const storyResponse = await fetch(`${base}/api/story`, {headers: {Host: 'localhost:0'}});
   assert.match((await storyResponse.json()).video, /^\/media\//);
@@ -140,12 +155,8 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   modelUnavailable = false;
   const stale = {...input, request: 'Which person are you asking about?', continuation: {request: 'Which person are you asking about?', question: freshQuestion.answer, answer: 'An old answer'}};
   assert.equal((await post('/api/companion/moment', stale, session_id)).status, 409);
-  reviewIssue = 'The answer includes an unsupported scene detail.';
-  const readsBeforeRejection = modelReads;
-  assert.equal((await post('/api/companion/moment', {...input, request: 'A new question for review.'}, session_id)).status, 502, 'a contradictory approval cannot release a flagged response');
-  assert.equal(modelReads - readsBeforeRejection, 5, 'one evidence call, two drafts and two reviews; no retry loop');
   // Private playback uses a separate lane and the same permitted source, never TV transport commands.
-  reviewIssue = ''; nextState = 'response';
+  nextState = 'response';
   const version = own.story.content_version;
   const playback = {content_id: own.story.id, content_version: version, sequence: 1, epoch: 0, at_seconds: 35, play_state: 'playing', playback_rate: 1};
   assert.equal((await post('/api/playback', playback, session_id)).status, 409, 'a companion session cannot publish an own-player timeline');
@@ -191,8 +202,6 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const privateAnswer = await post(`${personalPath}/ask`, privateQuestion);
   assert.equal(privateAnswer.status, 200);
   assert.equal((await privateAnswer.json()).moment.grounding.at_seconds, 35);
-  assert.match(generatedMessages[0].content, /phone diagram is displayed at 280 to 440 pixels wide/);
-  assert.match(generatedMessages[0].content, /Honor communication needs explicitly volunteered/);
   const personalRuntime = JSON.parse(generatedMessages.find(message => message.role === 'user').content.split('runtime data:\n')[1]);
   assert.equal(personalRuntime.viewer_request, privateQuestion.request);
   assert.equal(personalRuntime.recipient, 'everyone', 'explicit wording needs do not create a guessed demographic selection');

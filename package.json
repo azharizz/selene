@@ -8,7 +8,7 @@
   "scripts": {
     "clean": "rm -rf node_modules buildinfo.json dist build",
     "start": "node --env-file=../.env server/index.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --import ./test/bootstrap.mjs --test test/*.test.mjs",
     "test:snapshot": "jest --colors --updateSnapshot",
     "lint": "eslint src web test --ext .ts,.tsx",
     "lint:fix": "eslint src web test --ext .ts,.tsx --fix",
@@ -40,6 +40,7 @@
     "@amazon-devices/webview": "^4.0.0",
     "@xmldom/xmldom": "^0.8.11",
     "ajv": "^8.17.1",
+    "puppeteer-core": "24.40.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.0"

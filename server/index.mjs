@@ -5,13 +5,14 @@ import {readFile, stat} from 'node:fs/promises';
 import {resolve, extname, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID, randomInt} from 'node:crypto';
-import {validRequest, validCompanionRequest, validPlayback, validReturn} from './contract.mjs';
+import {validRequest, validCompanionRequest, validPlayback, validReturn, validMediaImport} from './contract.mjs';
 import {explain} from './agent.mjs';
-import {story, stories, getStory, createMemory, companionContext, sceneContext} from './context.mjs';
+import {story, stories, getStory, registerStory, createMemory, companionContext, sceneContext} from './context.mjs';
 import {enrichCompanionContext} from './external-context.mjs';
 import {playerStory, conflict, recordPlayback, playbackSnapshot, requirePlayback, guidedReturn, captionsVtt} from './personal.mjs';
 import {privateAction, privateState, publicThread, validatePrivateAction} from './private-actions.mjs';
 import {mcpRequest, mcpAccess} from './mcp.mjs';
+import {ingest} from '../scripts/ingest-video.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -25,10 +26,11 @@ if (mediaOrigin) allowedHosts.add(new URL(mediaOrigin).host);
 const phoneHost = process.env.SELENE_PRIVATE_URL ? new URL(process.env.SELENE_PRIVATE_URL).host : '';
 if (phoneHost) allowedHosts.add(phoneHost);
 const mime = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css', '.json': 'application/json', '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml'};
-// Sessions and viewer answers are ephemeral. Only model-reviewed general graph concepts use the separate bounded graph store.
+// Sessions and viewer answers are ephemeral; each imported movie owns its caption-derived graph.
 const active = new Set();
 const sessions = new Map();
 const joinAttempts = new Map();
+let importing = false; // ponytail: one media import per relay; use a worker queue only for multi-TV hosting.
 function closeMirror(session) {
   session?.mirror?.controller?.abort();
   for (const client of session?.mirror?.clients ?? []) client.end('data: {"type":"closed"}\n\n');
@@ -38,7 +40,8 @@ function endSession(id) {
   const session = sessions.get(id);
   session?.controller?.abort();
   if (session) {
-    session.memory.responses.clear(); session.memory.connections.length = 0;
+    session.memory.responses.clear();
+    session.memory.lastExplanation = null;
     closeMirror(session);
     session.latestMoment = null; session.latestLanguage = 'English'; session.latestSlowerVoice = false;
   }
@@ -131,7 +134,7 @@ export const server = createServer(async (req, res) => {
       if (origin && origin !== `http://${host}` && origin !== `https://${host}`) return send(res, 403, {error: 'Cross-origin request rejected'});
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, {error: 'JSON required'});
       let size = 0; const chunks = [];
-      const maxBytes = url.pathname === '/api/companion/moment' ? 32768 : 8192;
+      const maxBytes = url.pathname === '/api/media/import' ? 1048576 + 16384 : url.pathname === '/api/companion/moment' ? 32768 : 8192;
       for await (const chunk of req) { size += chunk.length; if (size > maxBytes) return send(res, 413, {error: 'Request too large'}); chunks.push(chunk); }
       let input;
       try { input = JSON.parse(Buffer.concat(chunks).toString()); } catch {
@@ -151,6 +154,32 @@ export const server = createServer(async (req, res) => {
         const private_mirror_available = Boolean(privateUrl('capability'));
         if (companionSession) return send(res, 201, {session_id: id, private_mirror_available});
         return send(res, 201, {session_id: id, private_mirror_available, story: servedStory(selectedStory), catalog: stories.map(({id: content_id, title, subtitle, duration, poster}) => ({id: content_id, title, subtitle, duration, poster}))});
+      }
+      if (url.pathname === '/api/media/import') {
+        const session = sessions.get(req.headers['x-selene-session']);
+        if (!session) return send(res, 410, {error: 'This viewing session has ended. Open the player to import a film.'});
+        if (!session.contentId) return send(res, 409, {error: 'Open the SELENE player to import a film.'});
+        if (!validMediaImport(input)) return send(res, 400, {error: 'Provide a direct HTTPS MP4, title and optional SRT/VTT captions.'});
+        if (importing) return send(res, 429, {error: 'Another film is being imported. Try again when it finishes.'});
+        if (!process.env.AGENT_PROVIDER_URL || !process.env.AGENT_PROVIDER_API_KEY) return send(res, 503, {error: 'Import needs the configured model service.'});
+        const controller = startRequest(session, res);
+        importing = true;
+        try {
+          const imported = await ingest({
+            id: `media-${randomUUID()}`, title: input.title, url: input.url,
+            captionsText: input.captions, generateCaptions: false,
+            permitted: true, autoDuration: true,
+            model: process.env.AGENT_PROVIDER_MODEL, signal: controller.signal,
+          });
+          registerStory(imported);
+          return send(res, 201, {story: servedStory(imported), catalog: stories.map(({id, title, subtitle, duration, poster}) => ({id, title, subtitle, duration, poster}))});
+        } catch {
+          if (!controller.signal.aborted && !res.destroyed) send(res, 422, {error: 'Import failed. Check that the public HTTPS link is a readable MP4, disk space is available, captions have complete cues, and the model service supports the selected inputs.'});
+        } finally {
+          importing = false;
+          finishRequest(session, controller);
+        }
+        return;
       }
       if (url.pathname === '/api/session/end') {
         if (!input || typeof input.session_id !== 'string') return send(res, 400, {error: 'Session required'});

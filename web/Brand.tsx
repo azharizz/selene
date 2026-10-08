@@ -1,7 +1,7 @@
 import React from 'react';
 
 export function Brand({markOnly = false}: {markOnly?: boolean}) {
-  return <span className="wordmark" aria-label="SELENE"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M36 36A20 20 0 1 1 36 8 17 17 0 1 0 36 36Z" fill="#ff9900"/><path d="m28 16 12 8-12 8Z" fill="currentColor"/></svg>{!markOnly && <span>selene</span>}</span>;
+  return <span className="wordmark" aria-label="SELENE"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M36 36A20 20 0 1 1 36 8 17 17 0 1 0 36 36Z" fill="#ff9900"/></svg>{!markOnly && <span>selene</span>}</span>;
 }
 
 export function LoadingMark() {

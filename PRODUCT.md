@@ -1,5 +1,7 @@
 # SELENE companion
 
+**SELENE — See & Learn through Narrative Explanation.**
+
 <!-- impeccable:product-schema 1 -->
 
 The full Moment Response contract is in [the original product brief](../PRODUCT.md). These current decisions supersede its original own-player-first positioning.

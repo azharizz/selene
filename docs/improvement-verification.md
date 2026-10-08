@@ -10,7 +10,7 @@ Implementation record, September 30, 2026. This is the executable follow-up to [
 
 ## Import another video
 
-Install FFmpeg/ffprobe through your usual trusted package manager. The import uses the existing HTTPS model endpoint/key in `../.env`; the selected ingestion model must accept images and structured output. This import explicitly selected `google/gemini-2.5-flash` for frame observations. The final answer-model setting is **`openai/gpt-6-luna`**, selected after compatibility and grounding failures with earlier configurations; the endpoint and credentials were preserved. Restart existing relay processes to load the new setting. Frame-ingestion provenance remains Gemini; changing the answer model does not regenerate those observations.
+The current pipeline supersedes historical sampled-frame/general-graph results below. Install FFmpeg/ffprobe through your trusted package manager. All AI stages use the server's HTTPS endpoint/key and `AGENT_PROVIDER_MODEL`, currently `openai/gpt-6-luna`. Caption graphs never select a model from historical ingestion metadata. The model must support image inputs and structured output; optional CLI audio transcription also requires audio support and never falls back to another model. Restart the relay when changing model configuration.
 
 Run from `selene/` with a local video and matching caption file:
 
@@ -21,24 +21,27 @@ npm run ingest -- \
   --source https://publisher.example/source \
   --license https://publisher.example/license \
   --credit 'Creator, source, license and changes' --permitted \
-  --model google/gemini-2.5-flash --offset 0 --duration 120 --interval 15
+  --offset 0 --duration 120
 npm run build
 npm start
 ```
 
-`--permitted` records your permission acknowledgment; it cannot establish rights automatically. Check the video, captions and model-processing rights before importing. The script sends sampled JPEGs to the configured provider; it does not upload the whole video. Never use private family footage as a convenience test.
+`--permitted` records acknowledgment, not proof of rights. Check video/caption/model-processing permission. Imports retain literal poster artwork and a graph built from all accepted captions, not historical model observations. Ordinary questions send fresh source JPEGs directly to answer generation without a second-model semantic veto. Never use private family footage as a convenience test.
 
-The importer re-encodes the excerpt, shifts complete caption cues, samples individual frames and asks the model for visible observations. It writes `content/<id>.json` and `assets/media/<id>/`, including timestamps, source/license/credit, file hashes, model and frame provenance. It refuses existing IDs and publishes the catalog entry only after successful processing. Restart the relay to reload content. Rebuild/reinstall the native package to include new bundled assets.
+The importer prepares playable source media, shifts complete caption cues and generates a caption-cited graph for that imported movie before exclusive catalog publication. It writes `content/<id>.json` and `assets/media/<id>/` with original timing/provenance and poster/video, refusing existing IDs. CLI publication needs a relay restart to reload the catalog; the Films → Import MP4 API registers success immediately. Rebuild/reinstall only when new assets must be bundled rather than served by the relay.
 
-The ceiling is a five-minute excerpt, 512 MiB input, 1 MiB captions and 40 frames at least five seconds apart. This is offline preprocessing; it is not continuous capture of another streaming app. It keeps the first video/audio streams, converts audio to stereo and does not add an audio-description track selector. Supply an appropriate permitted version of the program.
+There is no application-imposed video-duration or download-byte ceiling. URL imports prepare the entire remaining source; local CLI defaults to a 120-second excerpt unless specified. Supplied caption files retain the 1 MiB input safety bound, but there is no cue-count truncation in graph generation or question context. Downloads retain HTTPS/public-address protections, idle timeout and cancellation, requiring free disk space. This is source-file processing, not capture of another app. The first video/audio streams are retained with stereo audio; there is no audio-description-track selector.
 
-Only completed captions and observations already available at the frozen player time reach the answer agent. Captions do not identify a speaker unless the caption itself supplies that information. An image near a caption cannot prove who spoke or why. A sparse frame cannot prove intervening motion. Generated observations never enter durable graph memory. A diagram is optional when it would require invented details; the existing schema/semantic review still rejects unsupported answers. Model review can miss errors.
+Ordinary imported questions receive all completed captions through the frozen timestamp, their caption-established graph and source images at t±2/4/6/8/10 seconds where available. Actual timestamps, before/after labels and missing frames accompany the JPEGs. Only pictures allow ten-second lookahead; future captions/graph identities stay excluded. Ordinary responses must contain a safe SVG with meaningful finite WAAPI animation; one repair may correct invalid output, never silently strip the diagram. Clarifications and reviewed recap/thread updates keep their separate contracts.
 
-### Actual second-title import
+Current checks: 99 Node tests, typecheck, lint and web build passed. A real “What is offside?” question at 20 seconds returned ready SVG after one answer-model call in 21.8 seconds, with no semantic review or correction. The actual compact `Visual` component showed running opacity 0.373→0.646→1 over 1.6 seconds, then a stable finish. Earlier reviewed results below are historical; neither physical Vega animation nor a model reliability rate is established.
+
+
+### Historical second-title import (retired from the live catalog)
 
 **Sintel © 2010 Blender Foundation, durian.blender.org.** Blender permits reuse under [CC BY 3.0](https://durian.blender.org/sharing/). Original caption downloads are linked from [the project's download page](https://durian.blender.org/download/) and hosted by [Xiph](https://media.xiph.org/sintel/subtitles/). The local source came from [the Internet Archive mirror](https://archive.org/download/Sintel/sintel-2048-stereo_512kb.mp4); the caption file was `sintel_en.srt`.
 
-The actual import command was:
+The historical import command was (do not run it to restore Sintel to the current two-film catalog):
 
 ```sh
 npm run ingest -- --id sintel-excerpt --title 'Sintel — excerpt' \
@@ -140,6 +143,8 @@ Two next gates remain: **(1)** install on a Vega Fire TV and test native setting
 ## Compact notification correction — September 30, 2026
 
 Removed the response header, metadata and large button row. The notification uses one row with an 80px SVG, adjacent text and small dismiss/More icons; it has no expansion action. Ordinary responses wait for confirmed resumed playback, including the native-provider path. Explicit Life Connection remains a separately confirmed pause flow. SVGs run host-owned WAAPI emphasis even without model animation descriptors; reduced-motion preferences disable animation.
+
+This dated behavior is historical. The current renderer above requires meaningful model-provided animation descriptors, rejects static/no-op ready visuals, and no longer invents a connector animation when descriptors are absent.
 
 `npm run release` passed: 44 deterministic checks, typecheck, lint, web bundle and all three native release architectures. New runnable checks cover successful and failed resume and WAAPI/reduced-motion behavior. Physical-device testing remains pending.
 

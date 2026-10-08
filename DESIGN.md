@@ -13,7 +13,8 @@ Sources: [Fire TV design guidance](https://developer.amazon.com/docs/fire-tv/des
 - Background #101114; response surface #202228; controls #303238; text #f1f1f1; secondary #b9bdc6. Orange is reserved for SELENE's own crescent mark and diagram emphasis.
 - Font: installed Amazon Ember where available, Helvetica Neue, then Arial/system sans. Native Vega uses its system font. No unlicensed font binaries or remote font requests.
 - Watching surfaces use 18px answer/input text and 16px secondary controls; native text scaling remains supported. Larger type is reserved for the start screen. 5% safe area, visible focus, no color-only state. Buttons turn white with dark text and a separated outline when focused.
-- An original crescent and play shape beside the lowercase selene wordmark ties the viewing role to the name. It is not an Amazon logo or affiliation claim.
+- An original orange crescent beside the lowercase selene wordmark identifies the viewing assistant. The logo contains no play triangle; playback controls retain their separate play icons. It is not an Amazon logo or affiliation claim.
+- The Vega package registers the 512×512 crescent PNG at `assets/image/selene-icon.png` through `package.icon = "@image/selene-icon.png"`. Rasterize the SVG at high density before downsampling; center it within a 224×224 area on the square canvas so the launcher’s wide center crop preserves the entire moon. The website tab uses `assets/selene-mark.svg`; keep both moon-only and preserve the SELENE title.
 - Short control transitions (140ms). Compact SVGs use finite WAAPI motions that demonstrate the explanation and settle. Legacy connectors reveal their strokes once. No whole-diagram pulse. Reduced motion disables animation.
 
 ## Navigation

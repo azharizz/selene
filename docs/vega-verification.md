@@ -1,5 +1,7 @@
 # Vega verification
 
+**Current catalog:** only `football-match` and `the-missing-crown`. Dated Red Kite/Sintel results below are historical evidence for the builds and assets recorded then, not current-catalog verification. Evidence files and recorded outputs remain unchanged. Current runnable commands use the two current IDs.
+
 ## 3 October 2026, compact TV follow-up
 
 | Check | Current evidence |
@@ -64,8 +66,8 @@ Build the native package with `npm run build:debug`. Keep `npm run vega:vvd` and
 
 ```sh
 npm run vega:automation
-npm run vega:automation -- --feature sintel-excerpt
-npm run vega:automation -- --feature offside-rule
+npm run vega:automation -- --feature the-missing-crown
+npm run vega:automation -- --feature football-match
 ```
 
 No arguments runs the launcher baseline only. Feature mode closes SELENE, verifies the launcher baseline, checks the relay, installs the local Debug package and opens the chosen catalog title. It calls the real configured model. It records native package, local web bundle, stylesheet, catalog and video hashes. Before installation and after the flow, it compares the relay's story version and streamed asset bytes against the local inputs. A stale relay must be restarted; it is not silently treated as the current build. Local hashes are checked again after the flow. Do not edit or rebuild during a run. An altered clip with the same display title is a different media result.

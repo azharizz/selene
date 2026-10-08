@@ -1,0 +1,1020 @@
+{
+  "id": "the-missing-crown",
+  "title": "The Missing Crown",
+  "subtitle": "Captioned animated story",
+  "duration": 120,
+  "video": "/media/the-missing-crown/video.mp4",
+  "poster": "/media/the-missing-crown/poster.jpg",
+  "scenes": [
+    {
+      "id": "the-missing-crown-timeline",
+      "start": 0,
+      "end": 120,
+      "label": "The Missing Crown"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "caption-1",
+      "start": 0.8,
+      "end": 2.324,
+      "text": "In the kingdom of Eldmoor,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-2",
+      "start": 2.364,
+      "end": 4.41,
+      "text": "a crown was about to change hands.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-3",
+      "start": 6.5,
+      "end": 8.14,
+      "text": "On the eve of the coronation,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-4",
+      "start": 8.18,
+      "end": 9.646,
+      "text": "King Aldric and Queen Mera",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-5",
+      "start": 9.686,
+      "end": 11.268,
+      "text": "feasted with their daughter,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-6",
+      "start": 11.308,
+      "end": 12.208,
+      "text": "Princess Lyra.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-7",
+      "start": 12.3,
+      "end": 12.891,
+      "text": "In the corner,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-8",
+      "start": 12.931,
+      "end": 14.018,
+      "text": "the King's quiet brother,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-9",
+      "start": 14.058,
+      "end": 15.59,
+      "text": "Alisson, polished the royal crown.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-10",
+      "start": 16,
+      "end": 17.009,
+      "text": "And Chancellor Voss",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-11",
+      "start": 17.049,
+      "end": 18.429,
+      "text": "whispered in the shadows.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-12",
+      "start": 18.6,
+      "end": 20.575,
+      "text": "By morning, the crown was gone.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-13",
+      "start": 21.2,
+      "end": 22.088,
+      "text": "The King raged,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-14",
+      "start": 22.128,
+      "end": 24.5,
+      "text": "Lyra wept, and Chancellor Voss declared",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-15",
+      "start": 24.54,
+      "end": 26.458,
+      "text": "that a thief walked among them.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-16",
+      "start": 29.5,
+      "end": 31.381,
+      "text": "That evening, a hooded thief crept",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-17",
+      "start": 31.421,
+      "end": 33.568,
+      "text": "across the rooftops with a heavy sack.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-18",
+      "start": 34,
+      "end": 35.021,
+      "text": "Someone in a green",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-19",
+      "start": 35.061,
+      "end": 36.476,
+      "text": "cloak was following him.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-20",
+      "start": 37.4,
+      "end": 38.926,
+      "text": "When the thief looked away,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-21",
+      "start": 38.966,
+      "end": 40.01,
+      "text": "the sack was gone.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-22",
+      "start": 41.5,
+      "end": 42.506,
+      "text": "Later that night,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-23",
+      "start": 42.546,
+      "end": 43.839,
+      "text": "Lyra could not sleep.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-24",
+      "start": 44,
+      "end": 45.036,
+      "text": "From her balcony,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-25",
+      "start": 45.076,
+      "end": 47.251,
+      "text": "she saw a lantern by the old vault,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-26",
+      "start": 47.291,
+      "end": 48.581,
+      "text": "and Alisson, hiding a",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-27",
+      "start": 48.621,
+      "end": 50.203,
+      "text": "green bundle in the wall.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-28",
+      "start": 53.5,
+      "end": 54.502,
+      "text": "At the council,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-29",
+      "start": 54.542,
+      "end": 55.96,
+      "text": "Voss revealed a clue:",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-30",
+      "start": 56,
+      "end": 57.001,
+      "text": "a green thread,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-31",
+      "start": 57.041,
+      "end": 58.291,
+      "text": "torn from a cloak.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-32",
+      "start": 58.6,
+      "end": 60.785,
+      "text": "Find Alisson, the King commanded.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-33",
+      "start": 60.9,
+      "end": 62.678,
+      "text": "But Alisson's chair stood empty.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-34",
+      "start": 64.5,
+      "end": 65.408,
+      "text": "The next night,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-35",
+      "start": 65.448,
+      "end": 67.406,
+      "text": "Lyra crept to the wall herself.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-36",
+      "start": 67.6,
+      "end": 69.564,
+      "text": "Inside the bundle lay the crown,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-37",
+      "start": 69.604,
+      "end": 70.504,
+      "text": "and a note.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-38",
+      "start": 71,
+      "end": 72.774,
+      "text": "Trust me. Watch Voss.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-39",
+      "start": 75.6,
+      "end": 77.242,
+      "text": "Alisson was not running away.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-40",
+      "start": 77.9,
+      "end": 80.385,
+      "text": "At dawn, he met Captain Bren in secret,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-41",
+      "start": 80.425,
+      "end": 81.42,
+      "text": "gave him a note,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-42",
+      "start": 81.46,
+      "end": 83.92,
+      "text": "and pointed at the Chancellor's tower.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-43",
+      "start": 86.5,
+      "end": 88.988,
+      "text": "In his tower, Voss raged at the thief:",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-44",
+      "start": 89.028,
+      "end": 90.292,
+      "text": "the crown was lost.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-45",
+      "start": 91.2,
+      "end": 92.591,
+      "text": "But behind the curtain,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-46",
+      "start": 92.631,
+      "end": 94.497,
+      "text": "Captain Bren heard every word.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-47",
+      "start": 97.4,
+      "end": 98.417,
+      "text": "At the coronation,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-48",
+      "start": 98.457,
+      "end": 99.689,
+      "text": "the doors swung open.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-49",
+      "start": 99.8,
+      "end": 101.728,
+      "text": "Alisson carried in the true crown.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-50",
+      "start": 101.9,
+      "end": 103.233,
+      "text": "The hired thief confessed,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-51",
+      "start": 103.273,
+      "end": 104.646,
+      "text": "and Voss was dragged away.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-52",
+      "start": 104.9,
+      "end": 107.297,
+      "text": "Alisson had protected the crown all along.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-53",
+      "start": 107.6,
+      "end": 108.547,
+      "text": "Lyra was crowned,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-54",
+      "start": 108.587,
+      "end": 110.329,
+      "text": "and the whole kingdom cheered.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-55",
+      "start": 112.4,
+      "end": 113.975,
+      "text": "Queen Lyra ruled wisely.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-56",
+      "start": 114.015,
+      "end": 116.734,
+      "text": "And quiet Alisson went back to polishing,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-57",
+      "start": 116.774,
+      "end": 117.784,
+      "text": "just as before.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-58",
+      "start": 118,
+      "end": 119.079,
+      "text": "The end.",
+      "source": "imported_caption"
+    }
+  ],
+  "facts": [],
+  "ingestion": {
+    "version": 2,
+    "source_url": null,
+    "source_file": "kingdom_alisson/the_missing_crown.mp4",
+    "license_url": null,
+    "credit": null,
+    "attribution_status": "not supplied",
+    "permission_acknowledged": true,
+    "source_offset_seconds": 0,
+    "source_sha256": "a3c155241654d49a43afbab2ed7db33725776e333cc77cb11501766dee1f7dee",
+    "caption_sha256": "1a94a1e1b918172a4cc7d8b467f6c24f947b700c6e9cb2b34a4e584018ce5af5",
+    "video_sha256": "a3c155241654d49a43afbab2ed7db33725776e333cc77cb11501766dee1f7dee",
+    "caption_source": "supplied",
+    "caption_model": null,
+    "evidence_notice": "Supplied source captions; no human transcript verification.",
+    "model": "openai/gpt-6-luna",
+    "limitation": "No stored visual observations. Questions freshly capture a temporary ten-frame temporal window; narration script is retained as a source asset, not additional runtime evidence.",
+    "created_at": "2026-10-08T09:58:12.641Z"
+  },
+  "movie_graph": {
+    "version": 1,
+    "status": "ready",
+    "model": "openai/gpt-6-luna",
+    "nodes": [
+      {
+        "id": "eldmoor",
+        "label": "Eldmoor",
+        "evidence_ids": [
+          "caption-1"
+        ],
+        "available_at": 2.324,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "crown",
+        "label": "a crown",
+        "evidence_ids": [
+          "caption-2"
+        ],
+        "available_at": 4.41,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "coronation",
+        "label": "the coronation",
+        "evidence_ids": [
+          "caption-3"
+        ],
+        "available_at": 8.14,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "king_aldric",
+        "label": "King Aldric",
+        "evidence_ids": [
+          "caption-4"
+        ],
+        "available_at": 9.646,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "queen_mera",
+        "label": "Queen Mera",
+        "evidence_ids": [
+          "caption-4"
+        ],
+        "available_at": 9.646,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "princess_lyra",
+        "label": "Princess Lyra",
+        "evidence_ids": [
+          "caption-6"
+        ],
+        "available_at": 12.208,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "alisson",
+        "label": "Alisson",
+        "evidence_ids": [
+          "caption-9"
+        ],
+        "available_at": 15.59,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "chancellor_voss",
+        "label": "Chancellor Voss",
+        "evidence_ids": [
+          "caption-10"
+        ],
+        "available_at": 17.009,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "thief",
+        "label": "a thief",
+        "evidence_ids": [
+          "caption-15"
+        ],
+        "available_at": 26.458,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "hooded_thief",
+        "label": "a hooded thief",
+        "evidence_ids": [
+          "caption-16"
+        ],
+        "available_at": 31.381,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "someone_in_green_cloak",
+        "label": "Someone in a green cloak",
+        "evidence_ids": [
+          "caption-18",
+          "caption-19"
+        ],
+        "available_at": 36.476,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "lantern",
+        "label": "a lantern",
+        "evidence_ids": [
+          "caption-25"
+        ],
+        "available_at": 47.251,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "old_vault",
+        "label": "the old vault",
+        "evidence_ids": [
+          "caption-25"
+        ],
+        "available_at": 47.251,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "green_bundle",
+        "label": "a green bundle",
+        "evidence_ids": [
+          "caption-26",
+          "caption-27"
+        ],
+        "available_at": 50.203,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "green_thread",
+        "label": "a green thread",
+        "evidence_ids": [
+          "caption-30"
+        ],
+        "available_at": 57.001,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "cloak",
+        "label": "a cloak",
+        "evidence_ids": [
+          "caption-31"
+        ],
+        "available_at": 58.291,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "note",
+        "label": "a note",
+        "evidence_ids": [
+          "caption-37"
+        ],
+        "available_at": 70.504,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "captain_bren",
+        "label": "Captain Bren",
+        "evidence_ids": [
+          "caption-40"
+        ],
+        "available_at": 80.385,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "chancellors_tower",
+        "label": "the Chancellor's tower",
+        "evidence_ids": [
+          "caption-42"
+        ],
+        "available_at": 83.92,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "true_crown",
+        "label": "the true crown",
+        "evidence_ids": [
+          "caption-49"
+        ],
+        "available_at": 101.728,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "hired_thief",
+        "label": "The hired thief",
+        "evidence_ids": [
+          "caption-50"
+        ],
+        "available_at": 103.233,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "kingdom",
+        "label": "the whole kingdom",
+        "evidence_ids": [
+          "caption-54"
+        ],
+        "available_at": 110.329,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "subject_id": "king_aldric",
+        "relation": "feasted with",
+        "object_id": "queen_mera",
+        "explanation": "King Aldric and Queen Mera feasted together.",
+        "evidence_ids": [
+          "caption-4",
+          "caption-5"
+        ],
+        "available_at": 11.268,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e2",
+        "subject_id": "king_aldric",
+        "relation": "feasted with",
+        "object_id": "princess_lyra",
+        "explanation": "The King and Queen feasted with their daughter, Princess Lyra.",
+        "evidence_ids": [
+          "caption-4",
+          "caption-5",
+          "caption-6"
+        ],
+        "available_at": 12.208,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e3",
+        "subject_id": "queen_mera",
+        "relation": "feasted with",
+        "object_id": "princess_lyra",
+        "explanation": "Queen Mera feasted with her daughter, Princess Lyra.",
+        "evidence_ids": [
+          "caption-4",
+          "caption-5",
+          "caption-6"
+        ],
+        "available_at": 12.208,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e4",
+        "subject_id": "alisson",
+        "relation": "polished",
+        "object_id": "crown",
+        "explanation": "Alisson polished the royal crown.",
+        "evidence_ids": [
+          "caption-8",
+          "caption-9",
+          "caption-2"
+        ],
+        "available_at": 15.59,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e5",
+        "subject_id": "chancellor_voss",
+        "relation": "declared",
+        "object_id": "thief",
+        "explanation": "Chancellor Voss declared that a thief walked among them.",
+        "evidence_ids": [
+          "caption-14",
+          "caption-15",
+          "caption-10"
+        ],
+        "available_at": 26.458,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e6",
+        "subject_id": "someone_in_green_cloak",
+        "relation": "followed",
+        "object_id": "hooded_thief",
+        "explanation": "Someone in a green cloak was following the hooded thief.",
+        "evidence_ids": [
+          "caption-16",
+          "caption-18",
+          "caption-19"
+        ],
+        "available_at": 36.476,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e7",
+        "subject_id": "princess_lyra",
+        "relation": "saw",
+        "object_id": "lantern",
+        "explanation": "Lyra saw a lantern by the old vault.",
+        "evidence_ids": [
+          "caption-23",
+          "caption-24",
+          "caption-25",
+          "caption-6"
+        ],
+        "available_at": 47.251,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e8",
+        "subject_id": "lantern",
+        "relation": "by",
+        "object_id": "old_vault",
+        "explanation": "The lantern was by the old vault.",
+        "evidence_ids": [
+          "caption-25"
+        ],
+        "available_at": 47.251,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e9",
+        "subject_id": "alisson",
+        "relation": "hid",
+        "object_id": "green_bundle",
+        "explanation": "Lyra saw Alisson hiding a green bundle in the wall.",
+        "evidence_ids": [
+          "caption-25",
+          "caption-26",
+          "caption-27",
+          "caption-9"
+        ],
+        "available_at": 50.203,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e10",
+        "subject_id": "green_thread",
+        "relation": "torn from",
+        "object_id": "cloak",
+        "explanation": "Voss revealed a green thread torn from a cloak.",
+        "evidence_ids": [
+          "caption-29",
+          "caption-30",
+          "caption-31"
+        ],
+        "available_at": 58.291,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e11",
+        "subject_id": "king_aldric",
+        "relation": "commanded",
+        "object_id": "alisson",
+        "explanation": "The King commanded that Alisson be found.",
+        "evidence_ids": [
+          "caption-32",
+          "caption-4",
+          "caption-9"
+        ],
+        "available_at": 60.785,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e12",
+        "subject_id": "princess_lyra",
+        "relation": "found",
+        "object_id": "crown",
+        "explanation": "Inside the bundle lay the crown.",
+        "evidence_ids": [
+          "caption-35",
+          "caption-36",
+          "caption-37",
+          "caption-6",
+          "caption-2"
+        ],
+        "available_at": 70.504,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e13",
+        "subject_id": "alisson",
+        "relation": "met",
+        "object_id": "captain_bren",
+        "explanation": "At dawn, Alisson met Captain Bren in secret.",
+        "evidence_ids": [
+          "caption-39",
+          "caption-40",
+          "caption-9"
+        ],
+        "available_at": 80.385,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e14",
+        "subject_id": "alisson",
+        "relation": "gave",
+        "object_id": "note",
+        "explanation": "Alisson gave Captain Bren a note.",
+        "evidence_ids": [
+          "caption-40",
+          "caption-41",
+          "caption-9",
+          "caption-37"
+        ],
+        "available_at": 81.42,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e15",
+        "subject_id": "alisson",
+        "relation": "pointed at",
+        "object_id": "chancellors_tower",
+        "explanation": "Alisson pointed at the Chancellor's tower.",
+        "evidence_ids": [
+          "caption-40",
+          "caption-42",
+          "caption-9"
+        ],
+        "available_at": 83.92,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e16",
+        "subject_id": "captain_bren",
+        "relation": "heard",
+        "object_id": "chancellor_voss",
+        "explanation": "Captain Bren heard Voss rage at the thief, and heard every word from behind the curtain.",
+        "evidence_ids": [
+          "caption-43",
+          "caption-45",
+          "caption-46",
+          "caption-40",
+          "caption-10"
+        ],
+        "available_at": 94.497,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e17",
+        "subject_id": "alisson",
+        "relation": "carried in",
+        "object_id": "true_crown",
+        "explanation": "Alisson carried in the true crown at the coronation.",
+        "evidence_ids": [
+          "caption-47",
+          "caption-49",
+          "caption-9"
+        ],
+        "available_at": 101.728,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e18",
+        "subject_id": "hired_thief",
+        "relation": "confessed",
+        "object_id": "hired_thief",
+        "explanation": "The hired thief confessed.",
+        "evidence_ids": [
+          "caption-50"
+        ],
+        "available_at": 103.233,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e19",
+        "subject_id": "chancellor_voss",
+        "relation": "was dragged away",
+        "object_id": "chancellor_voss",
+        "explanation": "Voss was dragged away.",
+        "evidence_ids": [
+          "caption-51",
+          "caption-10"
+        ],
+        "available_at": 104.646,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e20",
+        "subject_id": "alisson",
+        "relation": "protected",
+        "object_id": "crown",
+        "explanation": "The caption states that Alisson had protected the crown all along.",
+        "evidence_ids": [
+          "caption-52",
+          "caption-9",
+          "caption-2"
+        ],
+        "available_at": 107.297,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e21",
+        "subject_id": "princess_lyra",
+        "relation": "was crowned",
+        "object_id": "princess_lyra",
+        "explanation": "Lyra was crowned.",
+        "evidence_ids": [
+          "caption-53",
+          "caption-6"
+        ],
+        "available_at": 108.547,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e22",
+        "subject_id": "kingdom",
+        "relation": "cheered for",
+        "object_id": "princess_lyra",
+        "explanation": "The whole kingdom cheered as Lyra was crowned.",
+        "evidence_ids": [
+          "caption-53",
+          "caption-54",
+          "caption-6"
+        ],
+        "available_at": 110.329,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "e23",
+        "subject_id": "princess_lyra",
+        "relation": "ruled",
+        "object_id": "kingdom",
+        "explanation": "Queen Lyra ruled wisely; this is the same Lyra identified earlier as Princess Lyra.",
+        "evidence_ids": [
+          "caption-55",
+          "caption-6",
+          "caption-54"
+        ],
+        "available_at": 113.975,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      }
+    ]
+  }
+}

@@ -1,0 +1,495 @@
+{
+  "id": "football-match",
+  "title": "Football Match",
+  "subtitle": "Captioned 3D match commentary",
+  "duration": 60,
+  "video": "/media/football-match/video.mp4",
+  "poster": "/media/football-match/poster.jpg",
+  "scenes": [
+    {
+      "id": "football-match-timeline",
+      "start": 0,
+      "end": 60,
+      "label": "Football Match"
+    }
+  ],
+  "transcript": [
+    {
+      "id": "caption-1",
+      "start": 0.3,
+      "end": 1.32,
+      "text": "Good evening from",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-2",
+      "start": 1.36,
+      "end": 2.38,
+      "text": "a packed stadium.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-3",
+      "start": 2.42,
+      "end": 4.188,
+      "text": "Harbor City in red, Northvale",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-4",
+      "start": 4.228,
+      "end": 5.725,
+      "text": "in blue, still goalless.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-5",
+      "start": 5.9,
+      "end": 6.827,
+      "text": "City knocking it",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-6",
+      "start": 6.867,
+      "end": 8.035,
+      "text": "about in midfield...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-7",
+      "start": 8.075,
+      "end": 9.284,
+      "text": "into the number ten.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-8",
+      "start": 9.9,
+      "end": 11.176,
+      "text": "Lovely ball over the top!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-9",
+      "start": 11.4,
+      "end": 13.41,
+      "text": "He's in behind, takes it down...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-10",
+      "start": 13.45,
+      "end": 14.667,
+      "text": "but the flag is up!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-11",
+      "start": 15,
+      "end": 15.485,
+      "text": "Offside!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-12",
+      "start": 15.525,
+      "end": 17.426,
+      "text": "The striker can't believe it.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-13",
+      "start": 18.3,
+      "end": 19.43,
+      "text": "Let's see it again.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-14",
+      "start": 19.47,
+      "end": 21.524,
+      "text": "As the ball is played, he's a good",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-15",
+      "start": 21.564,
+      "end": 23.371,
+      "text": "yard beyond the last defender.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-16",
+      "start": 23.411,
+      "end": 24.334,
+      "text": "Gone too early.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-17",
+      "start": 25.3,
+      "end": 27.068,
+      "text": "Right call from the assistant.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-18",
+      "start": 27.108,
+      "end": 28.495,
+      "text": "Free kick to Northvale.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-19",
+      "start": 30.4,
+      "end": 31.701,
+      "text": "Late on now, and City",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-20",
+      "start": 31.741,
+      "end": 33.338,
+      "text": "are coming forward again.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-21",
+      "start": 33.6,
+      "end": 34.729,
+      "text": "Neat interchange in the",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-22",
+      "start": 34.769,
+      "end": 36.345,
+      "text": "middle, the captain looks up...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-23",
+      "start": 39,
+      "end": 40.009,
+      "text": "Here's the through ball!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-24",
+      "start": 40.6,
+      "end": 41.631,
+      "text": "Perfectly timed, he's",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-25",
+      "start": 41.671,
+      "end": 42.843,
+      "text": "away from his marker...",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-26",
+      "start": 43.15,
+      "end": 43.714,
+      "text": "He scores!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-27",
+      "start": 43.754,
+      "end": 44.654,
+      "text": "What a finish!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-28",
+      "start": 44.8,
+      "end": 45.861,
+      "text": "Harbor City lead, and",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-29",
+      "start": 45.901,
+      "end": 46.845,
+      "text": "this place erupts!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-30",
+      "start": 47,
+      "end": 48.151,
+      "text": "Watch the run again.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-31",
+      "start": 48.191,
+      "end": 48.984,
+      "text": "Level with the",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-32",
+      "start": 49.024,
+      "end": 50.175,
+      "text": "defender as the pass",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-33",
+      "start": 50.215,
+      "end": 52.12,
+      "text": "is played, then he bursts clear.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-34",
+      "start": 52.8,
+      "end": 53.946,
+      "text": "Cool as you like,",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-35",
+      "start": 53.986,
+      "end": 55.34,
+      "text": "low past the keeper.",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-36",
+      "start": 55.38,
+      "end": 56.636,
+      "text": "No flag this time!",
+      "source": "imported_caption"
+    },
+    {
+      "id": "caption-37",
+      "start": 57,
+      "end": 58.765,
+      "text": "One-nil to Harbor City!",
+      "source": "imported_caption"
+    }
+  ],
+  "facts": [],
+  "ingestion": {
+    "version": 2,
+    "source_url": null,
+    "source_file": "offside_3d/offside.mp4",
+    "license_url": null,
+    "credit": null,
+    "attribution_status": "not supplied",
+    "permission_acknowledged": true,
+    "source_offset_seconds": 0,
+    "source_sha256": "d21cd0e5517303e7326f9b280c6589cacb89825c599cfca85bceaf56c0d4c4aa",
+    "video_sha256": "d21cd0e5517303e7326f9b280c6589cacb89825c599cfca85bceaf56c0d4c4aa",
+    "caption_sha256": "43dfae2e4bdb311856cba256f376c9c4dec7d739a2469f623db398044de1075e",
+    "caption_source": "supplied",
+    "caption_model": null,
+    "model": "openai/gpt-6-luna",
+    "evidence_notice": "Supplied speech-timed captions; no human transcript verification by Selene.",
+    "limitation": "No stored visual observations. Questions freshly decode a temporary ten-frame window; poster is artwork only.",
+    "created_at": "2026-10-08T06:04:49.300Z"
+  },
+  "movie_graph": {
+    "version": 1,
+    "status": "ready",
+    "model": "openai/gpt-6-luna",
+    "nodes": [
+      {
+        "id": "harbor-city",
+        "label": "Harbor City",
+        "evidence_ids": [
+          "caption-3"
+        ],
+        "available_at": 4.188,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "northvale",
+        "label": "Northvale",
+        "evidence_ids": [
+          "caption-3"
+        ],
+        "available_at": 4.188,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "city",
+        "label": "City",
+        "evidence_ids": [
+          "caption-5"
+        ],
+        "available_at": 6.827,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "number-ten",
+        "label": "number ten",
+        "evidence_ids": [
+          "caption-7"
+        ],
+        "available_at": 9.284,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "striker",
+        "label": "striker",
+        "evidence_ids": [
+          "caption-12"
+        ],
+        "available_at": 17.426,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "last-defender",
+        "label": "last defender",
+        "evidence_ids": [
+          "caption-15"
+        ],
+        "available_at": 23.371,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "assistant",
+        "label": "assistant",
+        "evidence_ids": [
+          "caption-17"
+        ],
+        "available_at": 27.068,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "captain",
+        "label": "captain",
+        "evidence_ids": [
+          "caption-22"
+        ],
+        "available_at": 36.345,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "marker",
+        "label": "marker",
+        "evidence_ids": [
+          "caption-25"
+        ],
+        "available_at": 42.843,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "keeper",
+        "label": "keeper",
+        "evidence_ids": [
+          "caption-35"
+        ],
+        "available_at": 55.34,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1",
+        "subject_id": "harbor-city",
+        "relation": "is described as playing in",
+        "object_id": "northvale",
+        "explanation": "The commentary identifies Harbor City and Northvale as the teams playing, with Harbor City in red and Northvale in blue.",
+        "evidence_ids": [
+          "caption-3",
+          "caption-4"
+        ],
+        "available_at": 5.725,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "edge-2",
+        "subject_id": "city",
+        "relation": "knocks the ball about in",
+        "object_id": "number-ten",
+        "explanation": "The commentary says City are knocking it about in midfield, then refers to play going into the number ten.",
+        "evidence_ids": [
+          "caption-5",
+          "caption-6",
+          "caption-7"
+        ],
+        "available_at": 9.284,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "edge-3",
+        "subject_id": "striker",
+        "relation": "is beyond the",
+        "object_id": "last-defender",
+        "explanation": "The replay commentary says the striker was a yard beyond the last defender when the ball was played.",
+        "evidence_ids": [
+          "caption-12",
+          "caption-14",
+          "caption-15"
+        ],
+        "available_at": 23.371,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "edge-4",
+        "subject_id": "assistant",
+        "relation": "makes the",
+        "object_id": "northvale",
+        "explanation": "After calling it the right call from the assistant, the commentary awards a free kick to Northvale.",
+        "evidence_ids": [
+          "caption-17",
+          "caption-18",
+          "caption-3"
+        ],
+        "available_at": 28.495,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "edge-5",
+        "subject_id": "marker",
+        "relation": "is left behind by an unidentified player",
+        "object_id": "keeper",
+        "explanation": "The commentary says an unidentified player gets away from his marker and later scores low past the keeper.",
+        "evidence_ids": [
+          "caption-25",
+          "caption-26",
+          "caption-35"
+        ],
+        "available_at": 55.34,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      },
+      {
+        "id": "edge-6",
+        "subject_id": "harbor-city",
+        "relation": "leads",
+        "object_id": "northvale",
+        "explanation": "Harbor City are said to lead, and the score is given as one-nil to Harbor City after the goal.",
+        "evidence_ids": [
+          "caption-28",
+          "caption-37",
+          "caption-3"
+        ],
+        "available_at": 58.765,
+        "source": "caption_graph",
+        "verification": "provisional AI interpretation; original cited captions remain authoritative"
+      }
+    ]
+  }
+}

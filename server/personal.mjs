@@ -5,9 +5,10 @@ import {explain} from './agent.mjs';
 export const PLAYBACK_FRESH_MS = 6000;
 const versions = new WeakMap();
 export function playerStory(story) {
-  // The catalog (including the ingester's media hashes) is immutable until relay restart.
-  if (!versions.has(story)) versions.set(story, createHash('sha256').update(JSON.stringify(story)).digest('hex'));
-  const {facts, ...player} = story;
+  // Derived graphs do not change playback identity or expose future labels in the player catalog.
+  const {movie_graph, ...original} = story;
+  const {facts, ...player} = original;
+  if (!versions.has(story)) versions.set(story, createHash('sha256').update(JSON.stringify(original)).digest('hex'));
   return {...player, content_version: versions.get(story)};
 }
 export function conflict(message, status = 409) {return Object.assign(new Error(message), {status});}
@@ -86,7 +87,7 @@ export function returnContext(story, from, playback, question = '', output = 'pe
 
 export function evidenceFor(moment, context) {
   const cited = new Set([...(moment?.grounding.evidence_ids ?? []), ...(moment?.grounding.graph_ids ?? [])]);
-  return [...context.transcript, ...context.facts, ...(context.references ?? [])].filter(item => cited.has(item.id)).map(item => ({
+  return [...context.transcript, ...context.facts].filter(item => cited.has(item.id)).map(item => ({
     id: item.id, at_seconds: item.start ?? item.available_at, text: item.text ?? item.explanation,
     source: item.source ?? (item.end !== undefined ? 'caption' : 'authored_demo'),
     ...(item.source_url ? {source_url: item.source_url} : {}),

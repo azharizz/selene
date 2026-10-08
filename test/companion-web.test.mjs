@@ -7,7 +7,7 @@ import vm from 'node:vm';
 const compiled = await build({stdin: {contents: "export {CompanionMoment} from './web/CompanionMoment'; export {PrivateMirror} from './web/PrivateMirror'; export {Visual} from './web/Visual'; export {App as OwnApp} from './web/App'; export {personalRequest} from './web/personal'; export {readPreferences,savePreferences} from './web/preferences';", resolveDir: process.cwd()},
   bundle: true, write: false, format: 'cjs', platform: 'node', loader: {'.css': 'empty'}, define: {'process.env.NODE_ENV': '"production"'}, plugins: [{name: 'react-boundary', setup(builder) {
     builder.onResolve({filter: /^react$/}, () => ({path: 'react', namespace: 'boundary'}));
-    builder.onLoad({filter: /.*/, namespace: 'boundary'}, () => ({contents: 'class Component {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...next};done?.();}} export default {Component,PureComponent:Component,createRef:()=>({current:null})};'}));
+    builder.onLoad({filter: /.*/, namespace: 'boundary'}, () => ({contents: 'class Component {constructor(props){this.props=props;} setState(next,done){this.state={...this.state,...(typeof next==="function"?next(this.state,this.props):next)};done?.();}} export default {Component,PureComponent:Component,createRef:()=>({current:null})};'}));
     builder.onResolve({filter: /^react-dom\/client$/}, () => ({path: 'react-dom', namespace: 'root-boundary'}));
     builder.onLoad({filter: /.*/, namespace: 'root-boundary'}, () => ({contents: 'export const createRoot=()=>({render(){}});'}));
   }}]});
@@ -248,6 +248,80 @@ test('missing HTTPS pairing stays discoverable and media events preserve truthfu
   assert.equal(tv.playbackState(), 'stopped', 'an ended video is also paused');
 });
 
+test('prepared example selection seeks and samples before sending, fixes demo preferences and leaves ordinary asks unchanged', async () => {
+  const {context} = instance();
+  const tv = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'football-match', duration: 60, transcript: [], scenes: []}});
+  tv.mounted = true;
+  tv.state = {...tv.state, screen: 'ask', anchorAt: 2, need: 'Translate', language: 'Spanish', recipient: 'child', session: 'solo'};
+  const events = new Map(), sent = [];
+  let at = 2, seeks = 0;
+  const player = {paused: false, ended: false, seeking: false,
+    get currentTime() {return at;}, set currentTime(value) {at = value; seeks++; this.seeking = true; tv.playbackSeek();},
+    addEventListener: (type, listener) => events.set(type, listener), removeEventListener: type => events.delete(type),
+    play: async () => {player.paused = false;}};
+  tv.video.current = player;
+  tv.postPlayerState = () => {};
+  tv.send = async input => {sent.push(input); return {ok: true, json: async () => ({...moment, grounding: {at_seconds: input.at_seconds}})};};
+  const example = {id: 'offside-rule', request: 'Why was that offside?', at_seconds: 15.485};
+  const selecting = tv.selectExample(example);
+  assert.equal(seeks, 1); assert.equal(at, example.at_seconds); assert.equal(sent.length, 0);
+  player.seeking = false; events.get('seeked')();
+  await selecting;
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].at_seconds, example.at_seconds);
+  assert.equal(sent[0].need, 'Show visually'); assert.equal(sent[0].language, 'English'); assert.equal(sent[0].recipient, 'everyone');
+  assert.equal(sent[0].session, 'solo'); assert.equal(sent[0].continuation, null);
+  assert.equal(tv.state.moment.grounding.at_seconds, example.at_seconds);
+  tv.playbackSeek();
+  assert.equal(tv.state.screen, 'watch', 'an unrelated later seek still closes the answer');
+  tv.state.anchorAt = 40; at = 55;
+  await tv.selectExample({...example, at_seconds: 40});
+  assert.equal(seeks, 1, 'a current example never seeks or jumps to the moving playback clock');
+  assert.equal(sent[1].at_seconds, 40);
+  let ordinary;
+  tv.deliver = async input => {ordinary = input;};
+  tv.state.request = 'Translate the line.';
+  tv.ask('unspecified');
+  assert.equal(ordinary.need, 'Translate'); assert.equal(ordinary.language, 'Spanish'); assert.equal(ordinary.recipient, 'child');
+  assert.equal(ordinary.at_seconds, 40); assert.equal(ordinary.playback_choice, 'unspecified');
+});
+
+test('failed prepared seek sends nothing and retry still seeks instead of answering at the old playback moment', async () => {
+  const {context} = instance();
+  const tv = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'the-missing-crown', duration: 120, transcript: [], scenes: []}});
+  tv.mounted = true; tv.state = {...tv.state, screen: 'ask', anchorAt: 2};
+  let at = 2, canSeek = false, seeks = 0, sent = 0;
+  tv.video.current = {paused: false, ended: false, seeking: false,
+    get currentTime() {return at;}, set currentTime(value) {seeks++; if (canSeek) at = value;},
+    addEventListener() {}, removeEventListener() {}, play: async () => {}};
+  tv.send = async input => {sent++; return {ok: true, json: async () => ({...moment, grounding: {at_seconds: input.at_seconds}})};};
+  await tv.selectExample({id: 'alisson-empty-chair', request: 'Who is Alisson and why is he missing?', at_seconds: 62.678});
+  assert.equal(sent, 0); assert.equal(tv.state.screen, 'error');
+  assert.equal(tv.state.anchorAt, 2, 'a failed jump must not turn its future demo into a current-moment example');
+  assert.equal(tv.lastSeekTo, 62.678);
+  canSeek = true; await tv.deliver(tv.lastInput, tv.lastSeekTo);
+  assert.equal(seeks, 2); assert.equal(sent, 1); assert.equal(tv.state.moment.grounding.at_seconds, 62.678);
+});
+
+test('prepared listing distinguishes pending, failed and successful empty requests and ignores superseded results', async () => {
+  const {context} = instance();
+  const tv = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'football-match', duration: 60}});
+  tv.mounted = true; tv.state.screen = 'ask';
+  let resolve;
+  context.fetch = () => new Promise(done => {resolve = done;});
+  const first = tv.loadExamples();
+  assert.equal(tv.state.examplesStatus, 'loading');
+  context.fetch = async () => {throw new TypeError('Unavailable');};
+  await tv.loadExamples();
+  assert.equal(tv.state.examplesStatus, 'error');
+  resolve({ok: true, json: async () => ({examples: [{id: 'stale', request: 'Old request', at_seconds: 0}]})});
+  await first;
+  assert.equal(tv.state.examplesStatus, 'error'); assert.equal(tv.state.examples.length, 0);
+  context.fetch = async () => ({ok: true, json: async () => ({examples: []})});
+  await tv.loadExamples();
+  assert.equal(tv.state.examplesStatus, 'ready'); assert.equal(tv.state.examples.length, 0);
+});
+
 test('closing a failed shared return preserves its marker for retry', () => {
   const {context} = instance();
   const tv = new context.module.exports.OwnApp({session_id: 'test-session', story: {id: 'test', transcript: []}, private_mirror_available: true});
@@ -436,43 +510,102 @@ test('ordinary answers resume before appearing and failed resume never shows a n
 });
 
 
-test('compact SVG reveals connector geometry once and honors reduced motion', () => {
-  for (const reduced of [false, true]) {
-    const {context} = instance();
-    context.document.querySelector = () => ({content: 'test-nonce'});
-    const renderer = new context.module.exports.Visual({compact: true, visual: {...moment.visual, status: 'ready', svg: '<svg/>', animations: []}});
-    const page = renderer.render().props.srcDoc;
-    const motions = [];
-    const background = {style: {}, getAttribute: name => ({fill: '#202228', width: '880', height: '460'})[name]};
-    const connector = {getTotalLength: () => 80, animate: (...args) => motions.push(args)};
-    const svg = {querySelectorAll: selector => selector === 'rect' ? [background] : selector === 'path,line,polyline' ? [connector] : [], getScreenCTM: () => ({inverse: () => ({})}),
-      getBBox: () => ({x: 400, y: 190, width: 160, height: 160}), setAttribute() {}, animate: (...args) => motions.push(args)};
-    vm.runInNewContext(page.match(/<script nonce="test-nonce">([\s\S]*?)<\/script>/)[1], {
-      document: {querySelector: () => svg}, parent: {postMessage: () => assert.fail('Valid SVG rejected')},
-      getComputedStyle: () => ({display: 'block', stroke: '#ffad33'}),
-      addEventListener() {}, requestAnimationFrame: fn => fn(), matchMedia: () => ({matches: reduced}),
-    });
-    assert.equal(background.style.display, 'none', 'exclude the background before measuring the symbol');
-    assert.equal(motions.length, reduced ? 0 : 1);
-    if (!reduced) {assert.equal(motions[0][1].iterations, 1); assert.equal(motions[0][0][0].strokeDashoffset, '80'); assert.equal(motions[0][0][1].strokeDashoffset, '0');}
+function iframeMotion({compact = false, reduced = false, missingTarget = false} = {}) {
+  const {context} = instance(); context.document.querySelector = () => ({content: 'test-nonce'});
+  const animation = {target_id: 'person', keyframes: [{opacity: 1, transform: 'translate(-3200px, 0px)'}, {opacity: 1, transform: 'none'}], duration_ms: 1500, delay_ms: 100};
+  const renderer = new context.module.exports.Visual({compact, personal: !compact, visual: {status: 'ready', description: 'An object settles into place.',
+    svg: '<svg viewBox="100 200 16000 9000"><rect x="100" y="200" width="16000" height="9000" fill="#202228"/><rect id="person" x="4000" y="2000" width="800" height="800" fill="#f1f1f1"/><circle cx="6000" cy="2400" r="400" fill="#ffad33"/><text x="15000" y="8800" font-size="12">Stay still</text></svg>', animations: [animation]}});
+  const motions = [], messages = [], events = new Map(), frames = [], attributes = new Map();
+  const background = {style: {}}, label = {style: {}};
+  const target = {style: {}, getBoundingClientRect() {
+    const motion = motions[0], elapsed = motion ? Math.max(0, motion.currentTime - motion.options.delay) : 0;
+    const progress = !motion || motion.playState === 'idle' || motion.playState === 'finished' ? 1 : (elapsed % motion.options.duration) / motion.options.duration;
+    const left = 4000 - 3200 * (1 - progress);
+    return {left, top: 2000, right: left + 800, bottom: 2800};
+  }, animate(keyframes, options) {
+    const motion = {keyframes, options, currentTime: 0, playState: 'running', cancels: 0,
+      cancel() {this.cancels++; this.playState = 'idle';}};
+    motions.push(motion); return motion;
+  }};
+  const svg = {querySelectorAll: selector => selector === 'text' ? [label] : [background, target],
+    setAttribute: (name, value) => attributes.set(name, value)};
+  const preference = {matches: reduced, addEventListener: (type, fn) => events.set(`preference:${type}`, fn)};
+  const rendered = renderer.render(), iframe = rendered.props.children[0], srcDoc = iframe.props.srcDoc;
+  vm.runInNewContext(srcDoc.match(/<script nonce="test-nonce">([\s\S]*?)<\/script>/)[1], {
+    document: {querySelector: () => svg, getElementById: id => !missingTarget && id === 'person' ? target : null},
+    parent: {postMessage: message => messages.push(message)},
+    addEventListener: (type, fn) => events.set(type, fn), requestAnimationFrame: fn => frames.push(fn), matchMedia: () => preference,
+  });
+  return {renderer, rendered, iframe, srcDoc, motions, messages, attributes, background, label, target, events, frames, preference, animation,
+    start() {events.get('load')(); frames.shift()(); frames.shift()();}};
+}
+
+test('generated geometry waits for layout and repeats until its surface closes', () => {
+  for (const compact of [false, true]) {
+    const host = iframeMotion({compact});
+    assert.equal(host.motions.length, 0);
+    host.events.get('load')(); assert.equal(host.motions.length, 0);
+    host.frames.shift()(); assert.equal(host.motions.length, 0);
+    host.frames.shift()();
+    assert.equal(host.motions.length, 1);
+    const motion = host.motions[0];
+    assert.deepEqual(JSON.parse(JSON.stringify(motion.keyframes)), host.animation.keyframes);
+    assert.equal(motion.options.fill, 'both');
+    assert.equal(motion.options.duration, 1500); assert.equal(motion.options.delay, 100);
+    assert.equal(host.target.getBoundingClientRect().left, 800, 'first frame also applies during the delay');
+    motion.currentTime = 850; assert.equal(host.target.getBoundingClientRect().left, 2400);
+    motion.currentTime = 1600; assert.equal(host.target.getBoundingClientRect().left, 800, 'second pass restarts the motion');
+    motion.currentTime = 2350; assert.equal(host.target.getBoundingClientRect().left, 2400);
+    motion.currentTime = 3100; assert.equal(host.target.getBoundingClientRect().left, 800, 'third pass restarts the motion');
+    motion.currentTime = 15100; assert.equal(host.target.getBoundingClientRect().left, 800, 'motion continues beyond three passes');
+    host.events.get('pagehide')();
+    assert.equal(motion.cancels, 1, 'closing the surface ends the repeated animation');
+    assert.equal(host.messages.length, 0);
+    assert.equal(host.background.style.display, undefined);
+    assert.equal(host.label.style.display, undefined, 'labels stay visible in every layout');
+    assert.equal(host.attributes.size, 0, 'the generated viewBox is never cropped or replaced');
+    assert.ok(host.srcDoc.includes('viewBox="100 200 16000 9000"'));
   }
 });
 
+test('only the nonce-restricted host script is enabled, replay remounts the iframe and foreign failure messages are ignored', () => {
+  const host = iframeMotion();
+  assert.equal(host.iframe.props.sandbox, 'allow-scripts');
+  assert.equal(host.iframe.props.tabIndex, -1);
+  assert.equal(host.rendered.props['aria-label'], 'Replay explanation animation');
+  assert.equal(host.srcDoc.match(/<script\b/g).length, 1);
+  assert.match(host.srcDoc, /default-src 'none'/);
+  assert.match(host.srcDoc, /script-src 'nonce-test-nonce';/);
+  assert.match(host.srcDoc, /<script nonce="test-nonce">/);
+  host.rendered.props.onClick();
+  assert.equal(host.renderer.state.play, 1);
+  assert.notEqual(host.renderer.render().props.children[0].key, host.iframe.key, 'replay starts a fresh finite animation');
+  const frameWindow = {};
+  host.renderer.frame.current = {contentWindow: frameWindow};
+  host.renderer.receive({source: {}, data: 'selene:visual-invalid'});
+  assert.equal(host.renderer.state.failed, false);
+  host.renderer.receive({source: frameWindow, data: 'selene:visual-invalid'});
+  assert.equal(host.renderer.render().props.className, 'visual-fallback');
+});
 
-test('phone SVG keeps full bounds and invokes finite WAAPI geometry; reduced motion skips it', () => {
-  for (const reduced of [false, true]) {
-    const {context} = instance(); context.document.querySelector = () => ({content: 'test-nonce'});
-    const animation = {target_id: 'person', keyframes: [{opacity: 1, transform: 'translate(-32px, 0px)'}, {opacity: 1, transform: 'none'}], duration_ms: 1400, delay_ms: 100};
-    const renderer = new context.module.exports.Visual({personal: true, visual: {...moment.visual, status: 'ready', svg: '<svg/>', animations: [animation]}});
-    const page = renderer.render().props.srcDoc, motions = [];
-    const svg = {querySelectorAll: () => [], getScreenCTM: () => ({inverse: () => ({})}), setAttribute: () => assert.fail('Phone bounds must retain readable labels')};
-    vm.runInNewContext(page.match(/<script nonce="test-nonce">([\s\S]*?)<\/script>/)[1], {
-      document: {querySelector: () => svg, getElementById: () => ({animate: (...args) => {motions.push(args); return {};}})},
-      parent: {postMessage: () => assert.fail('Valid SVG rejected')}, addEventListener() {}, requestAnimationFrame: fn => fn(), matchMedia: () => ({matches: reduced}),
-    });
-    assert.equal(motions.length, reduced ? 0 : 1);
-    if (!reduced) {assert.equal(motions[0][1].iterations, 1); assert.equal(motions[0][1].duration, 1400); assert.equal(motions[0][0][1].transform, 'none');}
-  }
+test('reduced motion shows the static final diagram and cancels live motion without replay', () => {
+  const staticHost = iframeMotion({reduced: true}); staticHost.start();
+  assert.equal(staticHost.motions.length, 0); assert.equal(staticHost.target.getBoundingClientRect().left, 4000);
+  assert.equal(staticHost.label.style.display, undefined);
+  const host = iframeMotion(); host.start();
+  host.preference.matches = true; host.events.get('preference:change')({matches: true});
+  assert.equal(host.motions[0].cancels, 1); assert.equal(host.target.getBoundingClientRect().left, 4000);
+  host.preference.matches = false; host.events.get('preference:change')({matches: false});
+  assert.equal(host.motions.length, 1);
+});
+
+test('iframe removal cancels WAAPI, while invalid targets or script errors fail closed', () => {
+  const host = iframeMotion(); host.start(); host.events.get('pagehide')();
+  assert.equal(host.motions[0].cancels, 1);
+  const missing = iframeMotion({missingTarget: true}); missing.start();
+  assert.equal(missing.motions.length, 0); assert.deepEqual(missing.messages, ['selene:visual-invalid']);
+  const error = iframeMotion(); error.start(); error.events.get('error')();
+  assert.equal(error.motions[0].cancels, 1); assert.deepEqual(error.messages, ['selene:visual-invalid']);
 });
 
 test('watching launcher offers only Selene actions and question entry stays minimal', () => {
@@ -604,34 +737,3 @@ test('Guided Return at the film end shows its recap without restarting the film'
   assert.equal(restarts, 0); assert.equal(tv.state.screen, 'moment');
 });
 
-test('TV hides films behind one list, puts Saved and Clear on one row, and sends a prepared example at its frozen moment', async () => {
-  const {context} = instance();
-  const own = new context.module.exports.OwnApp({session_id: 'test', story: {id: 'the-red-kite', title: 'The Red Kite', duration: 96, transcript: [], scenes: []},
-    catalog: [{id: 'the-red-kite', title: 'The Red Kite', duration: 96}, {id: 'sintel-excerpt', title: 'Sintel excerpt', duration: 105}]});
-  own.mounted = true;
-  const sections = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(sections)];
-  const buttons = () => sections(own.render()).filter(node => node.type === 'button');
-  assert.ok(buttons().some(node => node.props.children === 'Films'));
-  assert.equal(buttons().some(node => node.props['aria-label'] === 'Open Sintel excerpt'), false);
-  own.setState({screen: 'films'});
-  assert.ok(buttons().some(node => node.props['aria-label'] === 'Open Sintel excerpt'));
-  own.setState({started: true, screen: 'tools', savedPlace: {at_seconds: 9, epoch: 0}});
-  const savedRow = sections(own.render()).find(node => node.props?.className === 'saved-place-row');
-  assert.ok(sections(savedRow).some(node => node.props?.['aria-label'] === 'Clear saved place'));
-  own.video.current = {currentTime: 12, paused: false};
-  context.fetch = async () => ({ok: true, json: async () => ({examples: [{id: 'remember-character', request: 'Who is Arun to Maya?'}]})});
-  own.openAsk();
-  await new Promise(resolve => setTimeout(resolve, 0));
-  assert.equal(own.state.anchorAt, 12);
-  own.setState({examplesOpen: true});
-  const example = buttons().find(node => node.props.children === 'Who is Arun to Maya?');
-  assert.ok(example);
-  let sent;
-  own.deliver = input => {sent = input;};
-  own.video.current.currentTime = 35;
-  example.props.onClick();
-  assert.equal(sent.at_seconds, 12);
-  assert.equal(sent.playback_choice, 'keep_watching');
-  assert.equal(sent.request, 'Who is Arun to Maya?');
-  assert.equal('life_connection' in sent, false);
-});

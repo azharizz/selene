@@ -5,6 +5,7 @@ title = "SELENE"
 version = "0.1.0"
 id = "com.selene.tv"
 build-number = 1
+icon = "@image/selene-icon.png"
 
 [os.version]
 min = "1.2"

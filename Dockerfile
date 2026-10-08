@@ -1,10 +1,13 @@
 FROM node:22-bookworm-slim
 WORKDIR /app
-RUN npm init -y && npm install --omit=dev --ignore-scripts --no-audit --no-fund --save-exact ajv@8.17.1 @xmldom/xmldom@0.8.11
+RUN apt-get update && apt-get install -y --no-install-recommends chromium chromium-sandbox \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm init -y && npm install --omit=dev --ignore-scripts --no-audit --no-fund --save-exact ajv@8.17.1 @xmldom/xmldom@0.8.11 puppeteer-core@24.40.0
 # The phone UI and all server contracts must ship from the same checkout.
-COPY assets/ ./assets/
+COPY --chown=node:node assets/ ./assets/
 COPY server/ ./server/
-COPY content/ ./content/
-ENV SELENE_BIND=0.0.0.0
+COPY --chown=node:node content/ ./content/
+ENV SELENE_BIND=0.0.0.0 SELENE_CHROMIUM_PATH=/usr/bin/chromium
+USER node
 EXPOSE 4519
 CMD ["node", "server/index.mjs"]

@@ -168,7 +168,7 @@ try {
   if (feature) {
     stage = 'selene-feature';
     const hash = file => createHash('sha256').update(readFileSync(join(root, file))).digest('hex');
-    const catalogFile = readdirSync(join(root, 'content')).filter(name => name.endsWith('.json') && name !== 'graph.json')
+    const catalogFile = readdirSync(join(root, 'content')).filter(name => name.endsWith('.json'))
       .find(name => JSON.parse(readFileSync(join(root, 'content', name), 'utf8')).id === feature);
     assert(catalogFile, `Unknown content ID: ${feature}`);
     const story = JSON.parse(readFileSync(join(root, 'content', catalogFile), 'utf8'));

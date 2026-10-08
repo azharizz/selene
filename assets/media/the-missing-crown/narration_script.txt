@@ -1,0 +1,33 @@
+THE MISSING CROWN - narration script (verbatim)
+Voice: macOS 'Daniel' (en_GB). Timestamps = speech start - end.
+
+[00:00,800 - 00:04,410]  In the kingdom of Eldmoor, a crown was about to change hands.
+[00:06,500 - 00:12,119]  On the eve of the coronation, King Aldric and Queen Mera feasted with their daughter, Princess Lyra.
+[00:12,300 - 00:15,590]  In the corner, the King's quiet brother, Alisson, polished the royal crown.
+[00:16,000 - 00:18,429]  And Chancellor Voss whispered in the shadows.
+[00:18,600 - 00:20,575]  By morning, the crown was gone.
+[00:21,200 - 00:26,458]  The King raged, Lyra wept, and Chancellor Voss declared that a thief walked among them.
+[00:29,500 - 00:33,568]  That evening, a hooded thief crept across the rooftops with a heavy sack.
+[00:34,000 - 00:36,476]  Someone in a green cloak was following him.
+[00:37,400 - 00:40,010]  When the thief looked away, the sack was gone.
+[00:41,500 - 00:43,839]  Later that night, Lyra could not sleep.
+[00:44,000 - 00:50,203]  From her balcony, she saw a lantern by the old vault, and Alisson, hiding a green bundle in the wall.
+[00:53,500 - 00:58,291]  At the council, Voss revealed a clue: a green thread, torn from a cloak.
+[00:58,600 - 01:00,785]  Find Alisson, the King commanded.
+[01:00,900 - 01:02,678]  But Alisson's chair stood empty.
+[01:04,500 - 01:07,406]  The next night, Lyra crept to the wall herself.
+[01:07,600 - 01:10,293]  Inside the bundle lay the crown, and a note.
+[01:11,000 - 01:12,774]  Trust me. Watch Voss.
+[01:15,600 - 01:17,242]  Alisson was not running away.
+[01:17,900 - 01:23,920]  At dawn, he met Captain Bren in secret, gave him a note, and pointed at the Chancellor's tower.
+[01:26,500 - 01:30,292]  In his tower, Voss raged at the thief: the crown was lost.
+[01:31,200 - 01:34,497]  But behind the curtain, Captain Bren heard every word.
+[01:37,400 - 01:39,689]  At the coronation, the doors swung open.
+[01:39,800 - 01:41,728]  Alisson carried in the true crown.
+[01:41,900 - 01:44,646]  The hired thief confessed, and Voss was dragged away.
+[01:44,900 - 01:47,297]  Alisson had protected the crown all along.
+[01:47,600 - 01:50,329]  Lyra was crowned, and the whole kingdom cheered.
+[01:52,400 - 01:57,784]  Queen Lyra ruled wisely. And quiet Alisson went back to polishing, just as before.
+[01:58,000 - 01:58,579]  The end.
+
+Total: 269 words

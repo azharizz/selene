@@ -11,23 +11,25 @@ import {readPreferences, savePreferences, type Need, type Recipient, type Langua
 import {accessibilitySettings, initialAccessibility, applyAccessibility, captionChoice, saveCaptionChoice, captionStyle, type AccessibilitySettings} from './accessibility';
 import {clock, personalRequest, type PersonalStory, type PersonalMoment, type ReturnResult, type Pairing} from './personal';
 import {observeMedia, reportMedia} from './mediaDiagnostics';
+import {MediaImport} from './MediaImport';
 
 type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
 type Story = PersonalStory;
 type CatalogStory = {id: string; title: string; subtitle: string; duration: number; poster: string};
 type Moment = PersonalMoment;
+type PreparedExample = {id: string; request: string; at_seconds: number};
 type Input = {
   request: string; content_id: string; at_seconds: number; play_state: 'playing' | 'paused' | 'ended';
   playback_choice: Choice; need: Need; language: Language; session: 'family' | 'solo'; recipient: Recipient;
   continuation: {request: string; question: string; answer: string} | null;
 };
-type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'preferences' | 'more' | 'exit' | 'error' | 'tools' | 'pair' | 'return' | 'credits' | 'films';
+type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'preferences' | 'more' | 'exit' | 'error' | 'tools' | 'pair' | 'return' | 'credits' | 'films' | 'import';
 type State = {
   started: boolean; session: 'family' | 'solo'; screen: Screen; need: Need; language: Language; recipient: Recipient;
   request: string; moment: Moment | null; position: number; paused: boolean; captions: boolean; controls: boolean;
   accessibility: AccessibilitySettings;
   error: string; voice: VoiceState; anchorAt: number; clarifying: boolean; choice: Choice; background: boolean; mirror: Pairing | null; returnScreen: 'watch' | 'ask';
-  savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; preparingReturn: boolean; pairing: boolean; examples: {id: string; request: string}[]; examplesOpen: boolean;
+  savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; preparingReturn: boolean; pairing: boolean; examples: PreparedExample[]; examplesOpen: boolean; examplesStatus: 'loading' | 'ready' | 'error';
 };
 type Bundle = {session_id: string; story: Story; catalog?: CatalogStory[]};
 const locale: Record<Language, string> = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
@@ -41,10 +43,10 @@ async function openSession(contentId: string | null, signal?: AbortSignal): Prom
 
 export class App extends React.Component<Bundle, State> {
   state: State = {
-    started: false, screen: 'watch', ...readPreferences(),
+    started: false, screen: new URLSearchParams(location.search).get('import') === 'mp4' ? 'import' : 'watch', ...readPreferences(),
     request: '', moment: null, position: 0, paused: true, captions: captionChoice(initialAccessibility().captions), accessibility: initialAccessibility(), controls: true, error: '', voice: 'idle',
     anchorAt: 0, clarifying: false, choice: 'unspecified', background: document.hidden, mirror: null, returnScreen: 'watch',
-    savedPlace: null, returnResult: null, preparingReturn: false, pairing: false, examples: [], examplesOpen: false,
+    savedPlace: null, returnResult: null, preparingReturn: false, pairing: false, examples: [], examplesOpen: false, examplesStatus: 'ready',
   };
   private video = React.createRef<HTMLVideoElement>();
   private surface = React.createRef<HTMLElement>();
@@ -52,6 +54,7 @@ export class App extends React.Component<Bundle, State> {
   private resumingResponse = false;
   private sessionId = this.props.session_id;
   private lastInput: Input | null = null;
+  private lastSeekTo: number | undefined;
   private resumeAt = 0;
   private playbackRevision = 0;
   private lastNativeStateAt = 0;
@@ -60,6 +63,7 @@ export class App extends React.Component<Bundle, State> {
   private playbackEpoch = 0;
   private pairingRequest: AbortController | null = null;
   private buffering = false;
+  private examplesRequest: AbortController | null = null;
   private mounted = false;
   private stopMediaDiagnostics: (() => void) | null = null;
   private voice = new Voice(() => this.video.current,
@@ -99,6 +103,7 @@ export class App extends React.Component<Bundle, State> {
     this.stopMediaDiagnostics?.();
     if (this.relayTimer) clearInterval(this.relayTimer);
     this.pairingRequest?.abort();
+    this.examplesRequest?.abort();
     this.cancel(); this.endSession();
     document.removeEventListener('visibilitychange', this.visibility);
     window.removeEventListener('pagehide', this.endSession);
@@ -145,7 +150,7 @@ export class App extends React.Component<Bundle, State> {
     this.dismiss();
   };
   private play = () => {
-    if (document.hidden) return;
+    if (document.hidden || this.state.screen === 'import') return;
     this.voice.stop();
     this.video.current?.play().catch((error: unknown) => {
       if (this.video.current) reportMedia(this.video.current, this.props.story.id, 'play-rejected', error instanceof Error ? error.name : 'UnknownError');
@@ -188,7 +193,7 @@ export class App extends React.Component<Bundle, State> {
   private playbackSeek = () => {
     this.playbackEpoch++;
     this.setState({savedPlace: null, returnResult: null});
-    if (!this.resumingResponse && (this.pending || this.state.screen !== 'watch')) this.close();
+    if (!this.resumingResponse && !(this.pending && this.lastSeekTo !== undefined) && (this.pending || this.state.screen !== 'watch')) this.close();
     this.postPlayerState(true);
   };
   private savePlace = () => {
@@ -235,6 +240,7 @@ export class App extends React.Component<Bundle, State> {
     const player = this.video.current;
     if (!player) return;
     if (message.action === 'back') {this.back(); return;}
+    if (this.state.screen === 'import') {if (message.action === 'request_state') this.postPlayerState(true); return;}
     if (['play', 'pause', 'stop', 'start_over', 'seek', 'set_mute', 'set_volume'].includes(message.action)) this.traceControl('player-session', message.action);
     if (message.action === 'play') this.play();
     if (message.action === 'pause') player.pause();
@@ -276,10 +282,20 @@ export class App extends React.Component<Bundle, State> {
   private openAsk = () => {
     this.voice.stop();
     const anchorAt = Math.min(this.props.story.duration, this.video.current?.currentTime ?? this.state.position);
-    this.setState({screen: 'ask', anchorAt, request: '', clarifying: false, error: '', choice: 'unspecified', preparingReturn: false, examples: [], examplesOpen: false});
-    personalRequest(`/api/examples?content_id=${encodeURIComponent(this.props.story.id)}&at_seconds=${anchorAt}`, {method: 'GET'}, 5000)
-      .then(result => {if (this.mounted && this.state.screen === 'ask' && this.state.anchorAt === anchorAt) this.setState({examples: result.examples});})
-      .catch(() => {}); // Examples are optional; the question form remains available.
+    this.setState({screen: 'ask', anchorAt, request: '', clarifying: false, error: '', choice: 'unspecified', preparingReturn: false, examples: [], examplesOpen: false}, this.loadExamples);
+  };
+  private loadExamples = async () => {
+    const {anchorAt} = this.state;
+    const pending = new AbortController(); this.examplesRequest?.abort(); this.examplesRequest = pending;
+    this.setState({examplesStatus: 'loading'});
+    try {
+      const result = await personalRequest(`/api/examples?content_id=${encodeURIComponent(this.props.story.id)}&at_seconds=${anchorAt}`, {method: 'GET', signal: pending.signal}, 5000);
+      if (this.mounted && this.examplesRequest === pending && this.state.screen === 'ask' && this.state.anchorAt === anchorAt)
+        this.setState({examples: result.examples, examplesStatus: 'ready'});
+    } catch {
+      if (this.mounted && !pending.signal.aborted && this.examplesRequest === pending && this.state.screen === 'ask' && this.state.anchorAt === anchorAt)
+        this.setState({examplesStatus: 'error'});
+    }
   };
   private back = () => {
     const {screen, voice, started, controls, clarifying} = this.state;
@@ -288,6 +304,7 @@ export class App extends React.Component<Bundle, State> {
     if (screen === 'preferences') return this.setState({screen: this.state.returnScreen});
     if (screen === 'more') return this.setState({screen: 'moment'});
     if (screen === 'return') return this.closeReturn();
+    if (screen === 'import') return this.setState({screen: 'films'});
     if (screen === 'ask' && clarifying) {
       return this.setState({screen: 'moment', clarifying: false, error: ''});
     }
@@ -307,14 +324,27 @@ export class App extends React.Component<Bundle, State> {
     this.video.current?.pause(); this.endSession();
     window.location.assign(`/?story=${encodeURIComponent(id)}`);
   };
+  private openImport = () => {
+    this.video.current?.pause(); this.cancel();
+    this.setState({screen: 'import', error: ''});
+  };
+  private importSession = async (signal: AbortSignal) => {
+    if (!this.sessionId) {
+      const bundle = await openSession(this.props.story.id, signal);
+      if (signal.aborted || !this.mounted) throw new DOMException('Import cancelled', 'AbortError');
+      this.sessionId = bundle.session_id;
+      this.setState({mirror: null, pairing: false, savedPlace: null, returnResult: null});
+    }
+    return this.sessionId;
+  };
 
-  private ask = (choice: Choice, quickRequest?: string) => {
+  private ask = (choice: Choice) => {
     const player = this.video.current;
     if (!player) return;
     const {need, language, recipient, session, moment, clarifying, request, anchorAt} = this.state;
-    if (!quickRequest && !request.trim()) {this.setState({error: 'Type a question or choose an example.'}); return;}
+    if (!request.trim()) {this.setState({error: 'Type a question or choose an example.'}); return;}
     const input: Input = {
-      request: clarifying && this.lastInput ? this.lastInput.request : quickRequest ?? request.trim(),
+      request: clarifying && this.lastInput ? this.lastInput.request : request.trim(),
       content_id: this.props.story.id, at_seconds: anchorAt,
       play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing',
       playback_choice: choice, need, language, recipient, session,
@@ -322,18 +352,52 @@ export class App extends React.Component<Bundle, State> {
     };
     this.deliver(input);
   };
-  private deliver = async (input: Input) => {
+  private selectExample = (example: PreparedExample) => {
+    const player = this.video.current;
+    if (!player) return;
+    // Prepared demos have a fixed presentation; ordinary questions keep the viewer's preferences.
+    const input: Input = {request: example.request, content_id: this.props.story.id, at_seconds: example.at_seconds,
+      play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing', playback_choice: 'keep_watching',
+      need: this.state.need === 'Slower answer voice' ? 'Slower answer voice' : 'Show visually', language: 'English',
+      recipient: 'everyone', session: this.state.session, continuation: null};
+    return this.deliver(input, example.at_seconds > this.state.anchorAt ? example.at_seconds : undefined);
+  };
+  private deliver = async (input: Input, seekTo?: number) => {
     const player = this.video.current;
     if (!player) return;
     const choice = input.playback_choice;
     if (choice === 'pause_to_explore') player.pause();
     input = {...input, play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing'};
     this.lastInput = input;
+    this.lastSeekTo = seekTo;
     this.cancel();
     const pending = new AbortController(); this.pending = pending;
     const playbackRevision = this.playbackRevision;
-    this.setState({screen: 'loading', error: '', choice, anchorAt: input.at_seconds});
+    this.setState({screen: 'loading', error: '', choice, anchorAt: seekTo === undefined ? input.at_seconds : this.state.anchorAt});
     try {
+      if (seekTo !== undefined) {
+        await new Promise<void>((resolve, reject) => {
+          const finish = (error?: Error) => {
+            clearTimeout(timer); player.removeEventListener('seeked', sought); player.removeEventListener('error', failed);
+            pending.signal.removeEventListener('abort', aborted);
+            error ? reject(error) : resolve();
+          };
+          const sought = () => finish();
+          const failed = () => finish(new Error('The prepared demo moment could not be loaded. Try again.'));
+          const aborted = () => finish(pending.signal.reason);
+          const timer = setTimeout(failed, 5000);
+          player.addEventListener('seeked', sought, {once: true}); player.addEventListener('error', failed, {once: true});
+          pending.signal.addEventListener('abort', aborted, {once: true});
+          try {player.currentTime = seekTo; if (!player.seeking) finish();}
+          catch (error) {finish(error instanceof Error ? error : new Error('The prepared demo moment could not be loaded.'));}
+        });
+        if (!this.mounted || this.pending !== pending || pending.signal.aborted) return;
+        const at = Math.min(this.props.story.duration, player.currentTime);
+        if (!Number.isFinite(at) || at < seekTo) throw new Error('The player did not reach the prepared demo moment. Try again.');
+        input = {...input, at_seconds: at, play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing'};
+        this.lastInput = input; this.setState({anchorAt: at});
+        this.lastSeekTo = undefined;
+      }
       if (!this.sessionId) this.sessionId = (await openSession(this.props.story.id, pending.signal)).session_id;
       let response = await this.send(input, pending.signal);
       if (response.status === 410) {
@@ -421,6 +485,7 @@ export class App extends React.Component<Bundle, State> {
     if (!target) return;
     if (['Escape', 'BrowserBack', 'GoBack'].includes(event.key) || event.keyCode === 27) {
       event.preventDefault();
+      if (this.state.screen === 'import') {this.back(); return;}
       if (target.matches('textarea,select')) {this.surface.current?.querySelector<HTMLElement>('button:not(:disabled)')?.focus(); return;}
       this.back(); return;
     }
@@ -438,6 +503,10 @@ export class App extends React.Component<Bundle, State> {
     const {story} = this.props;
     const {started, screen, session, need, request, moment, position, paused, captions, controls, error, voice, clarifying, background, mirror, savedPlace, returnResult} = this.state;
     const caption = this.captionAt(position);
+    const captionStatus = story.ingestion ? !story.transcript.length || story.ingestion.caption_source === 'unavailable'
+      ? 'Captions unavailable · dialogue is not captured; help is visual-only.'
+      : story.ingestion.caption_source === 'generated' ? 'Generated captions · automated transcription may be inaccurate.'
+      : story.ingestion.caption_source === 'embedded' ? 'Embedded captions' : 'Supplied captions' : '';
 
     return <main ref={this.surface} tabIndex={-1} className="app">
       <video ref={this.video} src={started && !background ? story.video : undefined} poster={story.poster} playsInline preload="metadata" disableRemotePlayback
@@ -460,6 +529,7 @@ export class App extends React.Component<Bundle, State> {
         <Brand />
         <div className="welcome-copy"><h1>{story.title}</h1>
           <p className="muted">{story.subtitle} · {clock(story.duration)}</p>
+          {captionStatus && <p className="small muted">{captionStatus}</p>}
           <div className="actions"><button data-initial className="primary" onClick={() => this.start(session)}><Icon name="play"/>{position > 0 ? 'Continue watching' : 'Watch demo'}</button>
             <button onClick={() => this.setState({screen: 'films'})}>Films</button></div>
           {native && <button className="text-button playback-apps" aria-label="Connect to another playback app" onClick={this.companion}><Icon name="back"/>Playback apps</button>}
@@ -481,8 +551,10 @@ export class App extends React.Component<Bundle, State> {
       {screen === 'films' && <section className="sheet films-sheet" data-panel ref={this.focusPanel} aria-label="Choose a film">
         <div className="sheet-head"><h1>Films</h1><button data-initial aria-label="Close films" onClick={this.close}><Icon name="close"/></button></div>
         <div className="film-list">{(this.props.catalog ?? []).map(item => <button key={item.id} aria-label={`Open ${item.title}`} aria-pressed={item.id === story.id} onClick={() => this.chooseStory(item.id)}>{item.title}<span className="small">{clock(item.duration)}</span></button>)}</div>
+        <button onClick={this.openImport}>Import MP4</button>
         <button className="text-button" onClick={() => this.setState({screen: 'credits'})}>Film credits</button>
       </section>}
+      {screen === 'import' && <MediaImport getSession={this.importSession} onImported={this.chooseStory} onCancel={() => this.setState({screen: 'films'})} />}
 
       {screen === 'tools' && <section className="sheet personal-tools" data-panel ref={this.focusPanel}>
         <div className="sheet-head"><h1>Watch together</h1><button aria-label="Change film" onClick={() => this.setState({screen: 'films'})}>Films</button><button data-initial aria-label="Close tools" onClick={this.close}><Icon name="close"/></button></div>
@@ -517,7 +589,13 @@ export class App extends React.Component<Bundle, State> {
           <div className="question-input"><textarea data-initial id="request" rows={1} maxLength={600} disabled={voice === 'listening'} value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Ask about this moment…'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button className="primary" data-submit disabled={voice === 'listening' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask'}</button></div>
         </form>
         {!clarifying && <div className="quick-questions"><button aria-expanded={this.state.examplesOpen} onClick={() => this.setState({examplesOpen: !this.state.examplesOpen})}>Prepared examples</button></div>}
-        {!clarifying && this.state.examplesOpen && <div className="example-list" role="group" aria-label="Prepared examples">{this.state.examples.length ? this.state.examples.map(example => <button key={example.id} onClick={() => this.ask('keep_watching', example.request)}>{example.request}</button>) : <p className="small">No prepared example at this moment. Ask in your own words.</p>}</div>}
+        {!clarifying && this.state.examplesOpen && <div className="example-list" role="group" aria-label="Prepared examples">
+          {this.state.examplesStatus === 'loading' ? <p className="small" role="status">Loading prepared examples…</p>
+            : this.state.examplesStatus === 'error' ? <><p className="small" role="alert">Prepared examples could not load.</p><button onClick={this.loadExamples}>Retry examples</button></>
+            : this.state.examples.length ? this.state.examples.map(example => <button key={example.id} onClick={() => this.selectExample(example)}>
+              {example.at_seconds > this.state.anchorAt && `Jump to ${example.at_seconds.toFixed(3)}s · `}{example.request}</button>)
+            : <p className="small">No supported prepared example for this film. Ask in your own words.</p>}
+        </div>}
         <div className="request-options">{this.voice.Recognition && <button className="text-button" onClick={this.listen}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : 'Use voice'}</button>}</div>
         {voice === 'listening' && <p className="privacy-note small">Listening. Review before sending.</p>}
       </section>}
@@ -551,19 +629,22 @@ export class App extends React.Component<Bundle, State> {
           <button onClick={() => this.seek(-10)} aria-label="Back 10 seconds">−10s</button>
           <button onClick={() => {if (this.video.current?.ended) this.video.current.currentTime = 0; paused ? this.play() : this.video.current?.pause();}}>{this.video.current?.ended ? 'Replay' : paused ? 'Play' : 'Pause'}</button>
           <button onClick={() => this.seek(10)} aria-label="Forward 10 seconds">+10s</button>
-          <button aria-pressed={captions} onClick={this.toggleCaptions}>Captions {captions ? 'on' : 'off'}</button>
+          <button aria-pressed={captions} disabled={!story.transcript.length} onClick={this.toggleCaptions}>{story.transcript.length ? `Captions ${captions ? 'on' : 'off'}` : 'Captions unavailable'}</button>
           {this.state.accessibility.captions !== undefined && <button onClick={this.systemCaptions}>Use TV caption setting</button>}
         </div>
+        {captionStatus && <p className="small muted">{captionStatus}</p>}
         {this.voice.canSpeak && !this.state.accessibility.screenReader && <button className="text-button" aria-pressed={need === 'Slower answer voice'} onClick={() => this.preferences({need: need === 'Slower answer voice' ? 'Show visually' : 'Slower answer voice'})}>Slower read-aloud</button>}
       </section>}
       {screen === 'credits' && <section className="sheet credits-sheet" data-panel ref={this.focusPanel}>
         <div className="sheet-head"><h1>Film credits</h1><button data-initial aria-label="Close credits" onClick={this.close}><Icon name="close"/></button></div>
         <p>{story.ingestion?.credit || story.subtitle}</p>
-        {story.ingestion && <p className="small">License: {story.ingestion.license_url}</p>}
+        {story.ingestion?.license_url && <p className="small">License: {story.ingestion.license_url}</p>}
+        {captionStatus && <p className="small muted">{captionStatus}</p>}
+        {story.ingestion?.evidence_notice && <p className="small muted">{story.ingestion.evidence_notice}</p>}
       </section>}
 
       {screen === 'exit' && <section className="sheet" data-panel ref={this.focusPanel}><h2>Leave SELENE?</h2><p>The story will stop. Press Back again to leave.</p><div className="actions"><button data-initial onClick={() => this.setState({screen: 'watch', controls: true})}>Stay here</button><button onClick={this.exit}>Leave SELENE</button></div></section>}
-      {screen === 'error' && <section className="sheet" data-panel ref={this.focusPanel}><h2>This moment is unavailable</h2><p role="alert">{error}</p><div className="actions"><button data-initial onClick={this.close}>Back to the story</button><button onClick={() => {if (this.lastInput) this.deliver(this.lastInput);}}>Retry this moment</button><button onClick={() => this.setState({screen: 'ask', error: ''})}>Edit request</button></div></section>}
+      {screen === 'error' && <section className="sheet" data-panel ref={this.focusPanel}><h2>This moment is unavailable</h2><p role="alert">{error}</p><div className="actions"><button data-initial onClick={this.close}>Back to the story</button><button onClick={() => {if (this.lastInput) this.deliver(this.lastInput, this.lastSeekTo);}}>Retry this moment</button><button onClick={() => this.setState({screen: 'ask', error: ''})}>Edit request</button></div></section>}
     </main>;
   }
 }

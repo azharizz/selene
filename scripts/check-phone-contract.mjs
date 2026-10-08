@@ -10,7 +10,7 @@ const post = async (path, body, id) => {
   return result;
 };
 try {
-  session = await post('/api/session', {content_id: 'sintel-excerpt'});
+  session = await post('/api/session', {content_id: 'the-missing-crown'});
   const {story, session_id: id} = session;
   const sample = {content_version: story.content_version, epoch: 0, sequence: 1, at_seconds: story.duration};
   await post('/api/playback', {...sample, content_id: story.id, play_state: 'ended', playback_rate: 1}, id);

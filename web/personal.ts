@@ -4,7 +4,7 @@ export type PersonalStory = {
   id: string; content_version: string; title: string; subtitle: string; duration: number; video: string; poster: string;
   scenes: {id: string; start: number; end: number; label: string}[];
   transcript: {id: string; start: number; end: number; text: string}[];
-  ingestion?: {credit: string; license_url: string};
+  ingestion?: {credit: string | null; license_url: string | null; caption_source?: 'supplied' | 'embedded' | 'generated' | 'unavailable'; evidence_notice?: string};
 };
 export type Playback = {content_id: string; content_version: string; epoch: number; sequence: number; at_seconds: number;
   play_state: 'playing' | 'paused' | 'buffering' | 'ended'; playback_rate: number; age_ms: number; fresh: boolean};
