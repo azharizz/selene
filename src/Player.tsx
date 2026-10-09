@@ -8,7 +8,7 @@ import AsyncStorage from '@amazon-devices/react-native-async-storage__async-stor
 import {KeplerVideoSurfaceView} from '@amazon-devices/react-native-w3cmedia';
 import type {AccessibilitySnapshot} from './Accessibility';
 import {clock, endSession, mediaUrl, openSession, request, RelayError} from './api';
-import type {Bundle, CatalogStory, Choice, Example, Input, Moment, Pairing, ReturnResult, Story} from './api';
+import type {AssistantReply, Bundle, CatalogStory, Choice, Example, Input, Moment, Pairing, ReturnResult, Story} from './api';
 import {NativeFilm} from './media';
 import type {FilmEvent} from './media';
 import {AskPanel, MomentPanel, plain} from './Moment';
@@ -22,6 +22,7 @@ type State = {
   request: string; moment: Moment | null; error: string; anchorAt: number; clarifying: boolean; choice: Choice;
   savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; mirror: Pairing | null; pairing: boolean;
   examples: Example[]; examplesOpen: boolean; examplesStatus: 'loading' | 'ready' | 'error'; importUrl: string; importTitle: string; importing: boolean;
+  turns: {question: string; answer: string}[]; reply: string; asked: string;
 };
 const CAPTIONS_KEY = 'selene.captions';
 
@@ -30,6 +31,7 @@ export class Player extends React.Component<Props, State> {
     bundle: null, loadError: '', screen: this.props.importMp4 ? 'import' : 'watch', started: false, controls: true, position: 0, paused: true, ended: false, captions: true,
     request: '', moment: null, error: '', anchorAt: 0, clarifying: false, choice: 'unspecified', savedPlace: null, returnResult: null, mirror: null, pairing: false,
     examples: [], examplesOpen: false, examplesStatus: 'ready', importUrl: '', importTitle: '', importing: false,
+    turns: [], reply: '', asked: '',
   };
   private film: NativeFilm | null = null;
   private filmFor = '';
@@ -86,7 +88,7 @@ export class Player extends React.Component<Props, State> {
       const bundle = await openSession(contentId ? {content_id: contentId} : {});
       if (!this.mounted) return;
       this.closeSession();
-      this.setState({bundle, started: false, position: 0, paused: true, ended: false, controls: true, savedPlace: null, returnResult: null, mirror: null, moment: null});
+      this.setState({bundle, started: false, position: 0, paused: true, ended: false, controls: true, savedPlace: null, returnResult: null, mirror: null, moment: null, turns: [], reply: '', asked: ''});
       this.prepareFilm(bundle.story);
     } catch {
       if (this.mounted) this.setState({loadError: 'The story could not load. Check the SELENE service and try again.'});
@@ -143,9 +145,10 @@ export class Player extends React.Component<Props, State> {
     const film = this.film, story = this.story;
     if (!film || !story || !this.sessionId) throw new Error('Start the film before connecting a phone.');
     if (film.seeking) throw new Error('Wait for the TV to finish seeking, then try again.');
-    await request('/api/playback', {method: 'POST', session: this.sessionId, signal, body: {content_id: story.id, content_version: story.content_version,
+    const result = await request<{command?: AssistantReply['command']}>('/api/playback', {method: 'POST', session: this.sessionId, signal, body: {content_id: story.id, content_version: story.content_version,
       sequence: ++this.relaySequence, epoch: this.playbackEpoch, at_seconds: Math.min(story.duration, Math.max(0, film.currentTime)),
       play_state: film.ended ? 'ended' : this.playState(), playback_rate: 1}});
+    if (result.command) this.remote(result.command); // "Pause" or "go back" asked on the paired phone.
   };
   private seeked = () => {
     this.playbackEpoch++;
@@ -270,13 +273,37 @@ export class Player extends React.Component<Props, State> {
     }
   };
   private playStateNow = () => {const film = this.film; return film?.ended ? 'ended' as const : film?.paused ? 'paused' as const : 'playing' as const;};
-  private ask = () => {
-    const {moment, clarifying, request: text, anchorAt} = this.state, story = this.story;
-    if (!story || !this.film) return;
-    if (!text.trim()) {this.setState({error: 'Type a question or choose an example.'}); return;}
-    this.deliver({request: clarifying && this.lastInput ? this.lastInput.request : text.trim(), content_id: story.id, at_seconds: anchorAt, play_state: this.playStateNow(),
-      playback_choice: 'unspecified', need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family',
-      continuation: clarifying && moment && this.lastInput ? {request: this.lastInput.request, question: moment.answer, answer: text.trim()} : null});
+  private ask = () => {void this.askAssistant(this.state.request);};
+  // Typed questions and suggestions go to the simulated Alexa+ orchestrator, which picks a SELENE skill over MCP.
+  // A pending clarification is answered server-side by the same explanation.
+  private askAssistant = async (text: string) => {
+    const {anchorAt} = this.state, story = this.story, film = this.film;
+    if (!story || !film) return;
+    const question = text.trim();
+    if (!question) {this.setState({error: 'Type a question or choose a suggestion.'}); return;}
+    this.cancel(); this.lastInput = null;
+    const pending = new AbortController(); this.pending = pending;
+    this.setState({screen: 'loading', error: '', asked: question});
+    try {
+      await this.publishPlayback(pending.signal);
+      const send = (session: string) => request<AssistantReply>('/api/assistant', {method: 'POST', session, signal: pending.signal, timeoutMs: 0,
+        body: {request: question, content_id: story.id, at_seconds: anchorAt}});
+      let reply: AssistantReply;
+      try {reply = await send(this.sessionId);}
+      catch (error) {if ((error as RelayError).status !== 410) throw error; reply = await send(await this.reopen(pending.signal));}
+      if (!this.mounted || this.pending !== pending || pending.signal.aborted) return;
+      this.pending = null;
+      const turns = [...this.state.turns, {question, answer: reply.text}].slice(-2);
+      if (reply.command) {this.setState({turns}); this.close(); this.remote(reply.command); return;}
+      const moment = reply.moment;
+      if (moment?.intervention.playback === 'request_pause') film.pause();
+      const clarifying = moment?.state === 'clarification';
+      this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: ''});
+    } catch (error) {
+      if (pending.signal.aborted || !this.mounted) return;
+      this.pending = null;
+      this.setState({error: error instanceof Error ? error.message : 'Selene could not answer. Please try again.', screen: 'error'});
+    }
   };
   private selectExample = (example: Example) => {
     if (!this.story) return;
@@ -478,14 +505,16 @@ export class Player extends React.Component<Props, State> {
           `${returnResult.status === 'ready' ? 'Covers' : 'Requested'} ${clock(returnResult.from_seconds)} to ${clock(returnResult.through_seconds)}${position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}`]}/>}
 
       {screen === 'ask' && <AskPanel clarification={clarifying && moment ? plain(moment.answer) : undefined} request={this.state.request} onChange={value => this.setState({request: value})}
-        onSubmit={this.ask} onClose={this.goBack} error={error} accessibility={a11y}
+        onSubmit={this.ask} onClose={this.goBack} error={error} accessibility={a11y} turns={this.state.turns} label="SELENE · SIMULATED ALEXA+ EXPERIENCE"
+        quick={[{label: 'Who is this?', onPress: () => {void this.askAssistant('Who is this?');}}, {label: 'What did I miss?', onPress: () => {void this.askAssistant('What did I miss?');}},
+          {label: 'Something fun', onPress: () => {void this.askAssistant('Tell me something fun about this.');}}]}
         examples={{status: this.state.examplesStatus, items: this.state.examples, open: this.state.examplesOpen, anchorAt: this.state.anchorAt,
           onToggle: () => this.setState(({examplesOpen}) => ({examplesOpen: !examplesOpen})), onRetry: this.loadExamples, onSelect: this.selectExample}}/>}
 
       {screen === 'loading' && <LoadingPanel onCancel={this.close}/>}
 
-      {screen === 'moment' && moment && <MomentPanel moment={moment} error={error} onDismiss={this.dismiss} onMore={() => this.setState({screen: 'more'})} accessibility={a11y}
-        notice={story.ingestion && moment.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : undefined}/>}
+      {screen === 'moment' && (moment || this.state.reply) && <MomentPanel moment={moment} text={moment ? undefined : this.state.reply} question={this.state.asked} error={error} onDismiss={this.dismiss} onMore={() => this.setState({screen: 'more'})} accessibility={a11y}
+        notice={story.ingestion && moment?.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : undefined}/>}
 
       {screen === 'more' && <Sheet label="This moment">
         <SheetHead title="This moment" accessibility={a11y}><Control preferred icon="back" label="Back" onPress={this.goBack} accessibility={a11y}/></SheetHead>
@@ -531,7 +560,7 @@ export class Player extends React.Component<Props, State> {
         <Text allowFontScaling={false} accessibilityRole="header" style={[styles.h2, fontScale(18, a11y, 1.3)]}>This moment is unavailable</Text>
         <Alert accessibility={a11y}>{error}</Alert>
         <Actions style={styles.gapTop}><Control preferred label="Back to the story" onPress={this.close} accessibility={a11y}/>
-          <Control label="Retry this moment" onPress={() => {if (this.lastInput) void this.deliver(this.lastInput, this.lastSeekTo);}} accessibility={a11y}/>
+          <Control label="Retry this moment" onPress={() => {if (this.lastInput) void this.deliver(this.lastInput, this.lastSeekTo); else if (this.state.asked) void this.askAssistant(this.state.asked);}} accessibility={a11y}/>
           <Control label="Edit request" onPress={() => this.setState({screen: 'ask', error: ''})} accessibility={a11y}/></Actions>
       </Sheet>}
     </View>;

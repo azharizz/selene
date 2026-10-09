@@ -16,11 +16,14 @@ type State = {
   request: string; error: string; notice: string; busy: '' | 'ask' | 'return' | 'end' | 'follow';
   connection: 'connecting' | 'connected' | 'disconnected' | 'closed'; mirrorOnly: boolean;
   selected: number | null; pickingTime: boolean; now: number; receivedAt: number; voice: VoiceState;
+  reply: {tool: string; text: string} | null;
 };
+// The simulated Alexa+ orchestrator answers quick skills directly; explanations stay on this private path.
+type AssistantResult = {tool: string; text: string; delegate?: boolean};
 
 export class PrivateMirror extends React.Component<{token: string}, State> {
   state: State = {story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', request: '', error: '', notice: '', busy: '',
-    connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle'};
+    connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle', reply: null};
   private stream: EventSource | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private pending: AbortController | null = null;
@@ -172,11 +175,17 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     const newTopic = !clarification && (this.newTopic || this.questionAt === null);
     const pending = this.begin('ask');
     try {
+      if (!clarification && selected === null) {
+        // If the orchestrator is unavailable, the question still gets the private explanation below.
+        const routed = await this.post('assistant', {request: request.trim()}, pending)
+          .catch(error => {if (pending.signal.aborted || this.pending !== pending) throw error; return null;}) as AssistantResult | null;
+        if (routed?.tool && !routed.delegate) {this.pending = null; this.setState({busy: '', request: '', reply: {tool: routed.tool, text: routed.text}}); return;}
+      }
       const hold = await this.ensureHold(playback!, pending);
       const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
       this.pending = null; this.answerLanguage = 'English'; this.slowerAnswer = false;
       this.held = result.hold ?? {...hold, question_at_seconds: at}; this.questionAt = at; this.newTopic = false; this.queuedThread = null;
-      this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, request: '', busy: ''});
+      this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, request: '', busy: '', reply: null});
     } catch (error) {this.failed(error, pending);}
   };
   private bringBack = async () => {
@@ -298,11 +307,12 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
         {help?.evidence.filter(item => item.source === 'reference' && item.source_url).map(item => <p className="personal-reference" key={item.id}>
           General reference: <a href={item.source_url} target="_blank" rel="noopener noreferrer">{new URL(item.source_url!).hostname}</a></p>)}
       </section>}
+      {this.state.reply && !busy && <section className="personal-answer" aria-label="Selene"><p className="personal-answer-text" aria-live="polite">{clean(this.state.reply.text)}</p></section>}
       {threadNotice && <p className="personal-note" role="status">{threadNotice}</p>}
       {!busy && bridge?.quote && <blockquote className="personal-quote"><p>{bridge.quote.text}</p><cite>Original caption · {clock(bridge.quote.at_seconds)}</cite></blockquote>}
       {!busy && bridge && bridge.status !== 'ready' && <p className="personal-note" role="status">{bridge.status === 'no_gap' ? 'No time has passed since that moment.' : bridge.status === 'unavailable' ? 'The recap could not be prepared. Try Catch me up again.' : 'There is not enough evidence to explain this gap. Ask about a specific moment.'}</p>}
       {story && connection !== 'closed' && <>
-        {!moment && !busy && !bridge && <div className="personal-empty"><h1>What would you like explained?</h1><p>Ask in your own words.</p></div>}
+        {!moment && !busy && !bridge && !this.state.reply && <div className="personal-empty"><h1>What would you like explained?</h1><p>Ask in your own words, or try: Who is this? · What did I miss? · Pause the TV.</p></div>}
         <form className="personal-question" onSubmit={this.ask}>
           <label className="sr-only" htmlFor="personal-question">{moment?.state === 'clarification' ? 'Answer the clarification' : 'Ask about this moment'}</label>
           <textarea id="personal-question" rows={2} maxLength={600} value={request} disabled={!!busy || voice === 'listening'}
@@ -313,6 +323,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
             <button className="primary" type="submit" disabled={!!busy || !fresh || !request.trim() || voice === 'listening'} aria-label="Send question"><Icon name="send"/></button></div>
         </form>
         {voice === 'listening' && <p className="personal-note" role="status">Listening. Review your words before sending.</p>}
+        <p className="personal-note">Selene · simulated Alexa+ experience</p>
         {canReturn && <div className="personal-actions"><button type="button" className="text-button" disabled={!fresh || !!busy} onClick={this.bringBack}>Catch me up</button><span>From {clock(from!)}</span></div>}
         {story.ingestion && <footer className="personal-credit">{story.ingestion.credit}</footer>}
       </>}

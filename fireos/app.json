@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Selene",
+    "slug": "selene-fireos",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "icon": "./assets/images/selene-icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#101114",
+    "splash": {"image": "./assets/images/selene-banner.png", "resizeMode": "contain", "backgroundColor": "#101114"},
+    "android": {
+      "package": "com.selene.fireos",
+      "splash": {"image": "./assets/images/selene-banner.png", "resizeMode": "contain", "backgroundColor": "#101114"}
+    },
+    "plugins": [
+      ["@react-native-tvos/config-tv", {"isTV": true, "androidTVBanner": "./assets/images/selene-banner.png"}],
+      ["expo-build-properties", {"android": {"usesCleartextTraffic": true}}],
+      "expo-video"
+    ]
+  }
+}

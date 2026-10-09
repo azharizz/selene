@@ -4,6 +4,7 @@ import React from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import type {AccessibilitySnapshot} from './Accessibility';
 import type {Example, Moment} from './api';
+import {clock} from './api';
 import {Alert, Control, Field, palette, px} from './ui';
 import {Visual} from './Visual';
 
@@ -12,12 +13,19 @@ export const plain = (answer: string) => answer.replace(/—/g, ',');
 export type Examples = {status: 'loading' | 'ready' | 'error'; items: Example[]; open: boolean; anchorAt: number;
   onToggle: () => void; onRetry: () => void; onSelect: (example: Example) => void};
 
-export function AskPanel({clarification, request, onChange, onSubmit, onClose, error, examples, quick, busy = false, placeholder = 'Ask about this moment…', accessibility}: {
+export function AskPanel({clarification, request, onChange, onSubmit, onClose, error, examples, quick, turns, label, busy = false, placeholder = 'Ask about this moment…', accessibility}: {
   clarification?: string; request: string; onChange: (value: string) => void; onSubmit: () => void; onClose: () => void; error?: string;
-  examples?: Examples; quick?: {label: string; onPress: () => void}[]; busy?: boolean; placeholder?: string; accessibility?: AccessibilitySnapshot;
+  examples?: Examples; quick?: {label: string; onPress: () => void}[]; turns?: {question: string; answer: string}[]; label?: string;
+  busy?: boolean; placeholder?: string; accessibility?: AccessibilitySnapshot;
 }) {
   return <View accessibilityLabel="Ask Selene" style={styles.ask}>
     <View style={styles.close}><Control variant="ask" square icon="close" accessibilityLabel="Close question" onPress={onClose} accessibility={accessibility}/></View>
+    {label ? <Text allowFontScaling={false} style={[styles.label, scaled(12, accessibility)]}>{label}</Text> : null}
+    {/* Recent turns keep follow-ups ("and why did he do that?") readable. */}
+    {turns?.map((turn, i) => <View key={i} style={styles.turn}>
+      <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{turn.question}</Text>
+      <Text allowFontScaling={false} numberOfLines={2} style={[styles.note, scaled(14, accessibility)]}>{plain(turn.answer)}</Text>
+    </View>)}
     {clarification ? <Text allowFontScaling={false} accessibilityRole="header" style={[styles.clarification, scaled(18, accessibility)]}>{clarification}</Text> : null}
     {error ? <Text allowFontScaling={false} accessibilityLiveRegion="assertive" style={[styles.hint, scaled(16, accessibility)]}>{error}</Text> : null}
     <View style={styles.question}>
@@ -26,29 +34,29 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
         placeholder={clarification ? 'Add the missing detail…' : placeholder} accessibility={accessibility}/>
       <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={busy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
     </View>
-    {!clarification && quick && <View style={styles.inlineRow}>
-      {quick.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={busy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
+    {!clarification && (quick?.length || examples) ? <Text allowFontScaling={false} style={[styles.label, styles.gap, scaled(12, accessibility)]}>Try asking</Text> : null}
+    {!clarification && <View style={styles.inlineRow}>
+      {quick?.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={busy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
+      {examples?.status === 'ready' && examples.items.map(example => <Control key={example.id} variant="ask" disabled={busy} onPress={() => examples.onSelect(example)} accessibility={accessibility}
+        label={`${example.at_seconds > examples.anchorAt ? `Jump to ${clock(example.at_seconds)} · ` : ''}${example.request}`}/>)}
     </View>}
-    {!clarification && examples && <>
-      <View style={styles.inlineRow}><Control variant="ask" preferred={!quick?.length} label="Prepared examples" pressed={examples.open} onPress={examples.onToggle} accessibility={accessibility}/></View>
-      {examples.open && <View style={styles.list}>
+    {!clarification && examples && examples.status !== 'ready' && <>
+      <View style={styles.list}>
         {examples.status === 'loading' && <Text allowFontScaling={false} style={[styles.note, scaled(16, accessibility)]}>Loading prepared examples…</Text>}
         {examples.status === 'error' && <><Text allowFontScaling={false} style={[styles.note, scaled(16, accessibility)]}>Prepared examples could not load.</Text>
           <Control variant="ask" label="Retry examples" onPress={examples.onRetry} accessibility={accessibility}/></>}
-        {examples.status === 'ready' && !examples.items.length && <Text allowFontScaling={false} style={[styles.note, scaled(16, accessibility)]}>No supported prepared example for this film. Ask in your own words.</Text>}
-        {examples.status === 'ready' && examples.items.map(example => <Control key={example.id} variant="ask" block onPress={() => examples.onSelect(example)} accessibility={accessibility}
-          label={`${example.at_seconds > examples.anchorAt ? `Jump to ${example.at_seconds.toFixed(3)}s · ` : ''}${example.request}`}/>)}
-      </View>}
+      </View>
     </>}
   </View>;
 }
 
 // .moment.compact: visual (160x90) | answer (18px, weight 500) | icon column (close, more).
-export function MomentPanel({moment, text, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility}: {moment: Moment | null; text?: string;
-  notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot}) {
+export function MomentPanel({moment, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility}: {moment: Moment | null; text?: string;
+  question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot}) {
   return <View accessibilityLabel="Moment Response" style={styles.toast}>
     {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual}/>}
     <ScrollView style={styles.answer}>
+      {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>
       {notice ? <Text allowFontScaling={false} style={[styles.small, scaled(16, accessibility)]}>{notice}</Text> : null}
       {lines?.map(line => <Text key={line} allowFontScaling={false} style={[styles.small, scaled(14, accessibility)]}>{line}</Text>)}
@@ -77,6 +85,10 @@ const styles = StyleSheet.create({
   inlineRow: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: px(6), marginTop: px(8)},
   list: {gap: px(6), marginTop: px(8)},
   note: {color: palette.muted},
+  label: {color: palette.muted, letterSpacing: px(0.6), marginRight: px(32), marginBottom: px(6)},
+  gap: {marginTop: px(8), marginBottom: 0},
+  turn: {marginBottom: px(8), marginRight: px(32)},
+  turnQuestion: {color: palette.ink, fontWeight: '600'},
   toast: {position: 'absolute', right: '5%', top: '5%', width: px(560), maxWidth: '90%', maxHeight: '80%', padding: px(8), borderRadius: px(12), backgroundColor: palette.surface,
     flexDirection: 'row', alignItems: 'center', gap: px(8)},
   answer: {flex: 1, minWidth: 0},

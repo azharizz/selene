@@ -103,7 +103,7 @@ async function refineVisual(moment, input, context, memory, messages, inspect, s
   return {moment, feedback};
 }
 
-async function completion(body, signal) {
+export async function completion(body, signal) {
   const stage = body.response_format?.json_schema.name === 'selene_grounding_review' ? 'review_provider'
     : body.response_format?.json_schema.name === 'selene_visual_feedback' ? 'visual_feedback_provider' : 'generation_provider';
   let code = 'configuration', httpStatus;

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "note": "Authored, spoiler-gated trivia for the simulated Alexa+ trivia skill. Kept out of content/*.json so film hashes (and prepared answers) are unchanged.",
+  "films": {
+    "football-match": [
+      {
+        "id": "trivia-1",
+        "safe_after": 0,
+        "text": "Football has had an offside law since the Football Association’s first written rules in 1863."
+      },
+      {
+        "id": "trivia-2",
+        "safe_after": 13.4,
+        "text": "The assistant referee signals offside by raising the flag; the referee then decides whether to stop play."
+      },
+      {
+        "id": "trivia-3",
+        "safe_after": 15,
+        "text": "A player cannot be offside in their own half, or directly from a goal kick, throw-in or corner kick."
+      },
+      {
+        "id": "trivia-4",
+        "safe_after": 27.1,
+        "text": "After an offside, the defending team restarts with an indirect free kick from where the offence happened."
+      },
+      {
+        "id": "trivia-5",
+        "safe_after": 48.2,
+        "text": "Level counts as onside: being level with the second-last opponent is not an offence."
+      }
+    ],
+    "the-missing-crown": [
+      {
+        "id": "trivia-1",
+        "safe_after": 6.5,
+        "text": "A coronation is the ceremony in which a monarch is formally crowned."
+      },
+      {
+        "id": "trivia-2",
+        "safe_after": 16,
+        "text": "A chancellor is traditionally a monarch’s senior official and adviser."
+      },
+      {
+        "id": "trivia-3",
+        "safe_after": 56,
+        "text": "Torn threads and fibres are classic clues in mystery stories, because they can tie a person to a place."
+      },
+      {
+        "id": "trivia-4",
+        "safe_after": 77.9,
+        "text": "In royal households, a captain of the guard was responsible for protecting the monarch and the crown jewels."
+      },
+      {
+        "id": "trivia-5",
+        "safe_after": 0,
+        "text": "This film’s captions are timed to its narration, so Selene only uses lines you have already heard."
+      }
+    ]
+  }
+}
