@@ -15,6 +15,7 @@ import {mcpRequest, mcpAccess} from './mcp.mjs';
 import {skillsRequest} from './skills.mjs';
 import {assist} from './assistant.mjs';
 import {ingest} from '../scripts/ingest-video.mjs';
+import {validPlacement, placePopup} from './placement.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -46,6 +47,7 @@ function closeMirror(session) {
 function endSession(id) {
   const session = sessions.get(id);
   session?.controller?.abort();
+  session?.placement?.controller?.abort();
   if (session) {
     session.memory.responses.clear();
     session.memory.lastExplanation = null;
@@ -156,6 +158,25 @@ export const server = createServer(async (req, res) => {
         return skillsRequest(req, res, input, session, send, {signal: controller.signal, onMoment: moment => {
           session.latestMoment = moment; publishMirror(session, {type: 'moment', moment, language: 'English', slower_answer_voice: false});
         }});
+      }
+      if (url.pathname === '/api/placement') {
+        const session = sessions.get(req.headers['x-selene-session']);
+        if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
+        if (!session.contentId) return send(res, 409, {error: 'Placement needs an available permitted film source.'});
+        if (!validPlacement(input) || input.at_seconds > session.duration) return send(res, 400, {error: 'Invalid placement request'});
+        if (input.content_id !== session.contentId) return send(res, 409, {error: 'This story is not the active viewing session.'});
+        // Placement cancellation must never cancel an explanation or a private phone answer.
+        const owner = session.placement ??= {controller: null};
+        const controller = startRequest(owner, res);
+        try {
+          const placement = await placePopup(getStory(session.contentId), input, {signal: controller.signal});
+          controller.signal.throwIfAborted();
+          return send(res, 200, placement);
+        } catch {
+          if (!res.destroyed) return send(res, controller.signal.aborted ? 409 : 502,
+            {error: 'Adaptive placement is unavailable. The answer can still be shown in the safe top-right corner.'});
+        } finally {finishRequest(owner, controller);}
+        return;
       }
       if (url.pathname === '/api/assistant') {
         const sessionId = req.headers['x-selene-session'], session = sessions.get(sessionId);

@@ -75,7 +75,7 @@ export function parseVisual(visual: VisualArtifact, animate: boolean) {
 }
 
 // .moment.compact .visual: 160x90 CSS px; the fallback is 14px muted text.
-export function Visual({visual, width = px(160)}: {visual: VisualArtifact; width?: number}) {
+export function Visual({visual, width = px(160), onInteract}: {visual: VisualArtifact; width?: number; onInteract?: () => void}) {
   const [play, setPlay] = React.useState(0);
   const [still, setStill] = React.useState(false);
   const [focused, setFocused] = React.useState(false);
@@ -90,8 +90,8 @@ export function Visual({visual, width = px(160)}: {visual: VisualArtifact; width
     <Text style={styles.fallbackText}>{visual.description || 'The explanation is ready in words.'}</Text>
     {visual.status !== 'none' && <Text style={styles.small}>Visual unavailable</Text>}
   </View>;
-  return <Pressable accessibilityRole="button" accessibilityLabel={`Replay explanation animation. ${visual.description}`} onPress={() => setPlay(value => value + 1)}
-    onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={[styles.frame, {width, height: width * 9 / 16}, focused && styles.focused]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Replay explanation animation. ${visual.description}`} onPress={() => {onInteract?.(); setPlay(value => value + 1);}}
+    onFocus={() => {setFocused(true); onInteract?.();}} onBlur={() => setFocused(false)} style={[styles.frame, {width, height: width * 9 / 16}, focused && styles.focused]}>
     <Svg key={play} width="100%" height="100%" viewBox={parsed.viewBox}>{parsed.children}</Svg>
     <Text style={styles.replay}>↻</Text>
   </Pressable>;

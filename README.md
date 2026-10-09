@@ -10,6 +10,14 @@ For an authorized transcript provider, see [the licensed scene-context contract]
 
 **Current test status:** [Vega verification](docs/vega-verification.md) is the dated source of truth for the tested build, launcher, playback, recap and phone results. Older dated reviews below are historical.
 
+## Native answer placement
+
+The Vega and Fire OS own players place ordinary assistant and prepared answers in one settled corner. The authenticated `POST /api/placement` route samples the permitted local video at the current display time and every two seconds through the next ten seconds. A bounded, local FFmpeg heuristic compares edge contrast and motion in four measured corner rectangles; captions exclude the bottom band. This is visual busyness scoring, not semantic recognition, and makes no model calls. Paused or ended playback uses a static frame.
+
+The answer remains visible during placement. Unavailable or stale analysis explicitly falls back to top-right. Playing answers dismiss at the end of the sampled ten-second horizon; paused answers dismiss ten seconds after placement settles. Seeking, closing or replacing an answer cancels outstanding work. Touch, scrolling, visual interaction, More focus and screen-reader use retain the answer until manual dismissal, intentionally outliving that horizon. Clarifications, recaps and expanded views are not auto-dismissed. Companion and browser placement are unchanged.
+
+Placement verification: 134 Node tests and 20 native Jest tests passed; Vega and Fire OS TypeScript checks and the web build passed. An actual authenticated Football Match request at 20 seconds returned top-left, and an unauthenticated request returned 410, without model calls. The Vega Debug package built successfully, but still reports the installed W3C media library's compatibility-metadata warning. Actual native corner placement and expiry remain unverified: the pinned Vega target was unavailable; the attached Android TV emulator is not a substitute.
+
 ## HTTPS MP4 import
 
 From the native companion landing screen, select **Import MP4** to open the existing import form directly; **Try the demo** still opens the film player. In the own player, **Films → Import MP4** opens the same form. It has three fields: a direct HTTPS MP4 URL, an optional SRT/WebVTT upload, and a title. Import only footage you have permission to download, process and reuse. A webpage, YouTube URL or protected streaming session is not a media file.

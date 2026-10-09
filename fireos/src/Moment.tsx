@@ -2,8 +2,9 @@
 // Layout ports web/style.css: .ask-sheet (480px, bottom-right) and .moment.compact (560px toast, top-right).
 import React from 'react';
 import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import type {LayoutChangeEvent} from 'react-native';
 import type {AccessibilitySnapshot} from './Accessibility';
-import type {Example, Moment} from './api';
+import type {Corner, Example, Moment} from './api';
 import {clock} from './api';
 import {Alert, Control, Field, palette, px} from './ui';
 import {Visual} from './Visual';
@@ -51,11 +52,12 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
 }
 
 // .moment.compact: visual (160x90) | answer (18px, weight 500) | icon column (close, more).
-export function MomentPanel({moment, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility}: {moment: Moment | null; text?: string;
-  question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot}) {
-  return <View accessibilityLabel="Moment Response" style={styles.toast}>
-    {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual}/>}
-    <ScrollView style={styles.answer}>
+export function MomentPanel({moment, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; text?: string;
+  question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot;
+  corner?: Corner; captions?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
+  return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, styles[corner], captions && styles.captionSafe]}>
+    {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual} onInteract={onInteract}/>}
+    <ScrollView style={styles.answer} onScroll={onInteract}>
       {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>
       {notice ? <Text allowFontScaling={false} style={[styles.small, scaled(16, accessibility)]}>{notice}</Text> : null}
@@ -65,7 +67,7 @@ export function MomentPanel({moment, text, question, notice, lines, waiting, err
     </ScrollView>
     <View style={styles.footer}>
       <Control variant="toast" square preferred icon="close" accessibilityLabel={dismissLabel} disabled={waiting} onPress={onDismiss} accessibility={accessibility}/>
-      {onMore && <Control variant="toast" square icon="more" accessibilityLabel="More options" onPress={onMore} accessibility={accessibility}/>}
+      {onMore && <Control variant="toast" square icon="more" accessibilityLabel="More options" onPress={onMore} onFocus={onInteract} accessibility={accessibility}/>}
     </View>
   </View>;
 }
@@ -89,8 +91,13 @@ const styles = StyleSheet.create({
   gap: {marginTop: px(8), marginBottom: 0},
   turn: {marginBottom: px(8), marginRight: px(32)},
   turnQuestion: {color: palette.ink, fontWeight: '600'},
-  toast: {position: 'absolute', right: '5%', top: '5%', width: px(560), maxWidth: '90%', maxHeight: '80%', padding: px(8), borderRadius: px(12), backgroundColor: palette.surface,
+  toast: {position: 'absolute', width: px(560), maxWidth: '90%', maxHeight: '80%', padding: px(8), borderRadius: px(12), backgroundColor: palette.surface,
     flexDirection: 'row', alignItems: 'center', gap: px(8)},
+  'top-left': {left: '5%', top: '5%'},
+  'top-right': {right: '5%', top: '5%'},
+  'bottom-left': {left: '5%', bottom: '5%'},
+  'bottom-right': {right: '5%', bottom: '5%'},
+  captionSafe: {maxHeight: '75%'},
   answer: {flex: 1, minWidth: 0},
   answerText: {color: palette.ink, fontWeight: '500'},
   small: {color: palette.muted, marginTop: px(6)},

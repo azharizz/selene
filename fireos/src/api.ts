@@ -22,6 +22,8 @@ export type ReturnResult = {status: 'ready' | 'no_gap' | 'insufficient_evidence'
   content_version: string; epoch: number; moment: Moment | null; evidence: Evidence[]; quote?: {id: string; at_seconds: number; text: string} | null};
 export type Pairing = {url: string; code: string; join_url: string; expires_at: number};
 export type Example = {id: string; request: string; at_seconds: number};
+export type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+export type Placement = {corner: Corner; at_seconds: number; duration_seconds: 10};
 // One turn of the simulated Alexa+ orchestrator (/api/assistant).
 export type AssistantReply = {tool: string; text: string; moment: Moment | null; label: string;
   command: {action: string; position_ms?: number; relative?: boolean} | null};

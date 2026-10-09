@@ -3,12 +3,12 @@
 // Voice input and read-aloud are absent: they relied on browser speech APIs that Vega's native runtime does not provide.
 import React from 'react';
 import {AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
-import type {NativeEventSubscription} from 'react-native';
+import type {LayoutChangeEvent, NativeEventSubscription} from 'react-native';
 import AsyncStorage from '@amazon-devices/react-native-async-storage__async-storage';
 import {KeplerVideoSurfaceView} from '@amazon-devices/react-native-w3cmedia';
 import type {AccessibilitySnapshot} from './Accessibility';
 import {clock, endSession, mediaUrl, openSession, request, RelayError} from './api';
-import type {AssistantReply, Bundle, CatalogStory, Choice, Example, Input, Moment, Pairing, ReturnResult, Story} from './api';
+import type {AssistantReply, Bundle, CatalogStory, Choice, Corner, Example, Input, Moment, Pairing, Placement, ReturnResult, Story} from './api';
 import {NativeFilm} from './media';
 import type {FilmEvent} from './media';
 import {AskPanel, MomentPanel, plain} from './Moment';
@@ -23,6 +23,7 @@ type State = {
   savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; mirror: Pairing | null; pairing: boolean;
   examples: Example[]; examplesOpen: boolean; examplesStatus: 'loading' | 'ready' | 'error'; importUrl: string; importTitle: string; importing: boolean;
   turns: {question: string; answer: string}[]; reply: string; asked: string;
+  corner: Corner; placementFallback: boolean;
 };
 const CAPTIONS_KEY = 'selene.captions';
 
@@ -31,7 +32,7 @@ export class Player extends React.Component<Props, State> {
     bundle: null, loadError: '', screen: this.props.importMp4 ? 'import' : 'watch', started: false, controls: true, position: 0, paused: true, ended: false, captions: true,
     request: '', moment: null, error: '', anchorAt: 0, clarifying: false, choice: 'unspecified', savedPlace: null, returnResult: null, mirror: null, pairing: false,
     examples: [], examplesOpen: false, examplesStatus: 'ready', importUrl: '', importTitle: '', importing: false,
-    turns: [], reply: '', asked: '',
+    turns: [], reply: '', asked: '', corner: 'top-right', placementFallback: false,
   };
   private film: NativeFilm | null = null;
   private filmFor = '';
@@ -40,6 +41,12 @@ export class Player extends React.Component<Props, State> {
   private examplesRequest: AbortController | null = null;
   private pairingRequest: AbortController | null = null;
   private lastInput: Input | null = null;
+  private placementRequest: AbortController | null = null;
+  private placementReady: (() => void) | null = null;
+  private placementLayoutTimer?: ReturnType<typeof setTimeout>;
+  private momentTimer?: ReturnType<typeof setTimeout>;
+  private panelSize: {width: number; height: number} | null = null;
+  private momentInteracted = false;
   private lastSeekTo: number | undefined;
   private playbackRevision = 0;
   private playbackEpoch = 0;
@@ -65,8 +72,10 @@ export class Player extends React.Component<Props, State> {
     }, () => undefined);
     void this.load();
   }
-  componentDidUpdate(previous: Props) {
+  componentDidUpdate(previous: Props, previousState: State) {
     if (previous.accessibility !== this.props.accessibility) this.setState({captions: this.captionChoice()});
+    if (this.props.accessibility.screenReader) this.keepMoment();
+    if (previousState.screen === 'moment' && this.state.screen !== 'moment') this.cancelPlacement();
   }
   componentWillUnmount() {
     this.mounted = false;
@@ -79,10 +88,72 @@ export class Player extends React.Component<Props, State> {
   private get story(): Story | null {return this.state.bundle?.story ?? null;}
   private get sessionId() {return this.state.bundle?.session_id ?? '';}
   private captionChoice() {return this.explicitCaptions ?? this.props.accessibility.captions ?? true;}
-  private cancel = () => {this.pending?.abort(); this.pending = null;};
+  private cancel = () => {this.pending?.abort(); this.pending = null; this.cancelPlacement();};
   private closeSession = () => {endSession(this.sessionId);};
+  private cancelPlacement = () => {
+    this.placementRequest?.abort(); this.placementRequest = null; this.placementReady = null; this.panelSize = null; this.momentInteracted = false;
+    clearTimeout(this.placementLayoutTimer); clearTimeout(this.momentTimer);
+    this.placementLayoutTimer = undefined; this.momentTimer = undefined;
+  };
+  private keepMoment = () => {
+    this.momentInteracted = true;
+    clearTimeout(this.momentTimer); this.momentTimer = undefined;
+  };
+  private measureMoment = ({nativeEvent: {layout}}: LayoutChangeEvent) => {
+    if (Number.isFinite(layout.width) && layout.width > 0 && Number.isFinite(layout.height) && layout.height > 0) {
+      this.panelSize = {width: layout.width, height: layout.height};
+      this.placementReady?.();
+    }
+  };
+  private beginPlacement = () => {
+    if (!this.mounted || this.state.screen !== 'moment') return;
+    const pending = new AbortController(); this.placementRequest = pending;
+    const start = () => {
+      if (this.placementRequest !== pending || pending.signal.aborted) return;
+      this.placementReady = null;
+      clearTimeout(this.placementLayoutTimer); this.placementLayoutTimer = undefined;
+      void this.placeMoment(pending);
+    };
+    this.placementReady = start;
+    // Give native layout one frame before using the existing panel's conservative maximum height.
+    this.placementLayoutTimer = setTimeout(start, 120);
+    if (this.panelSize) start();
+  };
+  private placeMoment = async (pending: AbortController) => {
+    const film = this.film, story = this.story, session = this.sessionId, epoch = this.playbackEpoch;
+    if (!film || !story || !session) return;
+    const current = () => this.mounted && this.placementRequest === pending && !pending.signal.aborted
+      && this.state.screen === 'moment' && this.sessionId === session && this.story?.id === story.id && this.playbackEpoch === epoch;
+    const captions = this.state.captions && story.transcript.length > 0;
+    const at = Math.min(story.duration, Math.max(0, film.currentTime)), playState = this.playStateNow(), startedAt = Date.now();
+    const width = this.panelSize ? this.panelSize.width / 640 : px(560) / 640;
+    const height = this.panelSize ? this.panelSize.height / 360 : captions ? 0.75 : 0.8;
+    let corner: Corner = 'top-right', placementFallback = false, visibleMs = 10000;
+    try {
+      const result = await request<Placement>('/api/placement', {method: 'POST', session, signal: pending.signal, timeoutMs: 3000,
+        body: {content_id: story.id, at_seconds: at, duration_seconds: 10, width_fraction: width, height_fraction: height, captions, play_state: playState}});
+      if (!result || !['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(result.corner)
+        || result.duration_seconds !== 10 || !Number.isFinite(result.at_seconds) || Math.abs(result.at_seconds - at) > 0.01) throw new Error('Invalid placement.');
+      const elapsed = (Date.now() - startedAt) / 1000, advanced = film.currentTime - at;
+      if (this.playStateNow() !== playState || Math.abs(advanced) > 2 || Math.abs(advanced - (playState === 'playing' ? elapsed : 0)) > 2
+        || captions !== (this.state.captions && story.transcript.length > 0)
+        || (this.panelSize && (this.panelSize.width / 640 > width || this.panelSize.height / 360 > height))) throw new Error('Placement became stale.');
+      if (playState === 'playing') visibleMs -= Math.max(elapsed, advanced) * 1000;
+      if (visibleMs <= 0) throw new Error('Placement expired.');
+      corner = result.corner;
+    } catch {
+      // Placement is optional presentation: never replace a delivered answer with an error.
+      placementFallback = true; visibleMs = 10000;
+    }
+    if (!current()) return;
+    this.setState({corner, placementFallback}, () => {
+      if (!current() || this.momentInteracted || this.props.accessibility.screenReader) return;
+      this.momentTimer = setTimeout(() => {if (current() && !this.props.accessibility.screenReader) this.dismiss();}, visibleMs);
+    });
+  };
 
   private load = async (contentId?: string) => {
+    this.cancel();
     this.setState({loadError: ''});
     try {
       const bundle = await openSession(contentId ? {content_id: contentId} : {});
@@ -258,6 +329,7 @@ export class Player extends React.Component<Props, State> {
 
   private openAsk = () => {
     const anchorAt = Math.min(this.story?.duration ?? 0, this.film?.currentTime ?? this.state.position);
+    this.cancelPlacement();
     this.setState({screen: 'ask', anchorAt, request: '', clarifying: false, error: '', choice: 'unspecified', examples: [], examplesOpen: false}, this.loadExamples);
   };
   private loadExamples = async () => {
@@ -298,7 +370,8 @@ export class Player extends React.Component<Props, State> {
       const moment = reply.moment;
       if (moment?.intervention.playback === 'request_pause') film.pause();
       const clarifying = moment?.state === 'clarification';
-      this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: ''});
+      this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: '', corner: 'top-right', placementFallback: false},
+        () => {if (!clarifying && moment?.state !== 'quiet' && reply.tool !== 'catch_me_up') this.beginPlacement();});
     } catch (error) {
       if (pending.signal.aborted || !this.mounted) return;
       this.pending = null;
@@ -347,8 +420,9 @@ export class Player extends React.Component<Props, State> {
         if (revision === this.playbackRevision) film.pause(); else result.intervention.playback = 'keep_watching';
       }
       this.pending = null;
-      this.setState({moment: result, screen: result.state === 'clarification' ? 'ask' : 'moment', clarifying: result.state === 'clarification',
-        request: result.state === 'clarification' ? '' : this.state.request, choice: result.intervention.playback === 'request_pause' ? 'pause_to_explore' : choice});
+      this.setState({moment: result, reply: '', asked: input.request, screen: result.state === 'clarification' ? 'ask' : 'moment', clarifying: result.state === 'clarification',
+        request: result.state === 'clarification' ? '' : this.state.request, choice: result.intervention.playback === 'request_pause' ? 'pause_to_explore' : choice,
+        corner: 'top-right', placementFallback: false}, () => {if (result.state === 'response') this.beginPlacement();});
     } catch (error) {
       if (pending.signal.aborted || !this.mounted) return;
       this.pending = null;
@@ -514,7 +588,9 @@ export class Player extends React.Component<Props, State> {
       {screen === 'loading' && <LoadingPanel onCancel={this.close}/>}
 
       {screen === 'moment' && (moment || this.state.reply) && <MomentPanel moment={moment} text={moment ? undefined : this.state.reply} question={this.state.asked} error={error} onDismiss={this.dismiss} onMore={() => this.setState({screen: 'more'})} accessibility={a11y}
-        notice={story.ingestion && moment?.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : undefined}/>}
+        corner={this.state.corner} captions={captions && story.transcript.length > 0} onLayout={this.measureMoment} onInteract={this.keepMoment}
+        notice={[story.ingestion && moment?.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : '',
+          this.state.placementFallback ? 'Placement unavailable; using the top-right corner.' : ''].filter(Boolean).join(' ') || undefined}/>}
 
       {screen === 'more' && <Sheet label="This moment">
         <SheetHead title="This moment" accessibility={a11y}><Control preferred icon="back" label="Back" onPress={this.goBack} accessibility={a11y}/></SheetHead>

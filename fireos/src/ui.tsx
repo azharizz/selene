@@ -64,9 +64,9 @@ const variants = {
   toast: {font: 16, height: 32, padV: 5, padH: 5, radius: 8, offset: 1, scale: 1},
 };
 type ControlProps = {label?: string; icon?: IconName; detail?: string; onPress: () => void; variant?: keyof typeof variants; primary?: boolean; text?: boolean; pressed?: boolean;
-  disabled?: boolean; preferred?: boolean; block?: boolean; square?: boolean; accessibilityLabel?: string; accessibility?: AccessibilitySnapshot};
+  disabled?: boolean; preferred?: boolean; block?: boolean; square?: boolean; accessibilityLabel?: string; accessibility?: AccessibilitySnapshot; onFocus?: () => void};
 export function Control({label, icon, detail, onPress, variant = 'sheet', primary = false, text = false, pressed, disabled = false, preferred = false, block = false, square = false,
-  accessibilityLabel, accessibility}: ControlProps) {
+  accessibilityLabel, accessibility, onFocus}: ControlProps) {
   const [focused, setFocused] = React.useState(false);
   const v = variants[variant];
   const font = px(v.font) * (accessibility?.textScale ?? 1);
@@ -77,7 +77,7 @@ export function Control({label, icon, detail, onPress, variant = 'sheet', primar
   return <View style={[block ? styles.block : styles.inline, {transform: [{scale: focused ? v.scale : 1}]}]}>
     <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? [label, detail].filter(Boolean).join(', ')}
       accessibilityState={{disabled, ...(pressed === undefined ? {} : {selected: pressed})}} disabled={disabled} hasTVPreferredFocus={preferred && !disabled}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onPress={onPress}
+      onFocus={() => {setFocused(true); onFocus?.();}} onBlur={() => setFocused(false)} onPress={onPress}
       style={[styles.control, box, disabled && styles.disabled]}>
       {focused && <View pointerEvents="none" style={[styles.ring, {top: -px(v.offset + 3), bottom: -px(v.offset + 3), left: -px(v.offset + 3), right: -px(v.offset + 3), borderRadius: px(v.radius + v.offset + 3)}]}/>}
       {icon && <Icon name={icon} size={font} color={color}/>}
