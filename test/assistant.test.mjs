@@ -4,7 +4,7 @@ import {once} from 'node:events';
 import {request} from 'node:http';
 import {Readable} from 'node:stream';
 import {whoIsOnScreen, triviaAt, playbackCommand, skillTools} from '../server/skills.mjs';
-import {route} from '../server/assistant.mjs';
+import {assist, route} from '../server/assistant.mjs';
 
 const film = {id: 'demo', title: 'Demo', duration: 100,
   transcript: [{id: 'c1', start: 0, end: 5, text: 'Lyra smiled.'}, {id: 'c2', start: 40, end: 45, text: 'Voss whispered.'}],
@@ -52,6 +52,15 @@ test('the router uses the model tool choice and falls back to the grounded expla
   assert.equal(seen.tool_choice, 'required');
   assert.ok(!seen.tools.some(tool => tool.function.name === 'get_viewing_context'));
   assert.deepEqual(seen.messages.slice(1, 3).map(message => message.content), ['Why offside?', 'He was beyond the defender.'], 'earlier turns resolve follow-ups');
+});
+
+test('assistant turns retain the host playback position for later spoiler-safe context', async () => {
+  const session = {contentId: 'football-match'};
+  await assist(session, 'test-session', {request: 'Pause here', at_seconds: 30}, {
+    client: {tools: skillTools, callTool: async () => ({structuredContent: {text: 'Paused.'}})},
+    complete: async () => call('control_playback', {action: 'pause'}),
+  });
+  assert.equal(session.assistant.turns[0].at_seconds, 30);
 });
 
 test('the real relay runs the simulated Alexa+ through its MCP skills endpoint', async t => {

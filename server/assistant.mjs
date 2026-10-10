@@ -93,7 +93,7 @@ export async function assist(session, sessionId, input, {port, host, signal, com
   const value = result.structuredContent ?? {};
   if (chosen.name === 'trivia' && value.fact) memory.trivia.push(value.fact.id);
   const clarification = chosen.name === 'explain_moment' && value.moment?.state === 'clarification';
-  memory.turns = [...memory.turns, {user: input.request, assistant: value.text ?? '', tool: chosen.name, clarification}].slice(-TURNS);
+  memory.turns = [...memory.turns, {user: input.request, assistant: value.text ?? '', tool: chosen.name, clarification, at_seconds: input.at_seconds}].slice(-TURNS);
   if (chosen.name !== 'control_playback') memory.lastAt = input.at_seconds;
   return {tool: chosen.name, text: value.text ?? '', moment: value.moment ?? null, command: value.command ?? null,
     entities: value.entities ?? null, label: 'Simulated Alexa+ experience'};
