@@ -10,6 +10,43 @@ For an authorized transcript provider, see [the licensed scene-context contract]
 
 **Current test status:** [Vega verification](docs/vega-verification.md) is the dated source of truth for the tested build, launcher, playback, recap and phone results. Older dated reviews below are historical.
 
+## Vega OS and Fire OS: two TV apps, one relay
+
+This repo holds two separate TV apps. They share no code at build time; at runtime both talk only to the relay.
+
+| Part | Folder | Platform | Notes |
+|---|---|---|---|
+| Vega TV app | `src/`, `manifest.toml`, root `package.json` | Vega OS (Kepler) | Built with `npm run build:debug`, installed as a `.vpkg` |
+| Fire OS TV app | `fireos/` | Fire OS / Android TV | Expo + `react-native-tvos` APK with its own `package.json` and `node_modules`. See [fireos/MIGRATION_REPORT.md](fireos/MIGRATION_REPORT.md) |
+| Relay and AI agent | `server/` | Node, port 4519 | Sessions, film list, Ask Selene, diagrams, phone pairing, Follow thread, Catch me up |
+| Film data | `content/*.json` | Shared | Captions, scenes and movie graph |
+| Videos and posters | `assets/media/` | Shared | Gitignored, so supply them locally. Fire OS and the phone read `video.mp4`; the native Vega player reads `video-v.mp4` and `video-a.mp4` |
+| Phone page | `web/`, built into `assets/` | Shared | What the phone opens after pairing |
+
+`fireos/` is small because it is only the TV screen. Deleting everything outside it still builds the APK, but the app can't load films, answer questions or pair a phone without the relay, `content/`, `assets/` and `../.env`.
+
+**Branches.** Both branches split from `main` at `07b37bd`:
+
+| Branch | Vega app (`src/`) | Fire OS app (`fireos/`) | Relay and phone page |
+|---|---|---|---|
+| `main` | WebView version | No | Base |
+| `native-vega-tv` | Fully native version | No | Adds phone tool round, ten frames for Follow thread, 180s limit |
+| `migrate-to-fireos` | WebView version from `main` | Yes | Same as `main` |
+
+`fireos/src` was ported from `native-vega-tv`'s `src/` but doesn't import it. `migrate-to-fireos` only adds `fireos/`, so merging `native-vega-tv` into it should not conflict and gives one branch with both apps plus the newer relay.
+
+**Running both at once.** Start one relay from this folder (`npm start`). Each TV creates its own session:
+
+- Vega: the virtual device reaches the relay through `vda reverse` (`npm run vega:run`).
+- Fire OS emulator: `adb reverse tcp:4519 tcp:4519`.
+- Amazon's cloud Fire TV: `fireos/cloud-apk.sh` builds the tunnel URL into the APK.
+
+**Gotchas.**
+
+- **Switching branches:** the two Vega versions have different root dependencies (the WebView package versus Amazon's SVG, async-storage and W3C media packages). Run `npm ci` in the repo root after switching. `fireos/` keeps its own `node_modules`.
+- **Phone pairing:** the relay needs an HTTPS address that the phone can reach, for example `SELENE_PRIVATE_URL=https://<tunnel> npm start`. Without it, Pair phone reports that pairing needs a reachable HTTPS relay address.
+- **Fire OS relay URL:** `fireos/src/config.json` holds the address the APK calls. `cloud-apk.sh` writes a temporary tunnel URL there and restores `http://127.0.0.1:4519` when you stop it with Ctrl-C.
+
 ## HTTPS MP4 import
 
 From the native companion landing screen, select **Import MP4** to open the existing import form directly; **Try the demo** still opens the film player. In the own player, **Films → Import MP4** opens the same form. It has three fields: a direct HTTPS MP4 URL, an optional SRT/WebVTT upload, and a title. Import only footage you have permission to download, process and reuse. A webpage, YouTube URL or protected streaming session is not a media file.
