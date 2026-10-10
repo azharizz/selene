@@ -50,7 +50,7 @@ export function conversationContext(session, now = Date.now()) {
   const mirror = session.mirror;
   for (const [origin, owner] of [['tv', session], ['phone', mirror.assistantSession]]) {
     if (!owner || owner.contentId !== story.id) continue;
-    for (const turn of (owner.assistant?.turns ?? []).slice(-6)) if (Number.isFinite(turn.at_seconds)) add(origin, turn);
+    for (const turn of (owner.assistant?.turns ?? []).slice(-6)) add(origin, turn);
     add(origin, owner.memory?.lastExplanation);
     moment(origin, owner.latestMoment);
     if (owner.clarification?.context?.content_id === story.id && owner.clarification.context.at_seconds <= playback.at_seconds)
