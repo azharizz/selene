@@ -19,6 +19,7 @@ import {validPlacement, placePopup} from './placement.mjs';
 import {listRequesters, createRequester, deleteRequester} from './requesters.mjs';
 import {processVoice, voiceAvailable} from './voice.mjs';
 import {requesterContext} from './requester-context.mjs';
+import {updateConversationSchedule, closeConversationSchedule, interruptConversation, currentConversation} from './conversation-scheduler.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -44,6 +45,7 @@ const validAssistant = input => Boolean(input) && Object.keys(input).every(key =
 const joinAttempts = new Map();
 let importing = false; // ponytail: one media import per relay; use a worker queue only for multi-TV hosting.
 function closeMirror(session) {
+  if (session) closeConversationSchedule(session);
   session?.mirror?.controller?.abort();
   for (const client of session?.mirror?.clients ?? []) client.end('data: {"type":"closed"}\n\n');
   if (session) session.mirror = null;
@@ -77,13 +79,23 @@ function privateUrl(token) {
 function publishMirror(session, event) {
   if (!session?.mirror) return;
   // Own-player phone requests are independent; shared TV answers never replace private help.
-  if (session.contentId && event.type !== 'playback') return;
+  if (session.contentId && !['playback', 'conversation'].includes(event.type)) return;
   const visibleEvent = event;
   if (event.type !== 'playback') session.mirror.latest = visibleEvent;
   const payload = `data: ${JSON.stringify(visibleEvent).replace(/\u2028|\u2029/g, '')}\n\n`;
   for (const client of session.mirror.clients) client.write(payload);
 }
+function scheduleConversation(session, connected = false) {
+  updateConversationSchedule(session, {connected, publish: event => publishMirror(session, event), acquire: controller => {
+    if (active.size >= 3) return null;
+    active.add(controller);
+    const release = () => active.delete(controller);
+    controller.signal.addEventListener('abort', release, {once: true});
+    return () => {release(); controller.signal.removeEventListener('abort', release);};
+  }});
+}
 function startRequest(owner, res, cancelOnClose = true) {
+  for (const session of sessions.values()) interruptConversation(session);
   if (owner.controller) {owner.controller.abort(); active.delete(owner.controller);}
   if (active.size >= 3) throw conflict('Another answer is being prepared. Try again in a moment.', 429);
   const controller = new AbortController(); active.add(controller); owner.controller = controller;
@@ -105,7 +117,8 @@ async function runPrivate(session, action, input, res, cancelOnClose = true) {
   finally {if (mirror.mcp?.controller === controller) delete mirror.mcp.controller; finishRequest(mirror, controller);}
 }
 function personalBootstrap(session) {
-  return {type: 'personal', story: servedStory(getStory(session.contentId), true), playback: playbackSnapshot(session), ...privateState(session)};
+  return {type: 'personal', story: servedStory(getStory(session.contentId), true), playback: playbackSnapshot(session),
+    ...privateState(session), conversation: currentConversation(session)};
 }
 
 export const server = createServer(async (req, res) => {
@@ -193,10 +206,12 @@ export const server = createServer(async (req, res) => {
         const session = sessions.get(req.headers['x-selene-session']);
         if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
         const controller = new AbortController();
+        interruptConversation(session);
         res.on('close', () => {if (!res.writableEnded) controller.abort();});
-        return skillsRequest(req, res, input, session, send, {signal: controller.signal, onMoment: moment => {
+        session.skillsInFlight = (session.skillsInFlight ?? 0) + 1;
+        try {return await skillsRequest(req, res, input, session, send, {signal: controller.signal, onMoment: moment => {
           session.latestMoment = moment; publishMirror(session, {type: 'moment', moment, language: 'English', slower_answer_voice: false});
-        }});
+        }});} finally {session.skillsInFlight--;}
       }
       if (url.pathname === '/api/placement') {
         const session = sessions.get(req.headers['x-selene-session']);
@@ -313,6 +328,7 @@ export const server = createServer(async (req, res) => {
             session.mirror.controller?.abort(); session.mirror.hold = null; session.mirror.help = null; session.mirror.bridge = null; session.mirror.thread = null;
           }
           publishMirror(session, {type: 'playback', playback: playbackSnapshot(session)});
+          scheduleConversation(session);
         }
         return send(res, 200, {playback: playbackSnapshot(session), ...(command ? {command} : {})});
       }
@@ -427,6 +443,7 @@ export const server = createServer(async (req, res) => {
       res.write(`data: ${JSON.stringify(session.contentId ? personalBootstrap(session) : session.mirror.latest ?? {type: 'ready'})}\n\n`);
       const clients = session.mirror.clients;
       clients.add(res);
+      scheduleConversation(session, true);
       const heartbeat = setInterval(() => res.write(': keep-alive\n\n'), 15000);
       res.on('close', () => {clearInterval(heartbeat); clients.delete(res);});
       return;
@@ -468,6 +485,7 @@ export const server = createServer(async (req, res) => {
 });
 
 server.requestTimeout = 0; // Keep SSE open; model work has its own deadline and viewer cancellation.
+server.on('close', () => {for (const session of sessions.values()) closeConversationSchedule(session);});
 server.on('error', error => {console.error(error.code === 'EADDRINUSE' ? `SELENE port ${port} is already in use. Set SELENE_PORT in the parent .env and rebuild.` : 'SELENE could not start.'); process.exitCode = 1;});
 server.listen(port, hostname, () => console.info(`SELENE ready at http://${hostname}:${port}`));
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {for (const id of sessions.keys()) endSession(id); server.close();});

@@ -785,3 +785,45 @@ test('Guided Return at the film end shows its recap without restarting the film'
   assert.equal(restarts, 0); assert.equal(tv.state.screen, 'moment');
 });
 
+
+test('conversation options arrive automatically, preserve private work, and queue while the viewer is busy', () => {
+  const {context, streams, requests} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'conversation-test'});
+  phone.mounted = true; phone.connect();
+  const story = {id: 'test', title: 'Test', content_version: 'a'.repeat(64), duration: 100, scenes: [], transcript: []};
+  const playback = {content_id: story.id, content_version: story.content_version, epoch: 0, sequence: 1, at_seconds: 90,
+    play_state: 'playing', playback_rate: 1, age_ms: 0, fresh: true};
+  const conversation = {id: 'options-one', content_id: story.id, content_version: story.content_version, epoch: 0, at_seconds: 90,
+    opportunity: 'reflection', boundary_id: 'cue1', options: [
+      {id: 'memory', angle: 'Remember together', question: 'Which game did you play growing up?', recipient: 'grandparent', evidence_ids: ['cue1']},
+      {id: 'imagine', angle: 'Imagine together', question: 'What game would you invent?', recipient: 'child', evidence_ids: ['cue1']},
+      {id: 'compare', angle: 'Compare experiences', question: '<script>not executable</script> What would you teach each other?', recipient: 'everyone', evidence_ids: ['cue1']},
+    ]};
+  const receive = value => streams.at(-1).onmessage({data: JSON.stringify(value)});
+  receive({type: 'personal', story, playback});
+  phone.state.request = 'My unsent question'; phone.state.moment = moment;
+  receive({type: 'conversation', conversation}); phone.flushConversation();
+  assert.equal(phone.state.conversation, null);
+  assert.equal(phone.state.request, 'My unsent question'); assert.equal(phone.state.moment, moment);
+  phone.state.request = '';
+  for (const [field, value] of [['busy', 'ask'], ['voice', 'listening'], ['pickingTime', true], ['selected', 20]]) {
+    const old = phone.state[field]; phone.state[field] = value; phone.flushConversation();
+    assert.equal(phone.state.conversation, null, `defer while ${field}`); phone.state[field] = old;
+  }
+  phone.editing = true; phone.flushConversation(); assert.equal(phone.state.conversation, null); phone.editing = false;
+  context.document.hidden = true; phone.flushConversation(); assert.equal(phone.state.conversation, null); context.document.hidden = false;
+  phone.flushConversation(); assert.equal(phone.state.conversation.id, conversation.id);
+  assert.equal(phone.state.moment, moment); assert.equal(requests.length, 0, 'no submit, voice or playback requests');
+  const html = renderToStaticMarkup(phone.render());
+  assert.match(html, /Which game did you play growing up/); assert.match(html, /What game would you invent/);
+  assert.match(html, /&lt;script&gt;not executable/); assert.doesNotMatch(html, /<script>/);
+  phone.dismissedConversation = conversation.id; phone.state.conversation = null;
+  receive({type: 'personal', story, playback, conversation}); phone.flushConversation();
+  assert.equal(phone.state.conversation, null, 'reconnect does not resurrect a dismissed set');
+  receive({type: 'conversation', conversation: {...conversation, id: 'options-two'}}); phone.flushConversation();
+  assert.equal(phone.state.conversation.id, 'options-two');
+  receive({type: 'playback', playback: {...playback, sequence: 2, epoch: 1, at_seconds: 10}});
+  assert.equal(phone.state.conversation, null, 'seek clears old options');
+  receive({type: 'conversation', conversation}); phone.flushConversation(); assert.equal(phone.state.conversation, null);
+  receive({type: 'closed'}); assert.equal(phone.queuedConversation, null); assert.equal(phone.state.conversation, null);
+});

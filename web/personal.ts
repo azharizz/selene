@@ -8,6 +8,9 @@ export type PersonalStory = {
 };
 export type Playback = {content_id: string; content_version: string; epoch: number; sequence: number; at_seconds: number;
   play_state: 'playing' | 'paused' | 'buffering' | 'ended'; playback_rate: number; age_ms: number; fresh: boolean};
+export type ConversationOptions = {id: string; content_id: string; content_version: string; epoch: number; at_seconds: number;
+  opportunity: 'ending' | 'break' | 'reflection'; boundary_id: string;
+  options: {id: string; angle: string; question: string; recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; evidence_ids: string[]}[]};
 export type PersonalHold = {id: string; from_seconds: number; content_version: string; epoch: number; question_at_seconds: number | null};
 export type Audience = {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request'};
 export const audienceLabel = (audience: Audience) => `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`;

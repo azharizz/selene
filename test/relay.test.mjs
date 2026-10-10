@@ -40,6 +40,12 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     modelReads++;
     if (modelUnavailable) throw new TypeError('Private upstream failure details');
     const body = JSON.parse(options.body);
+    if (body.tools?.some(tool => tool.function.name === 'get_conversation_context')) {
+      const name = body.messages.some(message => message.role === 'tool') ? 'stay_quiet' : 'get_conversation_context';
+      return Response.json({choices: [{finish_reason: 'tool_calls', message: {role: 'assistant', tool_calls: [
+        {id: 'conversation', type: 'function', function: {name, arguments: name === 'stay_quiet' ? '{"reason":"Fixture has no conversation opportunity"}' : '{}'}},
+      ]}}]});
+    }
     if (body.response_format?.json_schema.name === 'selene_requester_transcript') {
       if (voiceBlocked) {
         voiceSignal = options.signal; voiceStarted();

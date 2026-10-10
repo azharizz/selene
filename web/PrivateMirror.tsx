@@ -3,7 +3,7 @@ import {Visual} from './Visual';
 import {Voice, type VoiceState} from './voice';
 import {Brand, Icon} from './Brand';
 import type {Language} from './preferences';
-import {clock, audienceLabel, personalRequest, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread} from './personal';
+import {clock, audienceLabel, personalRequest, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread, type ConversationOptions} from './personal';
 
 const locale = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
 const clean = (text: string) => text.replace(/\u2014/g, ',');
@@ -17,18 +17,21 @@ type State = {
   connection: 'connecting' | 'connected' | 'disconnected' | 'closed'; mirrorOnly: boolean;
   selected: number | null; pickingTime: boolean; now: number; receivedAt: number; voice: VoiceState;
   reply: {tool: string; text: string} | null;
+  conversation: ConversationOptions | null;
 };
 // The simulated Alexa+ orchestrator answers quick skills directly; explanations stay on this private path.
 type AssistantResult = {tool: string; text: string; delegate?: boolean};
 
 export class PrivateMirror extends React.Component<{token: string}, State> {
   state: State = {story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', request: '', error: '', notice: '', busy: '',
-    connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle', reply: null};
+    connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle', reply: null, conversation: null};
   private stream: EventSource | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private pending: AbortController | null = null;
   private threadPending: AbortController | null = null;
   private queuedThread: FollowedThread | null = null;
+  private queuedConversation: ConversationOptions | null = null;
+  private dismissedConversation: string | null = null;
   private nextThreadCheck = 0;
   private editing = false;
   private questionAt: number | null = null;
@@ -46,7 +49,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
 
   componentDidMount() {
     this.mounted = true; this.connect();
-    this.timer = setInterval(() => {this.setState({now: Date.now()}); this.flushThread(); void this.checkThread();}, 1000);
+    this.timer = setInterval(() => {this.setState({now: Date.now()}); this.flushThread(); this.flushConversation(); void this.checkThread();}, 1000);
     document.addEventListener('visibilitychange', this.visibility);
     window.addEventListener('pagehide', this.suspend);
   }
@@ -64,7 +67,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     else if (this.state.connection !== 'closed') this.connect();
   };
   private connect = () => {
-    this.queuedThread = null;
+    this.queuedThread = null; this.queuedConversation = null;
     this.suspend(); this.setState({connection: 'connecting'}); this.stream?.close();
     const stream = new EventSource(this.endpoint()); this.stream = stream;
     stream.onmessage = event => {
@@ -72,11 +75,11 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       try {
         const value = JSON.parse(event.data) as {type: string; story?: PersonalStory; playback?: Playback | null; hold?: PersonalHold | null;
           moment?: PersonalMoment; language?: Language; slower_answer_voice?: boolean;
-          help?: PersonalHelp | null; bridge?: ReturnResult | null; thread?: FollowedThread | null};
+          help?: PersonalHelp | null; bridge?: ReturnResult | null; thread?: FollowedThread | null; conversation?: ConversationOptions | null};
         if (value.type === 'closed') {
-          this.queuedThread = null; this.cancel(); stream.close(); this.held = null; this.questionAt = null;
+          this.queuedThread = null; this.queuedConversation = null; this.cancel(); stream.close(); this.held = null; this.questionAt = null;
           this.requesterId = undefined;
-          this.setState({connection: 'closed', story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', busy: '',
+          this.setState({connection: 'closed', conversation: null, story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', busy: '',
             error: 'This phone connection ended. Pair again from the TV.'});
           return;
         }
@@ -102,7 +105,9 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
               moment: value.bridge?.moment ?? help?.moment ?? null, threadNotice: '', busy: ''});
           }
           if (value.playback) this.receivePlayback(value.playback);
+          this.receiveConversation(value.conversation ?? null);
         }
+        if (value.type === 'conversation') this.receiveConversation(value.conversation ?? null);
         if (value.type === 'playback' && value.playback) this.receivePlayback(value.playback);
         if (value.type === 'ready') this.setState({mirrorOnly: true, moment: null, error: ''});
         if (value.type === 'moment' && value.moment) {
@@ -115,9 +120,9 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       if (!this.mounted || this.stream !== stream) return;
       this.suspend();
       if (this.state.mirrorOnly || stream.readyState === EventSource.CLOSED) {
-        stream.close(); this.held = null;
+        stream.close(); this.held = null; this.queuedConversation = null;
         this.queuedThread = null; this.questionAt = null;
-        this.setState({connection: 'closed', story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '',
+        this.setState({connection: 'closed', conversation: null, story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '',
           error: 'This phone connection is unavailable. Pair again from the TV.'});
       } else this.setState({connection: 'disconnected'});
       // EventSource reconnects with the actual branch and latest sampled position.
@@ -130,11 +135,29 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
         (this.held && (playback.epoch !== this.held.epoch || playback.content_version !== this.held.content_version)) ||
         (this.state.thread && (playback.epoch !== this.state.thread.epoch || playback.content_version !== this.state.thread.content_version))) {
       this.requesterId = undefined;
+      this.queuedConversation = null; this.dismissedConversation = null;
       this.queuedThread = null; this.cancel(); this.held = null; this.questionAt = null; this.newTopic = false;
-      this.setState({hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', selected: null, pickingTime: false, busy: '',
+      this.setState({conversation: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', selected: null, pickingTime: false, busy: '',
         notice: 'The TV moved. Your next question will use its current moment.'});
     }
     this.setState({playback, receivedAt: Date.now() - playback.age_ms, now: Date.now()});
+  };
+  private receiveConversation = (conversation: ConversationOptions | null) => {
+    if (!conversation) {this.queuedConversation = null; this.setState({conversation: null}); return;}
+    if (conversation.id === this.dismissedConversation || conversation.id === this.state.conversation?.id) return;
+    this.queuedConversation = conversation;
+    // Flush on the next tick, after React has applied the accompanying playback/bootstrap state.
+  };
+  private flushConversation = () => {
+    const next = this.queuedConversation, playback = this.state.playback;
+    if (!next || !playback || !this.fresh()) return;
+    if (next.content_id !== playback.content_id || next.content_version !== playback.content_version || next.epoch !== playback.epoch) {
+      this.queuedConversation = null; return;
+    }
+    if (document.hidden || this.pending || this.threadPending || this.state.busy || this.editing || this.state.request.trim()
+      || this.state.voice !== 'idle' || this.state.pickingTime || this.state.selected !== null) return;
+    this.queuedConversation = null;
+    this.setState({conversation: next});
   };
   private chooseMoment = (selected: number | null) => {
     this.requesterId = undefined;
@@ -285,12 +308,17 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       playback?.play_state === 'ended' ? 'Film ended' : playback?.play_state === 'paused' ? 'TV paused' : playback?.play_state === 'buffering' ? 'TV buffering' : mirrorOnly ? 'Shared from TV' : 'Following TV';
     const from = hold?.from_seconds ?? selected;
     const canReturn = from !== undefined && from !== null && playback && playback.at_seconds - from >= .25;
-    return <main className="personal-app">
+    return <main className="personal-app personal-viewing">
       <header className="personal-heading"><Brand/>{story && <p className="personal-title">{clean(story.title)}</p>}</header>
       <section className="personal-time" aria-label="TV moment">
-        <button className="personal-clock" disabled={!story || !!busy || !fresh || mirrorOnly} aria-label="Choose a moment" aria-expanded={pickingTime}
-          onClick={() => this.setState({pickingTime: !pickingTime})}>{at === undefined ? '0:00' : clock(at)}</button>
-        <p>{selected !== null ? `Selected moment · TV ${clock(playback?.at_seconds ?? 0)}` : state}{story && fresh && !mirrorOnly && selected === null && <span className="time-hint"> · Tap to look back</span>}</p>
+        <div className="personal-playback">
+          <p>{selected !== null ? `Selected moment · TV ${clock(playback?.at_seconds ?? 0)}` : state}</p>
+          <button className="personal-clock" disabled={!story || !!busy || !fresh || mirrorOnly} aria-label="Choose a moment" aria-expanded={pickingTime}
+            onClick={() => this.setState({pickingTime: !pickingTime})}>
+            <span>{at === undefined ? '0:00' : clock(at)}</span>
+            {story && fresh && !mirrorOnly && <span className="time-hint">Look back</span>}
+          </button>
+        </div>
         {pickingTime && playback && <div className="personal-time-picker">
           <label className="sr-only" htmlFor="personal-time">Moment to explain</label>
           <input id="personal-time" type="range" min="0" max={playback.at_seconds} step="1" value={selected ?? playback.at_seconds}
@@ -302,6 +330,16 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       {!fresh && connection === 'connected' && !mirrorOnly && <p className="personal-note" role="status">Keep Selene open on the TV to update this moment.</p>}
       {error && <p role="alert">{error}</p>}
       {notice && <p className="personal-note" role="status">{notice}</p>}
+      {this.state.conversation && fresh && !mirrorOnly && <section className="personal-conversation" aria-labelledby="conversation-heading">
+        <div className="conversation-heading"><div><h2 id="conversation-heading">Something to talk about</h2>
+          <p className="personal-note">From the moment at {clock(this.state.conversation.at_seconds)}</p></div>
+          <button type="button" className="text-button" aria-label="Dismiss conversation ideas" onClick={() => {
+            this.dismissedConversation = this.state.conversation!.id; this.setState({conversation: null});
+          }}><Icon name="close"/></button></div>
+        <ul>{this.state.conversation.options.map(option => <li key={option.id}>
+          <h3>{option.angle}</h3><p>{option.question}</p>
+        </li>)}</ul>
+      </section>}
       {busy && <div className="personal-working" role="status"><span>{busy === 'return' ? 'Catching you up…' : busy === 'ask' ? 'Explaining this moment…' : busy === 'follow' ? 'Updating followed question…' : 'Following the TV…'}</span>
         <button aria-label="Cancel request" onClick={this.connect}><Icon name="close"/></button></div>}
       {moment && (!busy || busy === 'follow') && <section className="personal-answer" aria-label={bridge ? 'Guided return' : 'Your explanation'}>

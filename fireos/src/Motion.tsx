@@ -3,9 +3,7 @@ import {AccessibilityInfo, Animated, Easing, StyleSheet, View} from 'react-nativ
 import {useCanvas as useWindowDimensions} from './canvas';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 
-// Landing-page motion on the native driver. Everything settles after the intro; only an occasional
-// meteor and the busy scan move afterwards, because the software-rendered Vega VVD repaints the
-// frame for every running animation (idle CPU: ~50% with perpetual loops, ~3% settled).
+// Landing-page motion uses shared native-driver loops for ambient effects and small one-shot intro animations.
 export const orange = '#ff9900';
 const ink = '#f1f1f1';
 const out = Easing.out(Easing.cubic);
@@ -68,29 +66,17 @@ function PulseDot() {
   </View>;
 }
 
-// Deterministic pseudo-random star field, static after the intro fade.
+// Deterministic stars animate as three shared twinkle groups.
 const rand = (i: number, salt: number) => {const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453; return x - Math.floor(x);};
 // Most stars sit right of the text column; the rest in the top and bottom margins, so none read as specks on type.
 const STARS = Array.from({length: 42}, (_, i) => ({left: `${i % 4 ? 52 + rand(i, 1) * 48 : rand(i, 1) * 100}%` as const,
   top: `${i % 4 ? rand(i, 2) * 100 : i % 8 ? rand(i, 2) * 6 : 94 + rand(i, 2) * 6}%` as const,
-  size: rand(i, 3) > 0.85 ? 2 : rand(i, 3) > 0.45 ? 1.5 : 1, opacity: 0.25 + rand(i, 4) * 0.6}));
+  size: rand(i, 3) > 0.85 ? 2 : rand(i, 3) > 0.45 ? 1.5 : 1, opacity: 0.25 + rand(i, 4) * 0.6, group: i % 3}));
+const TWINKLE = [[1, 0.35, 1, 0.6, 1, 0.3, 1], [0.4, 1, 0.5, 1, 0.35, 1, 0.4], [0.7, 0.5, 1, 0.3, 0.9, 1, 0.7]];
 
-// A short streak every few seconds; nothing animates between passes.
-function Meteor({width}: {width: number}) {
-  const t = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let alive = true;
-    const fly = () => {
-      t.setValue(0);
-      Animated.timing(t, {toValue: 1, duration: 900, easing: Easing.in(Easing.quad), useNativeDriver: true}).start();
-      timer = setTimeout(fly, 11000);
-    };
-    void reduceMotion().then(reduce => {if (alive && !reduce) timer = setTimeout(fly, 4000);});
-    return () => {alive = false; if (timer) clearTimeout(timer); t.stopAnimation();};
-  }, [t]);
-  return <Animated.View style={[styles.meteor, {opacity: t.interpolate({inputRange: [0, 0.1, 0.75, 1], outputRange: [0, 1, 1, 0]}),
-    transform: [{rotate: '16deg'}, {translateX: lerp(t, 0, width * 0.26)}]}]}>
+function Meteor({t, width}: {t: Animated.Value; width: number}) {
+  return <Animated.View style={[styles.meteor, {opacity: t.interpolate({inputRange: [0, 0.6, 0.62, 0.68, 0.71, 1], outputRange: [0, 0, 1, 1, 0, 0]}),
+    transform: [{rotate: '16deg'}, {translateX: t.interpolate({inputRange: [0, 0.6, 0.71, 1], outputRange: [0, 0, width * 0.26, width * 0.26]})}]}]}>
     <View style={[styles.trail, {width: 40, opacity: 0.12}]}/><View style={[styles.trail, {width: 28, opacity: 0.35}]}/><View style={[styles.trail, {width: 14, opacity: 0.9}]}/>
   </Animated.View>;
 }
@@ -98,7 +84,9 @@ function Meteor({width}: {width: number}) {
 export function Backdrop({busy}: {busy: boolean}) {
   const {width, height} = useWindowDimensions();
   const intro = useDriver(once(0, 2600, Easing.linear));
-  // One eased lap after the intro, ending where it began: perpetual orbits cost ~50% CPU on the VVD.
+  const ambient = useDriver(loop(9000));
+  const drift = useDriver(loop(14000));
+  // Satellites keep a single eased lap; background drift uses its own shared loop.
   const spin = useDriver(once(1800, 6000, Easing.inOut(Easing.cubic)));
   const D = Math.round(Math.min(height * 0.3, width * 0.17));
   const S = D * 3.4;
@@ -123,13 +111,16 @@ export function Backdrop({busy}: {busy: boolean}) {
   };
   const orbits = at(0.35, 0.75, 0, 1);
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Animated.View style={[StyleSheet.absoluteFill, {opacity: at(0, 0.3, 0, 1)}]}>
-      {STARS.map((star, i) => <View key={i} style={{position: 'absolute', left: star.left, top: star.top, width: star.size, height: star.size, borderRadius: star.size, backgroundColor: ink, opacity: star.opacity}}/>)}
+    <Animated.View style={[StyleSheet.absoluteFill, {opacity: at(0, 0.3, 0, 1), transform: [{translateX: drift.interpolate({inputRange: [0, 0.5, 1], outputRange: [0, -12, 0]})}]}]}>
+      {[0, 1, 2].map(group => <Animated.View key={group} style={[StyleSheet.absoluteFill, {opacity: ambient.interpolate({inputRange: [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1], outputRange: TWINKLE[group]})}]}>
+        {STARS.filter(star => star.group === group).map((star, i) => <View key={i} style={{position: 'absolute', left: star.left, top: star.top, width: star.size, height: star.size, borderRadius: star.size, backgroundColor: ink, opacity: star.opacity}}/>)}
+      </Animated.View>)}
+      <Meteor t={ambient} width={width}/>
     </Animated.View>
-    <Meteor width={width}/>
-    <View style={{position: 'absolute', left: width * 0.75 - S / 2, top: height * 0.5 - S / 2, width: S, height: S}}>
-      <Animated.View style={[StyleSheet.absoluteFill, {opacity: at(0.2, 0.7, 0, 1), transform: [{scale: at(0.2, 0.8, 0.55, 1)}]}]}>
-        {[[3.2, 0.025], [2.4, 0.04], [1.6, 0.07]].map(([k, alpha], i) => <View key={i} style={[circle(D * k), {backgroundColor: orange, opacity: alpha}]}/>)}
+    <Animated.View style={{position: 'absolute', left: width * 0.75 - S / 2, top: height * 0.5 - S / 2, width: S, height: S,
+      transform: [{translateY: drift.interpolate(curve(a => Math.sin(a * 2) * 3))}]}}>
+      <Animated.View style={[StyleSheet.absoluteFill, {opacity: at(0.2, 0.7, 0, 1), transform: [{scale: at(0.2, 0.8, 0.55, 1)}, {scale: ambient.interpolate(curve(a => 1 + Math.sin(a) * 0.04))}]}]}>
+        {[[3.2, 0.025], [2.6, 0.035], [2, 0.05], [1.5, 0.07]].map(([k, alpha], i) => <View key={i} style={[circle(D * k), {backgroundColor: orange, opacity: alpha}]}/>)}
       </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, {opacity: orbits, transform: [{scale: at(0.35, 0.8, 0.85, 1)}]}]}>
         {orbit(D * 2.5, 0.24, '-14deg', false)}{orbit(D * 2.95, 0.18, '9deg', false)}
@@ -145,7 +136,7 @@ export function Backdrop({busy}: {busy: boolean}) {
         {satellite(D * 2.5, 0.24, '-14deg', 5, 0.6)}{satellite(D * 2.95, 0.18, '9deg', 4, 2.8, true)}
       </Animated.View>
       {busy && <Scan size={D} style={circle(D * 1.36)}/>}
-    </View>
+    </Animated.View>
   </View>;
 }
 
