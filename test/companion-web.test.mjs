@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import vm from 'node:vm';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {DOMParser} from '@xmldom/xmldom';
 
 // Exercise component controllers in Node. No browser, WebView, or provider is launched.
 const compiled = await build({stdin: {contents: "export {CompanionMoment} from './web/CompanionMoment'; export {PrivateMirror} from './web/PrivateMirror'; export {Visual} from './web/Visual'; export {App as OwnApp} from './web/App'; export {personalRequest} from './web/personal'; export {readPreferences,savePreferences} from './web/preferences';", resolveDir: process.cwd()},
@@ -32,6 +34,45 @@ function instance() {
   const receive = data => app.receive({source: window, origin: location.origin, data});
   return {app, context, receive, requests, messages, streams};
 }
+
+test('rendered answer DOM shows only host-declared audience across web surfaces', () => {
+  const {app: companion, context} = instance();
+  const story = {id: 'test', title: 'Test', content_version: 'a'.repeat(64), duration: 100, video: '/media/test.mp4', transcript: [], scenes: []};
+  const own = new context.module.exports.OwnApp({session_id: 'test-session', story});
+  const phone = new context.module.exports.PrivateMirror({token: 'test'});
+  own.state.started = true; phone.state.story = story;
+  const badges = app => {
+    const dom = new DOMParser().parseFromString(renderToStaticMarkup(app.render()), 'text/html');
+    return Array.from(dom.getElementsByTagName('span')).filter(node => node.getAttribute('class') === 'audience-badge');
+  };
+  for (const audience of [undefined, {recipient: 'child', source: 'declaration'}, {recipient: 'grandparent', source: 'declaration'},
+    {recipient: 'child', source: 'profile'}, {recipient: 'everyone', source: 'request'}]) {
+    const answer = {...moment, answer: 'I am a grandparent. This text must not identify the audience.', ...(audience ? {audience} : {})};
+    const bridge = {status: 'ready', from_seconds: 1, through_seconds: 2, moment: answer, evidence: []};
+    companion.state.screen = 'moment'; companion.state.moment = answer;
+    own.state.screen = 'moment'; own.state.moment = answer;
+    phone.state.moment = answer; phone.state.bridge = null;
+    const expected = audience ? `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}` : null;
+    for (const surface of [companion, own, phone]) {
+      const nodes = badges(surface);
+      assert.equal(nodes.length, expected ? 1 : 0);
+      if (expected) {assert.equal(nodes[0].textContent, expected); assert.equal(nodes[0].getAttribute('aria-label'), expected);}
+    }
+    own.state.screen = 'return'; own.state.returnResult = bridge;
+    phone.state.bridge = bridge;
+    for (const surface of [own, phone]) {
+      const nodes = badges(surface);
+      assert.equal(nodes.length, expected ? 1 : 0);
+      if (expected) assert.equal(nodes[0].textContent, expected);
+    }
+    for (const status of ['unavailable', 'insufficient_evidence', 'no_gap']) {
+      own.state.returnResult = {...bridge, status}; phone.state.bridge = {...bridge, status};
+      assert.equal(badges(own).length, 0); assert.equal(badges(phone).length, 0);
+    }
+    own.state.returnResult = {...bridge, moment: null}; phone.state.moment = null;
+    assert.equal(badges(own).length, 0); assert.equal(badges(phone).length, 0);
+  }
+});
 
 test('transport refresh keeps the selected moment fixed through clarification and explicit pause', async () => {
   const {app, receive, requests} = instance();

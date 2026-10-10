@@ -53,6 +53,13 @@ emulator -avd selene_tv            # add -no-window -gpu swiftshader_indirect fo
 
 Build, install, run:
 
+The local `plugins/withVoiceRecorder.js` Expo plugin copies the tracked microphone recorder
+and registers its package and question-field remote handler during prebuild. Do not keep recorder changes only in `android/`:
+that directory is ignored and regenerated. `npm run test:voice` checks capture consent,
+cancellation, upload, and recorder generation without requiring a device.
+See [voice verification](../docs/voice-verification.md) for runtime checks and the
+first-permission retry and HTTPS streaming requirements.
+
 ```bash
 cd fireos
 npm install --legacy-peer-deps     # react-native-tvos alias trips npm peer checks

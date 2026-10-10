@@ -10,12 +10,14 @@
     "splash": {"image": "./assets/images/selene-banner.png", "resizeMode": "contain", "backgroundColor": "#101114"},
     "android": {
       "package": "com.selene.fireos",
+      "permissions": ["android.permission.RECORD_AUDIO"],
       "splash": {"image": "./assets/images/selene-banner.png", "resizeMode": "contain", "backgroundColor": "#101114"}
     },
     "plugins": [
       ["@react-native-tvos/config-tv", {"isTV": true, "androidTVBanner": "./assets/images/selene-banner.png"}],
       ["expo-build-properties", {"android": {"usesCleartextTraffic": true}}],
-      "expo-video"
+      "expo-video",
+      "./plugins/withVoiceRecorder"
     ]
   }
 }

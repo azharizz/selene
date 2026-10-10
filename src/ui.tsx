@@ -113,15 +113,17 @@ export function Alert({children, accessibility}: {children: React.ReactNode; acc
 }
 
 // textarea / input: #191b20, 2px #737986 border, radius 6px, padding 8px, 18px text; focus outline 3px offset 4px.
-export function Field({value, onChange, placeholder, onSubmit, preferred, label, maxLength = 600, style, accessibility}: {value: string; onChange: (value: string) => void; placeholder: string;
-  onSubmit?: () => void; preferred?: boolean; label: string; maxLength?: number; style?: StyleProp<ViewStyle>; accessibility?: AccessibilitySnapshot}) {
+export function Field({value, onChange, placeholder, onSubmit, onLongPress, preferred, label, maxLength = 600, style, accessibility}: {value: string; onChange: (value: string) => void; placeholder: string;
+  onSubmit?: () => void; onLongPress?: () => void; preferred?: boolean; label: string; maxLength?: number; style?: StyleProp<ViewStyle>; accessibility?: AccessibilitySnapshot}) {
   const [focused, setFocused] = React.useState(false);
   const font = px(18);
   return <View style={[styles.fieldBox, style]}>
     {focused && <View pointerEvents="none" style={styles.fieldRing}/>}
-    <TextInput accessibilityLabel={label} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={palette.muted} maxLength={maxLength}
-      hasTVPreferredFocus={preferred} returnKeyType="send" onSubmitEditing={onSubmit} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} allowFontScaling={false}
-      style={[accessibleText({fontSize: font, lineHeight: font * 1.35, color: palette.ink}, accessibility), styles.field, focused && styles.fieldFocused]}/>
+    <Pressable style={styles.fieldPress} onLongPress={onLongPress} delayLongPress={850} disabled={!onLongPress}>
+      <TextInput accessibilityLabel={label} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={palette.muted} maxLength={maxLength}
+        hasTVPreferredFocus={preferred} returnKeyType="send" onSubmitEditing={onSubmit} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} allowFontScaling={false}
+        style={[accessibleText({fontSize: font, lineHeight: font * 1.35, color: palette.ink}, accessibility), styles.field, focused && styles.fieldFocused]}/>
+    </Pressable>
   </View>;
 }
 
@@ -197,6 +199,7 @@ export const styles = StyleSheet.create({
   actions: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: px(8)},
   alert: {fontSize: px(18), lineHeight: px(18) * 1.45, color: palette.alert, marginTop: px(11)},
   fieldBox: {position: 'relative'},
+  fieldPress: {flex: 1},
   fieldRing: {position: 'absolute', top: -px(7), bottom: -px(7), left: -px(7), right: -px(7), borderRadius: px(13), borderWidth: px(3), borderColor: palette.ink},
   field: {backgroundColor: palette.field, borderWidth: px(2), borderColor: palette.border, borderRadius: px(6), paddingHorizontal: px(8), paddingVertical: px(8)},
   fieldFocused: {borderColor: palette.ink},

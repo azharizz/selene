@@ -66,17 +66,23 @@ export async function route(tools, history, input, story, {signal, complete = co
 
 // One assistant turn for the TV session (or its paired phone).
 // delegate: skills the caller runs through its own flow (the phone keeps explanations and recaps private).
-export async function assist(session, sessionId, input, {port, host, signal, complete, delegate = []} = {}) {
+export async function assist(session, sessionId, input, {port, host, signal, complete, delegate = [], client: suppliedClient} = {}) {
   const story = getStory(session.contentId);
   if (!story) throw Object.assign(new Error('Open a SELENE film to ask the assistant.'), {status: 409});
   const memory = session.assistant ??= {turns: [], trivia: [], lastAt: null};
-  const client = await mcpClient({port, host}, sessionId, signal);
+  const client = suppliedClient ?? await mcpClient({port, host}, sessionId, signal);
   // A pending clarification is answered by the same explanation, never re-routed.
   const chosen = session.clarification && memory.turns.at(-1)?.tool === 'explain_moment' && memory.turns.at(-1)?.clarification
     ? {name: 'explain_moment', args: {clarification_answer: input.request}}
     : await route(client.tools, memory.turns, input, story, {signal, complete});
   if (delegate.includes(chosen.name)) return {tool: chosen.name, delegate: true, text: '', moment: null, command: null, entities: null, label: 'Simulated Alexa+ experience'};
   const args = {...chosen.args};
+  // The host carries requester preferences, not model-invented identity or age.
+  if (timed.has(chosen.name)) {
+    args.requester_request = input.request;
+    if (input.requester_id) args.requester_id = input.requester_id;
+    else delete args.requester_id;
+  }
   if (timed.has(chosen.name)) args.at_seconds = input.at_seconds; // The TV position is the spoiler boundary, never the model's.
   if (chosen.name === 'explain_moment') args.request = input.request;
   // "What did I miss" covers the time since the last turn, or the story so far when that was just now.

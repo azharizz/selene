@@ -25,6 +25,12 @@ id = "/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0"
 id = "/com.amazon.kepler.w3cmedia_2@IW3cmedia_3"
 
 [[needs.module]]
+id = "/com.amazon.kepler.audio_lib_2@IAudioLib_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.security_manager_lib_1@ISecurityManagerLib_0"
+
+[[needs.module]]
 id = "/com.amazon.kepler.svg_3@ISVG_0"
 
 [[needs.module]]
@@ -99,6 +105,9 @@ id = "com.amazon.kepler.ucc.publisher"
 # Required for native W3C media captions
 [[wants.privilege]]
 id = "com.amazon.devconf.privilege.accessibility"
+
+[[needs.privilege]]
+id = "com.amazon.audio.privilege.microphone.access"
 
 # Enable Group-IPC to access media services
 [[wants.service]]

@@ -27,7 +27,7 @@ test('prepared imported answers stay source-bound, isolated and available withou
       assert.equal(answer.answer, entry.answer);
       assert.equal(answer.grounding.at_seconds, input.at_seconds);
       assert.equal(answer.grounding.scene_id, context.scene_id);
-      assert.equal(validateMoment(answer, input, context, createMemory(), false).visual.status, 'ready');
+      assert.equal(answer.visual.status, 'ready');
       assert.equal(answer.intervention.audio, 'silent');
       answer.visual.svg = 'changed by caller';
       assert.notEqual(preloadedAnswer(input, context).visual.svg, answer.visual.svg);

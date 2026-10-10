@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 import {explain} from './agent.mjs';
 import {getStory, sceneContext} from './context.mjs';
 import {conflict, guidedReturn, playbackSnapshot, requirePlayback} from './personal.mjs';
+import {requesterContext} from './requester-context.mjs';
 
 // SELENE skills for the TV session, served over MCP (/api/skills/mcp). The simulated Alexa+ orchestrator
 // (assistant.mjs) is a real MCP client of this endpoint; a future Alexa+ add-on can reuse the same tools.
@@ -72,7 +73,7 @@ export function playbackCommand({action, seconds}) {
 }
 
 // One skill call. at_seconds comes from the TV (the orchestrator never lets the model choose it).
-export async function runSkill(session, name, args, {signal, onMoment = () => {}} = {}) {
+export async function runSkill(session, name, args, {signal, onMoment = () => {}, output = 'shared_tv', requester} = {}) {
   const story = getStory(session.contentId);
   if (!story && name !== 'control_playback') throw conflict('Open a SELENE film to use this skill.');
   if (name === 'get_viewing_context') {
@@ -87,17 +88,24 @@ export async function runSkill(session, name, args, {signal, onMoment = () => {}
     if (!latest) throw conflict('The TV position is unavailable. Keep Selene open on the TV and try again.');
     const playback = requirePlayback(session, latest.content_version, latest.epoch);
     const from = Math.min(timeFor(story, args.from_seconds), playback.at_seconds);
-    const result = await guidedReturn(story, from, playback, {need: 'Show visually', language: 'English', recipient: 'everyone'}, {signal, memory: session.memory, output: 'shared_tv'});
+    const preference = await requesterContext({request: args.requester_request ?? '', requester_id: args.requester_id,
+      need: 'Show visually', language: 'English', recipient: 'everyone'}, requester ? {requester} : {});
+    const {need, language, recipient} = preference.input;
+    const result = await guidedReturn(story, from, playback, {need, language, recipient}, {signal, memory: session.memory, output, requester: preference.context.requester});
     const text = result.moment ? plain(result.moment.answer) : result.status === 'no_gap' ? 'You have not missed anything yet.' : 'There is not enough in the captions to recap that part yet.';
     return {...result, text};
   }
   if (name === 'explain_moment') {
     const atSeconds = timeFor(story, args.at_seconds);
     const previous = args.clarification_answer ? session.clarification : null;
-    const context = previous && previous.context.at_seconds === atSeconds ? structuredClone(previous.context) : sceneContext(atSeconds, story);
-    const input = {request: previous ? previous.request : args.request, content_id: story.id, at_seconds: atSeconds, play_state: playbackSnapshot(session)?.play_state ?? 'playing',
+    let context = previous && previous.context.at_seconds === atSeconds ? structuredClone(previous.context) : sceneContext(atSeconds, story);
+    let input = {request: previous ? previous.request : args.request, content_id: story.id, at_seconds: atSeconds, play_state: playbackSnapshot(session)?.play_state ?? 'playing',
       playback_choice: 'unspecified', need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family',
       continuation: previous ? {request: previous.request, question: previous.question, answer: args.clarification_answer} : null};
+    input.requester_id = args.requester_id;
+    const personalized = await requesterContext({...input, request: args.requester_request ?? input.request}, context);
+    input = {...personalized.input, request: input.request};
+    context = personalized.context;
     // The model occasionally draws a diagram that fails validation; one fresh attempt usually succeeds.
     const moment = await explain(input, {signal, memory: session.memory, context}).catch(error => {
       if (signal?.aborted || error.agentFailure?.stage !== 'validation') throw error;

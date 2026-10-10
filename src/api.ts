@@ -16,6 +16,7 @@ export type CatalogStory = {id: string; title: string; subtitle: string; duratio
 export type Animation = {target_id: string; duration_ms: number; delay_ms: number; keyframes: {opacity?: number; transform?: string}[]};
 export type VisualArtifact = {status: 'ready' | 'fallback' | 'none'; svg: string; description: string; animations: Animation[]};
 export type Moment = {state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  audience?: {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request'} | null;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
   grounding: {content_id: string; scene_id: string; at_seconds: number; evidence_ids: string[]}};
 export type Evidence = {id: string; at_seconds: number; text: string; source: string};
@@ -41,7 +42,6 @@ export class RelayError extends Error {
   constructor(message: string, readonly status = 0) {super(message);}
 }
 
-// Bounds the whole request without aborting the caller's controller, so a timeout (retry) stays distinct from cancellation (silent).
 export async function request<T>(path: string, {method = 'GET', body, session, signal, timeoutMs = 15000}: {method?: string; body?: unknown; session?: string; signal?: AbortSignal; timeoutMs?: number} = {}): Promise<T> {
   const controller = new AbortController();
   const cancel = () => controller.abort();

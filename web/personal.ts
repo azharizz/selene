@@ -9,7 +9,10 @@ export type PersonalStory = {
 export type Playback = {content_id: string; content_version: string; epoch: number; sequence: number; at_seconds: number;
   play_state: 'playing' | 'paused' | 'buffering' | 'ended'; playback_rate: number; age_ms: number; fresh: boolean};
 export type PersonalHold = {id: string; from_seconds: number; content_version: string; epoch: number; question_at_seconds: number | null};
+export type Audience = {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request'};
+export const audienceLabel = (audience: Audience) => `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`;
 export type PersonalMoment = {state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  audience?: Audience;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
   grounding: {content_id: string; scene_id: string; at_seconds: number; evidence_ids: string[]}};
 export type Evidence = {id: string; at_seconds: number; text: string; source: string; source_url?: string};

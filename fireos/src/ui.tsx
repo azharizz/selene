@@ -2,7 +2,7 @@
 // device's 1280x720 CSS pixels, while native Vega lays out 640x360 density-independent units, so every CSS
 // length goes through px() (CSS px / 2). The landing keeps its own animated Button.
 import React from 'react';
-import {Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Animated, DeviceEventEmitter, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View} from 'react-native';
 import {useCanvas as useWindowDimensions} from './canvas';
 import type {StyleProp, TextStyle, ViewStyle} from 'react-native';
 import Svg, {Defs, LinearGradient, Path, Rect, Stop} from 'react-native-svg';
@@ -114,13 +114,25 @@ export function Alert({children, accessibility}: {children: React.ReactNode; acc
 }
 
 // textarea / input: #191b20, 2px #737986 border, radius 6px, padding 8px, 18px text; focus outline 3px offset 4px.
-export function Field({value, onChange, placeholder, onSubmit, preferred, label, maxLength = 600, style, accessibility}: {value: string; onChange: (value: string) => void; placeholder: string;
-  onSubmit?: () => void; preferred?: boolean; label: string; maxLength?: number; style?: StyleProp<ViewStyle>; accessibility?: AccessibilitySnapshot}) {
+export function Field({value, onChange, placeholder, onSubmit, onLongPress, preferred, label, maxLength = 600, style, accessibility}: {value: string; onChange: (value: string) => void; placeholder: string;
+  onSubmit?: () => void; onLongPress?: () => void; preferred?: boolean; label: string; maxLength?: number; style?: StyleProp<ViewStyle>; accessibility?: AccessibilitySnapshot}) {
   const [focused, setFocused] = React.useState(false);
+  const pressTimer = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => {
+    if (!onLongPress) return;
+    const subscription = DeviceEventEmitter.addListener('SeleneQuestionLongPress', onLongPress);
+    return () => {subscription.remove(); clearTimeout(pressTimer.current);};
+  }, [onLongPress]);
   const font = px(18);
   return <View style={[styles.fieldBox, style]}>
     {focused && <View pointerEvents="none" style={styles.fieldRing}/>}
-    <TextInput accessibilityLabel={label} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={palette.muted} maxLength={maxLength}
+    <TextInput nativeID={onLongPress ? 'selene-voice-question' : undefined} accessibilityLabel={label}
+      accessibilityHint={onLongPress ? 'Hold Select for voice recording; hold again to finish. Short Select opens the keyboard.' : undefined}
+      accessibilityActions={onLongPress ? [{name: 'longpress', label: 'Start or finish voice recording'}] : undefined}
+      onAccessibilityAction={event => {if (event.nativeEvent.actionName === 'longpress') onLongPress?.();}}
+      onPressIn={() => {if (onLongPress) pressTimer.current = setTimeout(onLongPress, 600);}}
+      onPressOut={() => {clearTimeout(pressTimer.current); pressTimer.current = undefined;}}
+      value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={palette.muted} maxLength={maxLength}
       hasTVPreferredFocus={preferred} returnKeyType="send" onSubmitEditing={onSubmit} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} allowFontScaling={false}
       style={[accessibleText({fontSize: font, lineHeight: font * 1.35, color: palette.ink}, accessibility), styles.field, focused && styles.fieldFocused]}/>
   </View>;

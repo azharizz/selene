@@ -2,6 +2,7 @@
   "name": "fireos",
   "version": "1.0.0",
   "scripts": {
+    "test:voice": "node --test src/voice.test.cjs plugins/withVoiceRecorder.test.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

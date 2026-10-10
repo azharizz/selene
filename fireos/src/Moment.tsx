@@ -14,12 +14,13 @@ export const plain = (answer: string) => answer.replace(/—/g, ',');
 export type Examples = {status: 'loading' | 'ready' | 'error'; items: Example[]; open: boolean; anchorAt: number;
   onToggle: () => void; onRetry: () => void; onSelect: (example: Example) => void};
 
-export function AskPanel({clarification, request, onChange, onSubmit, onClose, error, examples, quick, turns, label, busy = false, placeholder = 'Ask about this moment…', accessibility}: {
+export function AskPanel({clarification, request, onChange, onSubmit, onClose, onVoice, voiceHint, voiceBusy, error, examples, quick, turns, label, placeholder = 'Ask about this moment…', accessibility}: {
   clarification?: string; request: string; onChange: (value: string) => void; onSubmit: () => void; onClose: () => void; error?: string;
+  onVoice?: () => void; voiceHint?: string; voiceBusy?: boolean;
   examples?: Examples; quick?: {label: string; onPress: () => void}[]; turns?: {question: string; answer: string}[]; label?: string;
-  busy?: boolean; placeholder?: string; accessibility?: AccessibilitySnapshot;
+  placeholder?: string; accessibility?: AccessibilitySnapshot;
 }) {
-  return <View accessibilityLabel="Ask Selene" style={styles.ask}>
+  return <ScrollView accessibilityLabel="Ask Selene" style={styles.ask} contentContainerStyle={styles.askContent}>
     <View style={styles.close}><Control variant="ask" square icon="close" accessibilityLabel="Close question" onPress={onClose} accessibility={accessibility}/></View>
     {label ? <Text allowFontScaling={false} style={[styles.label, scaled(12, accessibility)]}>{label}</Text> : null}
     {/* Recent turns keep follow-ups ("and why did he do that?") readable. */}
@@ -31,14 +32,15 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
     {error ? <Text allowFontScaling={false} accessibilityLiveRegion="assertive" style={[styles.hint, scaled(16, accessibility)]}>{error}</Text> : null}
     <View style={styles.question}>
       {/* On Vega, D-pad Down inside a focused field opens the keyboard, so focus starts on the first action unless an answer is needed. */}
-      <Field style={styles.grow} preferred={Boolean(clarification)} label={clarification ? 'Your answer' : 'Your question'} value={request} onChange={onChange} onSubmit={onSubmit}
+      <Field style={styles.grow} preferred={Boolean(clarification)} label={clarification ? 'Your answer' : 'Your question'} value={request} onChange={onChange} onSubmit={onSubmit} onLongPress={onVoice}
         placeholder={clarification ? 'Add the missing detail…' : placeholder} accessibility={accessibility}/>
-      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={busy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
+      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={voiceBusy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
     </View>
+    {onVoice && <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.note, scaled(14, accessibility)]}>{voiceHint ?? 'Hold Select on the question field to record with an app-accessible microphone. Hold again to finish; Back cancels.'}</Text>}
     {!clarification && (quick?.length || examples) ? <Text allowFontScaling={false} style={[styles.label, styles.gap, scaled(12, accessibility)]}>Try asking</Text> : null}
     {!clarification && <View style={styles.inlineRow}>
-      {quick?.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={busy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
-      {examples?.status === 'ready' && examples.items.map(example => <Control key={example.id} variant="ask" disabled={busy} onPress={() => examples.onSelect(example)} accessibility={accessibility}
+      {quick?.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={voiceBusy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
+      {examples?.status === 'ready' && examples.items.map(example => <Control key={example.id} variant="ask" disabled={voiceBusy} onPress={() => examples.onSelect(example)} accessibility={accessibility}
         label={`${example.at_seconds > examples.anchorAt ? `Jump to ${clock(example.at_seconds)} · ` : ''}${example.request}`}/>)}
     </View>}
     {!clarification && examples && examples.status !== 'ready' && <>
@@ -48,11 +50,11 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
           <Control variant="ask" label="Retry examples" onPress={examples.onRetry} accessibility={accessibility}/></>}
       </View>
     </>}
-  </View>;
+  </ScrollView>;
 }
 
 // .moment.compact: visual (160x90) | answer (18px, weight 500) | icon column (close, more).
-export function MomentPanel({moment, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; text?: string;
+export function MomentPanel({moment, audience = moment?.audience, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; audience?: Moment['audience']; text?: string;
   question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot;
   corner?: Corner; captions?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
   return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, styles[corner], captions && styles.captionSafe]}>
@@ -60,6 +62,7 @@ export function MomentPanel({moment, text, question, notice, lines, waiting, err
     <ScrollView style={styles.answer} onScroll={onInteract}>
       {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>
+      {audience ? <Text accessible allowFontScaling={false} style={[styles.audience, scaled(12, accessibility)]}>{`For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`}</Text> : null}
       {notice ? <Text allowFontScaling={false} style={[styles.small, scaled(16, accessibility)]}>{notice}</Text> : null}
       {lines?.map(line => <Text key={line} allowFontScaling={false} style={[styles.small, scaled(14, accessibility)]}>{line}</Text>)}
       {waiting ? <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.small, scaled(16, accessibility)]}>Waiting for the playback app…</Text> : null}
@@ -79,7 +82,8 @@ const scaled = (cssSize: number, accessibility?: AccessibilitySnapshot, lineHeig
 
 const styles = StyleSheet.create({
   grow: {flex: 1, minWidth: 0},
-  ask: {position: 'absolute', right: '5%', bottom: '5%', width: px(480), maxWidth: '90%', maxHeight: '80%', padding: px(12), backgroundColor: palette.surface, borderRadius: px(12)},
+  ask: {position: 'absolute', right: '5%', bottom: '5%', width: px(560), maxWidth: '90%', maxHeight: '80%', backgroundColor: palette.surface, borderRadius: px(12)},
+  askContent: {padding: px(12)},
   close: {position: 'absolute', right: px(8), top: px(8), zIndex: 1},
   clarification: {color: palette.ink, fontWeight: '600', marginBottom: px(10), marginRight: px(32)},
   hint: {color: palette.alert, marginBottom: px(8), marginRight: px(28)},
@@ -100,6 +104,7 @@ const styles = StyleSheet.create({
   captionSafe: {maxHeight: '75%'},
   answer: {flex: 1, minWidth: 0},
   answerText: {color: palette.ink, fontWeight: '500'},
+  audience: {color: palette.ink, alignSelf: 'flex-start', marginTop: px(6), paddingHorizontal: px(6), paddingVertical: px(2), borderWidth: 1, borderColor: palette.muted, borderRadius: px(6)},
   small: {color: palette.muted, marginTop: px(6)},
   footer: {width: px(32), alignItems: 'center'},
 });

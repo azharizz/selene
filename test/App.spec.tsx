@@ -4,6 +4,9 @@ import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import {BackHandler} from 'react-native';
 import {App} from '../src/App';
 import {Player} from '../src/Player';
+import {CompanionMoment} from '../src/CompanionMoment';
+import {MomentPanel} from '../src/Moment';
+import type {Moment} from '../src/api';
 
 let mockPlayer: {currentTime: number; paused: boolean; emit: (event: string) => void};
 
@@ -29,6 +32,15 @@ jest.mock('@amazon-devices/react-native-svg', () => ({
 }));
 jest.mock('@amazon-devices/react-native-async-storage__async-storage', () => ({
   __esModule: true, default: {getItem: jest.fn(async () => null), setItem: jest.fn(async () => undefined), removeItem: jest.fn(async () => undefined)},
+}));
+jest.mock('@amazon-devices/keplerscript-audio-lib', () => ({
+  AudioChannelMask: {CHANNEL_IN_MONO: 1}, AudioSampleFormat: {PCM_16_BIT: 1}, AudioSampleRate: {RATE_16000: 16000}, AudioSource: {MIC: 1},
+}));
+jest.mock('@amazon-devices/keplerscript-audio-lib/dist/AudioRecordStreamBuilder', () => ({
+  __esModule: true, default: class {},
+}));
+jest.mock('@amazon-devices/security-manager-lib', () => ({
+  SecurityManager: {checkPrivilege: jest.fn(async () => 0), requestPrivilege: jest.fn(async () => 0)}, PrivilegeState: {ALLOW: 0},
 }));
 jest.mock('@amazon-devices/react-native-kepler', () => ({
   LogBox: {ignoreLogs: jest.fn()},
@@ -95,6 +107,35 @@ describe('App', () => {
   });
 });
 
+describe('native answer audience badge', () => {
+  const moment: Moment = {state: 'response', answer: 'A grounded answer.', visual: {status: 'none', svg: '', description: '', animations: []},
+    intervention: {playback: 'keep_watching', audio: 'silent'}, grounding: {content_id: story.id, scene_id: '', at_seconds: 2, evidence_ids: []}};
+
+  it('shows host-resolved audience beside answers and return quotes, without inferring identity', () => {
+    const app = render(<MomentPanel moment={moment} onDismiss={() => undefined}/>);
+    expect(app.queryByText(/^For /)).toBeNull();
+    const audiences: [NonNullable<Moment['audience']>, string][] = [
+      [{recipient: 'grandparent', source: 'declaration'}, 'For grandparent · stated'],
+      [{recipient: 'child', source: 'profile'}, 'For child · profile'],
+      [{recipient: 'everyone', source: 'request'}, 'For everyone · selected'],
+      [{recipient: 'parent', source: 'request'}, 'For parent · selected'],
+      [{recipient: 'adult', source: 'request'}, 'For adult · selected'],
+    ];
+    for (const [audience, label] of audiences) {
+      app.rerender(<MomentPanel moment={{...moment, audience}} onDismiss={() => undefined}/>);
+      expect(app.getByText(label).props.accessible).toBe(true);
+      expect(app.getByText(moment.answer)).toBeTruthy();
+    }
+    app.rerender(<MomentPanel moment={null} audience={audiences[0][0]} text="“The original quote.”" onDismiss={() => undefined}/>);
+    expect(app.getByText('For grandparent · stated')).toBeTruthy();
+    expect(app.getByText('“The original quote.”')).toBeTruthy();
+    app.rerender(<MomentPanel moment={{...moment, audience: null}} onDismiss={() => undefined}/>);
+    expect(app.queryByText(/^For /)).toBeNull();
+    app.rerender(<MomentPanel moment={null} text="No recap available." onDismiss={() => undefined}/>);
+    expect(app.queryByText(/^For /)).toBeNull();
+  });
+});
+
 describe('native answer placement lifecycle', () => {
   const answer = {state: 'response', answer: 'A grounded answer.', visual: {status: 'none', svg: '', description: '', animations: []},
     intervention: {playback: 'keep_watching', audio: 'silent'}, grounding: {content_id: story.id, scene_id: '', at_seconds: 2, evidence_ids: []}};
@@ -130,6 +171,44 @@ describe('native answer placement lifecycle', () => {
   function measure(app: {getByLabelText: (label: string) => unknown}, width = 280, height = 90) {
     fireEvent(app.getByLabelText('Moment Response') as never, 'layout', {nativeEvent: {layout: {x: 0, y: 0, width, height}}});
   }
+
+  it('keeps the ordinary typed Ask path without requester or recording controls', async () => {
+    const app = await watching();
+    expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
+    const question = "I'm grandma. What does this mean?";
+    fireEvent.changeText(app.getByLabelText('Your question'), question);
+    await act(async () => {fireEvent.press(app.getByText('Ask'));});
+    const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/assistant'));
+    expect(JSON.parse(call![1].body)).toEqual({request: question, content_id: story.id, at_seconds: 0});
+    expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
+    fireEvent.press(app.getByLabelText('Dismiss answer'));
+    fireEvent.press(app.getByLabelText('Selene'));
+    fireEvent.press(app.getAllByLabelText('Selene tools').find(node => node.props.accessibilityRole === 'button')!);
+    expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
+    expect(fetch.mock.calls.some(([url]) => /\/api\/(?:requesters|voice)(?:\/|$)/.test(url))).toBe(false);
+  });
+
+  it('submits a typed companion question without selecting a requester or changing its snapshot', async () => {
+    const snapshot = {package_id: 'test.provider', session_id: 7, catalog_name: 'test', content_id: 'current', title: 'Current title', provider_name: 'Test Provider', at_seconds: 125.5};
+    const playback = {state: 'playing' as const, can_pause: true, can_play: true, revision: 1, observing: true};
+    const command = jest.fn(async () => playback);
+    const original = fetch.getMockImplementation()!;
+    fetch.mockImplementation((url: string, options: unknown) => url.endsWith('/api/companion/moment') ? respond(200, answer) : original(url, options));
+    const app = render(<CompanionMoment snapshot={snapshot} playback={playback} command={command} onClose={() => undefined} accessibility={{}}/>);
+    expect(app.getByText('Explain scene')).toBeTruthy();
+    expect(app.getByText('Explain dialogue')).toBeTruthy();
+    expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
+    const question = "I'm grandma. Why did that happen?";
+    fireEvent.changeText(app.getByLabelText('Your question'), question);
+    await act(async () => {fireEvent(app.getByLabelText('Your question'), 'submitEditing');});
+    const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/companion/moment'));
+    expect(JSON.parse(call![1].body)).toEqual({snapshot, request: question, scene_detail: question, scene_answer: '', need: 'Show visually',
+      language: 'English', recipient: 'everyone', session: 'family', play_state: 'playing', playback_choice: 'unspecified', continuation: null});
+    expect(command.mock.calls).toEqual([['refresh', undefined], ['refresh', undefined]]);
+    expect(app.getByText(answer.answer)).toBeTruthy();
+    expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
+    expect(fetch.mock.calls.some(([url]) => /\/api\/(?:requesters|voice)(?:\/|$)/.test(url))).toBe(false);
+  });
 
   it('samples live playback after the answer arrives, uses measured bounds, settles once and dismisses ten seconds later', async () => {
     let finishPlacement!: (value: unknown) => void;

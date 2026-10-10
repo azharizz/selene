@@ -41,6 +41,7 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .wordmark {display: inline-flex; align-items: center; gap: .22em; font-size: calc(clamp(32px, 2.5vw, 48px) * var(--selene-text-scale)); font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--ink); white-space: nowrap}
 .wordmark > svg {width: 1em; height: 1em}
 .small, .eyebrow {font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale)); color: var(--muted)}
+.audience-badge {display: inline-block; margin-top: 6px; padding: 2px 8px; border: 1px solid var(--muted); border-radius: 999px; color: var(--muted); font-size: calc(12px * var(--selene-text-scale)); line-height: 1.4}
 .eyebrow {margin-bottom: 16px}
 .muted {color: var(--muted)}
 .actions {display: flex; align-items: center; gap: clamp(14px, 1.25vw, 24px); flex-wrap: wrap; margin-top: 28px}

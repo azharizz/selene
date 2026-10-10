@@ -8,16 +8,21 @@ import {request} from 'node:http';
 import {Readable} from 'node:stream';
 
 test('real relay routes preserve clarification evidence, reject invalid input and revoke private streams', async t => {
+  // Explicit fixture playback samples must not age while concurrent real-browser SVG checks start.
+  const now = Date.now();
+  t.mock.method(Date, 'now', () => now);
   const temporary = await mkdtemp(join(tmpdir(), 'selene-relay-'));
   const saved = {...process.env};
   Object.assign(process.env, {SELENE_PORT: '0', SELENE_BIND: '127.0.0.1', SELENE_APP_URL: 'http://localhost:0',
     SELENE_MEDIA_ORIGIN: 'https://media.test.invalid',
+    SELENE_VOICE_PYTHON: '/nonexistent/selene-relay-test-python', SELENE_REQUESTERS_FILE: join(temporary, 'requesters.json'),
     AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'test', AGENT_PROVIDER_API_KEY: 'test-only',
     SELENE_SCENE_CONTEXT_URL: 'https://scene.test.invalid'});
   process.env.SELENE_PRIVATE_URL = 'http://mirror.test.invalid'; // Host configured, but pairing requires HTTPS.
   const realFetch = globalThis.fetch;
   let sceneReads = 0, modelReads = 0, nextState = 'clarification', sceneUnavailable = false, modelUnavailable = false;
   let reviewedPlayback, generatedMessages;
+  let voiceStarted, voiceBlocked = false, voiceSignal;
   // Only remote network boundaries are fixtures. Routing, tools, schema, review and policy are real code.
   globalThis.fetch = async (url, options) => {
     if (url === 'https://scene.test.invalid') {
@@ -35,10 +40,20 @@ test('real relay routes preserve clarification evidence, reject invalid input an
     modelReads++;
     if (modelUnavailable) throw new TypeError('Private upstream failure details');
     const body = JSON.parse(options.body);
+    if (body.response_format?.json_schema.name === 'selene_requester_transcript') {
+      if (voiceBlocked) {
+        voiceSignal = options.signal; voiceStarted();
+        return new Promise((_, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), {once: true}));
+      }
+      return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({transcript: 'What happened?'})}}]});
+    }
     if (body.response_format?.json_schema.name === 'selene_moment_response') generatedMessages = body.messages;
     if (body.response_format?.json_schema.name === 'selene_grounding_review') reviewedPlayback = JSON.parse(body.messages.at(-1).content).viewer.play_state;
     if (body.response_format?.json_schema.name === 'selene_visual_feedback')
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({action: 'keep', issue: '', response: null})}}]});
+    if (body.tool_choice === 'required' && body.tools?.some(tool => tool.function.name === 'catch_me_up'))
+      return Response.json({choices: [{finish_reason: 'stop', message: {role: 'assistant', tool_calls: [
+        {id: 'assistant', type: 'function', function: {name: 'catch_me_up', arguments: '{}'}}]}}]});
     const message = body.tool_choice === 'required'
       ? {role: 'assistant', tool_calls: [{id: 'context', type: 'function', function: {name: 'get_scene_context', arguments: '{}'}}]}
       : body.response_format.json_schema.name === 'selene_grounding_review'
@@ -117,6 +132,7 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal(answer.grounding.at_seconds, 10); assert.equal(answer.grounding.scene_id, question.grounding.scene_id);
   assert.equal(sceneReads, 1, 'clarification must reuse the original evidence');
   assert.ok(answer.grounding.evidence_ids.includes('viewer-clarification'));
+  assert.deepEqual(answer.audience, {recipient: 'everyone', source: 'request'}, 'the host labels the selected audience, not the model');
   assert.equal((await post('/api/private/pair', {}, session_id)).status, 503, 'a phone address requires HTTPS');
 
   process.env.SELENE_PRIVATE_URL = 'https://mirror.test.invalid';
@@ -137,7 +153,33 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   const initial = new TextDecoder().decode((await reader.read()).value);
   assert.match(initial, /"slower_answer_voice":true/);
   assert.match(initial, /From your description, you mean the passer/);
+  // A paired capability can review audio without the TV-owner session header.
+  const audio = Buffer.alloc(64044);
+  audio.write('RIFF'); audio.writeUInt32LE(audio.length - 8, 4); audio.write('WAVE', 8);
+  audio.write('fmt ', 12); audio.writeUInt32LE(16, 16); audio.writeUInt16LE(1, 20);
+  audio.writeUInt16LE(1, 22); audio.writeUInt32LE(16000, 24); audio.writeUInt32LE(32000, 28);
+  audio.writeUInt16LE(2, 32); audio.writeUInt16LE(16, 34); audio.write('data', 36); audio.writeUInt32LE(64000, 40);
+  const voiceInput = {audio: audio.toString('base64'), format: 'wav', action: 'question', consent: true};
+  const voicePath = `/api/private/${token}/voice`, phoneHeaders = {Host: 'mirror.test.invalid'};
+  assert.equal((await post('/api/voice', voiceInput, session_id, phoneHeaders)).status, 403);
+  assert.equal((await fetch(`${base}/api/requesters`, {headers: phoneHeaders})).status, 403, 'phone cannot enumerate household profiles');
+  assert.equal((await post(voicePath, {...voiceInput, consent: false}, null, phoneHeaders)).status, 400);
+  assert.equal((await post(voicePath, {...voiceInput, action: 'enroll'}, null, phoneHeaders)).status, 400);
+  assert.equal((await post(voicePath, voiceInput, null, {...phoneHeaders, Origin: 'https://other.invalid'})).status, 403);
+  assert.equal((await post(voicePath, {...voiceInput, audio: 'A'.repeat(6 * 1048576)}, null, phoneHeaders)).status, 413);
+  const recorded = await post(voicePath, voiceInput, null, phoneHeaders);
+  assert.equal(recorded.status, 200, 'valid WAV body exceeds the ordinary 8 KiB limit');
+  assert.deepEqual(await recorded.json(), {transcript: 'What happened?', requester: null, match: 'unknown', voice_available: false},
+    'synthetic transport and unavailable speaker worker never count as an acoustic match');
+  voiceBlocked = true;
+  const started = new Promise(resolve => {voiceStarted = resolve;});
+  const processing = post(voicePath, voiceInput, null, phoneHeaders);
+  await started;
   await post('/api/private/close', {}, session_id);
+  assert.equal((await processing).status, 410, 'revocation discards the pending transcript');
+  assert.equal(voiceSignal.aborted, true, 'revocation aborts upstream audio work');
+  assert.equal((await post(voicePath, voiceInput, null, phoneHeaders)).status, 410);
+  voiceBlocked = false;
   assert.match(new TextDecoder().decode((await reader.read()).value), /"type":"closed"/);
   assert.equal((await reader.read()).done, true);
   assert.equal((await fetch(`${base}/api/private/${token}`, {headers: {Host: 'localhost:0'}})).status, 404);
@@ -201,12 +243,14 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal((await post(`${personalPath}/ask`, {...privateQuestion, at_seconds: 50})).status, 400, 'future evidence is unavailable');
   const privateAnswer = await post(`${personalPath}/ask`, privateQuestion);
   assert.equal(privateAnswer.status, 200);
-  assert.equal((await privateAnswer.json()).moment.grounding.at_seconds, 35);
+  const privateHelp = await privateAnswer.json();
+  assert.equal(privateHelp.moment.grounding.at_seconds, 35);
+  assert.deepEqual(privateHelp.moment.audience, {recipient: 'grandparent', source: 'declaration'}, 'a stated role applies to this answer only');
   const personalRuntime = JSON.parse(generatedMessages.find(message => message.role === 'user').content.split('runtime data:\n')[1]);
   assert.equal(personalRuntime.viewer_request, privateQuestion.request);
   assert.ok(generatedMessages.some(message => message.role === 'tool'), 'phone questions retrieve evidence through the tool round');
   assert.equal(personalRuntime.playback_context.transcript, undefined, 'captions arrive through the tool, not inline');
-  assert.equal(personalRuntime.recipient, 'everyone', 'explicit wording needs do not create a guessed demographic selection');
+  assert.equal(personalRuntime.recipient, 'grandparent', 'a first-person declaration sets the audience but does not authenticate a speaker');
   const advanced = {...playback, sequence: 2, at_seconds: 45};
   await post('/api/playback', advanced, own.session_id);
   assert.equal((await readEvent()).type, 'playback', 'private questions do not publish a shared response');
@@ -219,9 +263,26 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal(returned.through_seconds, 45);
   assert.equal(returned.from_seconds, 35);
   assert.ok(returned.evidence.length);
+  assert.equal(returned.status, 'ready');
+  assert.deepEqual(returned.moment.audience, {recipient: 'grandparent', source: 'declaration'}, 'a private recap retains the stated audience');
   await post('/api/playback', {...advanced, sequence: 3, play_state: 'paused'}, own.session_id);
   await readEvent();
-  assert.equal((await post('/api/return', returnInput, own.session_id)).status, 200, 'family recovery uses the same return operation');
+  const created = await post('/api/requesters', {label: 'Parent', role: 'parent', style: 'simple', language: 'Spanish', consent: true}, own.session_id);
+  assert.equal(created.status, 201);
+  const profile = (await created.json()).profile;
+  assert.equal((await post(`${personalPath}/assistant`, {request: 'Recap.', requester_id: 'invalid'}, null, phoneHeaders)).status, 400);
+  assert.equal((await post(`${personalPath}/assistant`, {request: 'Recap.', requester_id: '-'.repeat(36)}, null, phoneHeaders)).status, 400);
+  const privateRecap = await post(`${personalPath}/assistant`, {request: 'I am grandma. Recap.', requester_id: profile.id}, null, phoneHeaders);
+  assert.equal(privateRecap.status, 200);
+  const assistantRecap = await privateRecap.json();
+  assert.equal(assistantRecap.tool, 'catch_me_up');
+  assert.deepEqual(assistantRecap.moment.audience, {recipient: 'grandparent', source: 'declaration'});
+  const recapRuntime = JSON.parse(generatedMessages.find(message => message.role === 'user').content.split('runtime data:\n')[1]);
+  assert.equal(recapRuntime.language, 'Spanish');
+  assert.equal(recapRuntime.host.output, 'personal', 'phone assistant recap has no shared-TV output authority');
+  const sharedReturn = await post('/api/return', returnInput, own.session_id);
+  assert.equal(sharedReturn.status, 200, 'family recovery uses the same return operation');
+  assert.deepEqual((await sharedReturn.json()).moment.audience, {recipient: 'everyone', source: 'request'}, 'the shared recap uses its selected audience');
   assert.equal(reviewedPlayback, 'paused', 'a shared return must tell the model about a deliberate family pause');
   const captions = await fetch(`${base}${personalPath}/captions`, {headers: {Host: 'mirror.test.invalid'}});
   assert.match(captions.headers.get('content-type'), /text\/vtt/);

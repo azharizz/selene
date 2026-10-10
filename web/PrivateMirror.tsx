@@ -3,7 +3,7 @@ import {Visual} from './Visual';
 import {Voice, type VoiceState} from './voice';
 import {Brand, Icon} from './Brand';
 import type {Language} from './preferences';
-import {clock, personalRequest, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread} from './personal';
+import {clock, audienceLabel, personalRequest, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread} from './personal';
 
 const locale = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
 const clean = (text: string) => text.replace(/\u2014/g, ',');
@@ -32,6 +32,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
   private nextThreadCheck = 0;
   private editing = false;
   private questionAt: number | null = null;
+  private requesterId: string | undefined;
   private newTopic = false;
   private held: PersonalHold | null = null;
   private answerLanguage: Language = 'English';
@@ -74,6 +75,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
           help?: PersonalHelp | null; bridge?: ReturnResult | null; thread?: FollowedThread | null};
         if (value.type === 'closed') {
           this.queuedThread = null; this.cancel(); stream.close(); this.held = null; this.questionAt = null;
+          this.requesterId = undefined;
           this.setState({connection: 'closed', story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', busy: '',
             error: 'This phone connection ended. Pair again from the TV.'});
           return;
@@ -127,6 +129,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     if ((previous && (playback.epoch !== previous.epoch || playback.content_version !== previous.content_version)) ||
         (this.held && (playback.epoch !== this.held.epoch || playback.content_version !== this.held.content_version)) ||
         (this.state.thread && (playback.epoch !== this.state.thread.epoch || playback.content_version !== this.state.thread.content_version))) {
+      this.requesterId = undefined;
       this.queuedThread = null; this.cancel(); this.held = null; this.questionAt = null; this.newTopic = false;
       this.setState({hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', selected: null, pickingTime: false, busy: '',
         notice: 'The TV moved. Your next question will use its current moment.'});
@@ -134,6 +137,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     this.setState({playback, receivedAt: Date.now() - playback.age_ms, now: Date.now()});
   };
   private chooseMoment = (selected: number | null) => {
+    this.requesterId = undefined;
     this.queuedThread = null; this.cancel(); this.questionAt = selected; this.newTopic = true;
     this.setState({selected: selected === null ? null : Math.max(0, Math.min(this.state.playback?.at_seconds ?? 0, selected)),
       moment: null, help: null, bridge: null, busy: '', error: '', notice: ''});
@@ -167,7 +171,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
   };
   private ask = async (event?: React.FormEvent) => {
     event?.preventDefault();
-    if (!this.state.request.trim() || !this.fresh() || this.state.busy) return;
+    if (!this.state.request.trim() || !this.fresh() || this.state.busy || this.state.voice === 'listening' || this.state.voice === 'processing') return;
     const {request, moment, selected, playback} = this.state;
     const clarification = !this.state.bridge && moment?.state === 'clarification';
     // Use an observed position. Wall-clock time never extends the source boundary.
@@ -177,13 +181,13 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     try {
       if (!clarification && selected === null) {
         // If the orchestrator is unavailable, the question still gets the private explanation below.
-        const routed = await this.post('assistant', {request: request.trim()}, pending)
+        const routed = await this.post('assistant', {request: request.trim(), requester_id: this.requesterId}, pending)
           .catch(error => {if (pending.signal.aborted || this.pending !== pending) throw error; return null;}) as AssistantResult | null;
-        if (routed?.tool && !routed.delegate) {this.pending = null; this.setState({busy: '', request: '', reply: {tool: routed.tool, text: routed.text}}); return;}
+        if (routed?.tool && !routed.delegate) {this.pending = null; this.requesterId = undefined; this.setState({busy: '', request: '', reply: {tool: routed.tool, text: routed.text}}); return;}
       }
       const hold = await this.ensureHold(playback!, pending);
-      const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
-      this.pending = null; this.answerLanguage = 'English'; this.slowerAnswer = false;
+      const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), requester_id: this.requesterId, at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
+      this.pending = null; this.requesterId = undefined; this.answerLanguage = 'English'; this.slowerAnswer = false;
       this.held = result.hold ?? {...hold, question_at_seconds: at}; this.questionAt = at; this.newTopic = false; this.queuedThread = null;
       this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, request: '', busy: '', reply: null});
     } catch (error) {this.failed(error, pending);}
@@ -222,7 +226,13 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
   };
   private listen = () => {
     if (this.state.voice === 'listening') return this.voice.finishListening();
-    this.voice.listen('en-US', request => {if (this.mounted) this.setState({request});});
+    if (this.state.voice === 'processing' || this.state.busy || !this.fresh()) return;
+    this.requesterId = undefined; this.setState({error: ''});
+    this.voice.listen(this.endpoint('voice'), {}, result => {
+      if (!this.mounted || !this.fresh()) return;
+      this.requesterId = result.match === 'matched' ? result.requester?.id : undefined;
+      this.setState({request: result.transcript});
+    });
   };
 
   private toggleThread = async () => {
@@ -298,6 +308,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
         {moment.visual.status === 'ready' && <div className="visual"><Visual personal key={moment.visual.svg + moment.grounding.at_seconds} visual={moment.visual}/></div>}
         {help?.quote && <blockquote className="personal-quote"><p>{help.quote.text}</p><cite>Original caption · {clock(help.quote.at_seconds)}</cite></blockquote>}
         <p className="personal-answer-text" aria-live="polite">{clean(moment.answer)}</p>
+        {moment.audience && (!bridge || bridge.status === 'ready') && <span className="audience-badge" aria-label={audienceLabel(moment.audience)}>{audienceLabel(moment.audience)}</span>}
         <div className="personal-answer-meta"><span>{bridge ? `${clock(bridge.from_seconds)} to ${clock(bridge.through_seconds)}` : `Explained at ${clock(moment.grounding.at_seconds)}`}</span></div>
         <div className="personal-answer-actions">
           {this.voice.canSpeak && <button type="button" className="personal-read" onClick={this.readAloud} aria-label={voice === 'speaking' ? 'Stop reading' : 'Read explanation aloud'}><Icon name="volume"/>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
@@ -315,14 +326,14 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
         {!moment && !busy && !bridge && !this.state.reply && <div className="personal-empty"><h1>What would you like explained?</h1><p>Ask in your own words, or try: Who is this? · What did I miss? · Pause the TV.</p></div>}
         <form className="personal-question" onSubmit={this.ask}>
           <label className="sr-only" htmlFor="personal-question">{moment?.state === 'clarification' ? 'Answer the clarification' : 'Ask about this moment'}</label>
-          <textarea id="personal-question" rows={2} maxLength={600} value={request} disabled={!!busy || voice === 'listening'}
+          <textarea id="personal-question" rows={2} maxLength={600} value={request} disabled={!!busy || voice === 'listening' || voice === 'processing'}
             onFocus={() => {this.editing = true;}} onBlur={() => {this.editing = false; this.flushThread();}}
-            onChange={event => this.setState({request: event.target.value})}
+            onChange={event => {this.requesterId = undefined; this.setState({request: event.target.value});}}
             placeholder={moment?.state === 'clarification' ? 'Add the missing detail…' : 'Ask about this moment…'}/>
-          <div className="personal-send">{this.voice.Recognition && <button type="button" disabled={!!busy || !fresh} onClick={this.listen} aria-label={voice === 'listening' ? 'Finish listening' : 'Use voice'} aria-pressed={voice === 'listening'}><Icon name="mic"/></button>}
-            <button className="primary" type="submit" disabled={!!busy || !fresh || !request.trim() || voice === 'listening'} aria-label="Send question"><Icon name="send"/></button></div>
+          <div className="personal-send">{this.voice.canListen && <button type="button" disabled={!!busy || !fresh || voice === 'processing'} onClick={this.listen} aria-label={voice === 'listening' ? 'Finish listening' : voice === 'processing' ? 'Processing voice' : 'Use voice'} aria-pressed={voice === 'listening'}><Icon name="mic"/></button>}
+            <button className="primary" type="submit" disabled={!!busy || !fresh || !request.trim() || voice === 'listening' || voice === 'processing'} aria-label="Send question"><Icon name="send"/></button></div>
         </form>
-        {voice === 'listening' && <p className="personal-note" role="status">Listening. Review your words before sending.</p>}
+        {(voice === 'listening' || voice === 'processing') && <p className="personal-note" role="status">{voice === 'processing' ? 'Transcribing and checking enrolled profiles…' : 'Listening. Review your words before sending.'}</p>}
         <p className="personal-note">Selene · simulated Alexa+ experience</p>
         {canReturn && <div className="personal-actions"><button type="button" className="text-button" disabled={!fresh || !!busy} onClick={this.bringBack}>Catch me up</button><span>From {clock(from!)}</span></div>}
         {story.ingestion && <footer className="personal-credit">{story.ingestion.credit}</footer>}

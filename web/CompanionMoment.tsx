@@ -5,6 +5,7 @@ import {Voice, type VoiceState} from './voice';
 import {Brand, Icon, LoadingMark} from './Brand';
 import {readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
 import {accessibilitySettings, initialAccessibility, applyAccessibility, type AccessibilitySettings} from './accessibility';
+import {audienceLabel, type Audience} from './personal';
 
 type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
 type Playback = {state: 'playing' | 'paused' | 'unknown'; can_pause: boolean; can_play: boolean; revision: number; observing: boolean};
@@ -12,12 +13,14 @@ export type CompanionBootstrap = {snapshot: Snapshot; playback: Playback};
 type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
 type Moment = {
   state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  audience?: Audience;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
 };
 type Input = {
   snapshot: Snapshot; request: string; scene_detail: string; scene_answer: string; need: Need; language: Language; recipient: Recipient;
   session: 'family' | 'solo'; play_state: Playback['state']; playback_choice: Choice;
   continuation: {request: string; question: string; answer: string} | null;
+  requester_id?: string;
 };
 type State = {
   screen: 'ask' | 'loading' | 'moment' | 'preferences' | 'more'; snapshot: Snapshot | null; request: string; sceneAnswer: string; need: Need; language: Language;
@@ -36,6 +39,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   private sequence = 0;
   private sessionId = '';
   private lastInput: Input | null = null;
+  private requesterId: string | undefined;
   private mounted = false;
   private voice = new Voice(() => null,
     voice => {if (this.mounted) this.setState({voice});},
@@ -136,13 +140,21 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   }
   private listen = async () => {
     if (this.state.voice === 'listening') return this.voice.finishListening();
+    if (this.state.voice === 'processing') return;
+    this.cancel();
+    const pending = new AbortController(); this.pending = pending;
     try {
       const playback = await this.command('refresh');
       if (playback.state !== 'paused' || !playback.observing) throw new Error('Voice needs a confirmed pause and live playback updates. Use the remote or keyboard for this session.');
-      if (!this.mounted) return;
-      this.setState({error: ''});
-      this.voice.listen(this.state.language === 'Indonesian' ? 'id-ID' : this.state.language === 'Spanish' ? 'es-ES' : 'en-US', request => {
-        if (this.mounted) this.setState({request});
+      if (!this.mounted || pending.signal.aborted || this.pending !== pending) return;
+      this.requesterId = undefined; this.setState({error: ''});
+      if (!this.sessionId) await this.openSession(pending.signal);
+      if (!this.mounted || pending.signal.aborted || this.pending !== pending) return;
+      if (this.state.playback.state !== 'paused' || !this.state.playback.observing) throw new Error('Playback changed. Pause before recording.');
+      this.voice.listen('/api/voice', {'X-Selene-Session': this.sessionId}, result => {
+        if (!this.mounted) return;
+        this.requesterId = result.match === 'matched' ? result.requester?.id : undefined;
+        this.setState({request: result.transcript});
       });
     } catch (error) {this.failed(error);}
   };
@@ -182,6 +194,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
   };
   private ask = (choice: Choice, quickRequest?: string) => {
     const {request, need, language, recipient, session, playback, clarifying, moment} = this.state;
+    if (this.state.voice === 'listening' || this.state.voice === 'processing') return;
     const snapshot = this.state.snapshot;
     if (!snapshot) return;
     if (!quickRequest && !request.trim()) {this.setState({error: 'Type a question or choose a quick question.'}); return;}
@@ -192,6 +205,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       scene_detail: previous?.scene_detail ?? request.trim(), scene_answer: this.state.sceneAnswer, need, language, recipient, session, play_state: playback.state,
       playback_choice: choice,
       continuation: previous && moment ? {request: previous.request, question: moment.answer, answer: request.trim()} : null,
+      requester_id: previous ? previous.requester_id : quickRequest ? undefined : this.requesterId,
     };
     return this.deliver(input);
   };
@@ -263,7 +277,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
     const {screen, snapshot, request, need, playback, moment, error, clarifying, controlling, voice, mirror, mirrorAvailable} = this.state;
     if (!snapshot || !native) return <main className="app companion-app" ref={this.root}><header className="companion-heading"><Brand /></header><section className="sheet empty-sheet"><h1>Choose a playback app</h1><p>Open SELENE on your Fire TV to select what you’re watching.</p>{native && <button data-initial onClick={this.close}><Icon name="back"/>Back</button>}</section></main>;
     const paused = playback.state === 'paused';
-    const canVoice = Boolean(this.voice.Recognition) && playback.observing;
+    const canVoice = this.voice.canListen && playback.observing;
     return <main className="app companion-app" ref={this.root} tabIndex={-1}>
 
       {screen === 'ask' && <section className="sheet ask-sheet" data-panel ref={focusPanel} aria-labelledby="ask-title">
@@ -271,13 +285,13 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
         <p className="request-hint" id="request-hint" role={error ? 'alert' : undefined}>{error}</p>
         <form onSubmit={event => {event.preventDefault(); this.ask('unspecified');}}>
           <label className="sr-only" htmlFor="companion-request">{clarifying ? 'Your answer' : 'Your question'}</label>
-          <div className="question-input"><textarea data-initial id="companion-request" rows={1} maxLength={600} disabled={voice === 'listening'} aria-describedby="request-hint" value={request} onChange={event => this.setState({request: event.target.value})} placeholder={clarifying ? 'Add the missing detail…' : 'Why did that happen?'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button data-submit className="primary" type="submit" disabled={controlling || voice === 'listening' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask'}</button></div>
+          <div className="question-input"><textarea data-initial id="companion-request" rows={1} maxLength={600} disabled={voice === 'listening' || voice === 'processing'} aria-describedby="request-hint" value={request} onChange={event => {this.requesterId = undefined; this.setState({request: event.target.value});}} placeholder={clarifying ? 'Add the missing detail…' : 'Why did that happen?'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button data-submit className="primary" type="submit" disabled={controlling || voice === 'listening' || voice === 'processing' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask'}</button></div>
         </form>
         {!clarifying && <div className="quick-questions" role="group" aria-label="Quick questions"><button disabled={controlling} onClick={() => this.ask('unspecified', 'Explain what just happened in this moment.')}>Explain scene</button><button disabled={controlling} onClick={() => this.ask('unspecified', 'I missed that. Explain the last completed dialogue simply.')}>Explain dialogue</button></div>}
         <div className="request-options">{this.voice.canSpeak && !this.state.accessibility.screenReader && <button className="text-button" aria-label="Read-aloud settings" onClick={() => this.setState({screen: 'preferences', error: ''})}><Icon name="settings"/></button>}
-          {canVoice && <button className="text-button" disabled={controlling || (!paused && !playback.can_pause)} onClick={async () => {if (!paused) {try {await this.pause();} catch (failure) {this.failed(failure); return;}} await this.listen();}}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : paused ? 'Use voice' : 'Pause & use voice'}</button>}
+          {canVoice && <button className="text-button" disabled={controlling || voice === 'processing' || (!paused && !playback.can_pause)} onClick={async () => {if (!paused) {try {await this.pause();} catch (failure) {this.failed(failure); return;}} await this.listen();}}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : voice === 'processing' ? 'Processing voice…' : paused ? 'Use voice' : 'Pause & use voice'}</button>}
         </div>
-        {voice === 'listening' && <p className="privacy-note small">Listening. Review before sending.</p>}
+        {(voice === 'listening' || voice === 'processing') && <p className="privacy-note small" role="status">{voice === 'processing' ? 'Transcribing and checking enrolled profiles…' : 'Listening. Review before sending.'}</p>}
       </section>}
       {screen === 'preferences' && <section className="sheet preferences-sheet" data-panel ref={focusPanel}>
         <div className="sheet-head"><h1>Read aloud</h1><button data-initial aria-label="Close settings" onClick={this.back}><Icon name="close"/></button></div>
@@ -287,6 +301,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       {screen === 'moment' && moment && <section className={`moment compact ${moment.visual.status === 'none' ? 'answer-only' : ''}`} data-panel ref={focusPanel} aria-label="Moment Response">
         <div className="moment-content"><div className="answer">
           <h2>{moment.answer.replace(/\u2014/g, ',')}</h2>
+          {moment.audience && <span className="audience-badge" aria-label={audienceLabel(moment.audience)}>{audienceLabel(moment.audience)}</span>}
         </div>{moment.visual.status !== 'none' && <div className="visual"><Visual compact key={moment.visual.svg + moment.visual.description} visual={moment.visual} /></div>}</div>
         <footer className="actions">
           <button data-initial aria-label="Dismiss answer" disabled={controlling} onClick={this.close}><Icon name="close"/></button>

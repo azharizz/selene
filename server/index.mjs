@@ -12,10 +12,13 @@ import {enrichCompanionContext} from './external-context.mjs';
 import {playerStory, conflict, recordPlayback, playbackSnapshot, requirePlayback, guidedReturn, captionsVtt} from './personal.mjs';
 import {privateAction, privateState, publicThread, validatePrivateAction} from './private-actions.mjs';
 import {mcpRequest, mcpAccess} from './mcp.mjs';
-import {skillsRequest} from './skills.mjs';
+import {skillsRequest, skillTools, runSkill} from './skills.mjs';
 import {assist} from './assistant.mjs';
 import {ingest} from '../scripts/ingest-video.mjs';
 import {validPlacement, placePopup} from './placement.mjs';
+import {listRequesters, createRequester, deleteRequester} from './requesters.mjs';
+import {processVoice, voiceAvailable} from './voice.mjs';
+import {requesterContext} from './requester-context.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -34,9 +37,10 @@ const active = new Set();
 const sessions = new Map();
 // Internal MCP calls present the TV's own host; /api/skills/mcp is never reachable from a phone address.
 const skillsHost = new URL(appUrl).host;
-const validAssistant = input => Boolean(input) && Object.keys(input).every(key => ['request', 'content_id', 'at_seconds'].includes(key))
+const validAssistant = input => Boolean(input) && Object.keys(input).every(key => ['request', 'content_id', 'at_seconds', 'requester_id'].includes(key))
   && typeof input.request === 'string' && input.request.trim().length > 0 && input.request.length <= 500
-  && typeof input.content_id === 'string' && Number.isFinite(input.at_seconds) && input.at_seconds >= 0;
+  && typeof input.content_id === 'string' && Number.isFinite(input.at_seconds) && input.at_seconds >= 0
+  && (input.requester_id === undefined || typeof input.requester_id === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requester_id));
 const joinAttempts = new Map();
 let importing = false; // ponytail: one media import per relay; use a worker queue only for multi-TV hosting.
 function closeMirror(session) {
@@ -118,7 +122,7 @@ export const server = createServer(async (req, res) => {
     if (url.pathname === '/api/mcp' && !mcpSession) return;
     if (!deviceHosts.has(host) && url.pathname.startsWith('/api/')
       && url.pathname !== '/api/health' && url.pathname !== '/api/private/join' && url.pathname !== '/api/mcp'
-      && !/^\/api\/private\/[0-9a-f-]{36}(?:\/(?:captions|hold|ask|return|end|thread|thread-check|assistant))?$/.test(url.pathname)) {
+      && !/^\/api\/private\/[0-9a-f-]{36}(?:\/(?:captions|hold|ask|return|end|thread|thread-check|assistant|voice))?$/.test(url.pathname)) {
       return send(res, 403, {error: 'This address is for paired phones only.'});
     }
     if (url.pathname === '/api/health' && req.method === 'GET') return send(res, 200, {status: 'ok', provider_configured: Boolean(process.env.AGENT_PROVIDER_URL && process.env.AGENT_PROVIDER_MODEL && process.env.AGENT_PROVIDER_API_KEY), scene_context_configured: Boolean(process.env.SELENE_SCENE_CONTEXT_URL)});
@@ -138,16 +142,51 @@ export const server = createServer(async (req, res) => {
       if (!selectedStory) return send(res, 404, {error: 'Story not found'});
       return send(res, 200, servedStory(selectedStory));
     }
+    if (url.pathname === '/api/requesters' && req.method === 'GET') {
+      if (!sessions.has(req.headers['x-selene-session'])) return send(res, 410, {error: 'This viewing session has ended.'});
+      return send(res, 200, {profiles: await listRequesters(), voice_available: await voiceAvailable()});
+    }
     if (url.pathname.startsWith('/api/') && req.method === 'POST') {
       const origin = req.headers.origin;
       if (origin && origin !== `http://${host}` && origin !== `https://${host}`) return send(res, 403, {error: 'Cross-origin request rejected'});
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, {error: 'JSON required'});
       let size = 0; const chunks = [];
-      const maxBytes = url.pathname === '/api/media/import' ? 1048576 + 16384 : url.pathname === '/api/companion/moment' ? 32768 : 8192;
+      const phoneVoice = /^\/api\/private\/([0-9a-f-]{36})\/voice$/.exec(url.pathname);
+      const maxBytes = url.pathname === '/api/voice' || phoneVoice ? 6 * 1048576 : url.pathname === '/api/media/import' ? 1048576 + 16384 : url.pathname === '/api/companion/moment' ? 32768 : 8192;
       for await (const chunk of req) { size += chunk.length; if (size > maxBytes) return send(res, 413, {error: 'Request too large'}); chunks.push(chunk); }
       let input;
       try { input = JSON.parse(Buffer.concat(chunks).toString()); } catch {
         return send(res, 400, url.pathname === '/api/mcp' ? {jsonrpc: '2.0', id: null, error: {code: -32700, message: 'Invalid JSON'}} : {error: 'Invalid JSON'});
+      }
+      if (phoneVoice) {
+        const session = [...sessions.values()].find(candidate => candidate.mirror?.token === phoneVoice[1]);
+        if (!session?.mirror) return send(res, 410, {error: 'This phone connection has ended. Pair again on the TV.'});
+        // Pairing permits reviewing questions, not editing or enumerating household enrollment.
+        if (!input || input.action !== 'question' || Object.keys(input).some(key => !['audio', 'format', 'action', 'consent'].includes(key)))
+          return send(res, 400, {error: 'Invalid private voice request'});
+        const mirror = session.mirror, controller = startRequest(mirror, res);
+        try {
+          const result = await processVoice(input, {signal: controller.signal});
+          if (session.mirror !== mirror) throw conflict('This phone connection has ended. Pair again on the TV.', 410);
+          controller.signal.throwIfAborted();
+          return send(res, 200, result);
+        } catch (error) {
+          if (session.mirror !== mirror) throw conflict('This phone connection has ended. Pair again on the TV.', 410);
+          throw error;
+        } finally {finishRequest(mirror, controller);}
+      }
+      if (['/api/requesters', '/api/requesters/delete', '/api/voice'].includes(url.pathname)) {
+        const session = sessions.get(req.headers['x-selene-session']);
+        if (!session) return send(res, 410, {error: 'This viewing session has ended.'});
+        const controller = startRequest(session, res);
+        try {
+          const result = url.pathname === '/api/voice' ? await processVoice(input, {signal: controller.signal})
+            : url.pathname === '/api/requesters' ? {profile: await createRequester(input)}
+              : input && Object.keys(input).length === 1 && typeof input.id === 'string'
+                ? await deleteRequester(input.id) : (() => {throw conflict('Invalid requester deletion', 400);})();
+          controller.signal.throwIfAborted();
+          return send(res, url.pathname === '/api/requesters' ? 201 : 200, result);
+        } finally {finishRequest(session, controller);}
       }
       if (url.pathname === '/api/mcp') return mcpRequest(req, res, input, mcpSession, send, (action, args) => runPrivate(mcpSession, action, args, res, false));
       if (url.pathname === '/api/skills/mcp') {
@@ -285,8 +324,9 @@ export const server = createServer(async (req, res) => {
         const playback = requirePlayback(session, input.content_version, input.epoch);
         const controller = startRequest(session, res);
         try {
-          const {need, language, recipient} = input;
-          const result = await guidedReturn(getStory(session.contentId), input.from_seconds, playback, {need, language, recipient}, {signal: controller.signal, memory: session.memory, output: 'shared_tv'});
+          const preference = await requesterContext(input, {});
+          const {need, language, recipient} = preference.input;
+          const result = await guidedReturn(getStory(session.contentId), input.from_seconds, playback, {need, language, recipient}, {signal: controller.signal, memory: session.memory, output: 'shared_tv', requester: preference.context.requester});
           controller.signal.throwIfAborted();
           requirePlayback(session, input.content_version, input.epoch);
           return send(res, 200, result);
@@ -297,15 +337,30 @@ export const server = createServer(async (req, res) => {
         const entry = [...sessions.entries()].find(([, candidate]) => candidate.mirror?.token === phoneAssistant[1]);
         if (!entry) return send(res, 410, {error: 'This phone connection has ended. Pair again on the TV.'});
         const [sessionId, session] = entry;
-        if (!input || Object.keys(input).length !== 1 || typeof input.request !== 'string' || !input.request.trim() || input.request.length > 500) return send(res, 400, {error: 'Invalid assistant request'});
+        if (!input || !validAssistant({...input, content_id: session.contentId, at_seconds: 0})
+          || Object.keys(input).some(key => !['request', 'requester_id'].includes(key))) return send(res, 400, {error: 'Invalid assistant request'});
         const playback = playbackSnapshot(session);
         if (!session.contentId || !playback?.fresh) return send(res, 409, {error: 'The TV position is unavailable. Keep Selene open on the TV and try again.'});
-        const controller = new AbortController();
-        res.on('close', () => {if (!res.writableEnded) controller.abort();});
-        const result = await assist(session, sessionId, {request: input.request.trim(), content_id: session.contentId, at_seconds: playback.at_seconds},
-          {port: server.address().port, host: skillsHost, signal: controller.signal, delegate: ['explain_moment']});
-        if (result.command) session.pendingCommand = result.command;
-        return send(res, 200, result);
+        const mirror = session.mirror, controller = startRequest(mirror, res);
+        try {
+          // Phone routing, recap memory and communication preferences never mutate the TV's own help.
+          const scope = mirror.assistantSession ??= {contentId: session.contentId, memory: createMemory()};
+          scope.playback = session.playback; scope.clarification = mirror.hold?.clarification ?? null;
+          const client = {tools: skillTools, callTool: async (name, args) => {
+            if (name === 'catch_me_up' && args.requester_id === mirror.hold?.requester_id) delete args.requester_id;
+            return {structuredContent: await runSkill(scope, name, args,
+              {signal: controller.signal, output: 'personal', requester: mirror.hold?.requester})};
+          }};
+          const result = await assist(scope, sessionId, {...input, request: input.request.trim(), content_id: session.contentId, at_seconds: playback.at_seconds},
+            {signal: controller.signal, client, delegate: ['explain_moment']});
+          if (session.mirror !== mirror) throw conflict('This phone connection has ended. Pair again on the TV.', 410);
+          controller.signal.throwIfAborted();
+          if (result.command) session.pendingCommand = result.command;
+          return send(res, 200, result);
+        } catch (error) {
+          if (session.mirror !== mirror) throw conflict('This phone connection has ended. Pair again on the TV.', 410);
+          throw error;
+        } finally {finishRequest(mirror, controller);}
       }
       const personalMatch = /^\/api\/private\/([0-9a-f-]{36})\/(hold|ask|return|end|thread|thread-check)$/.exec(url.pathname);
       if (personalMatch) {
@@ -348,6 +403,7 @@ export const server = createServer(async (req, res) => {
           input = {...request, content_id: context.content_id, at_seconds: context.at_seconds};
         }
         if (companion && input.continuation) context.facts.push({id: 'viewer-clarification', source: 'viewer', text: input.continuation.answer});
+        ({input, context} = await requesterContext(input, context));
         const moment = await explain(input, {signal: controller.signal, memory: session.memory, context});
         if (!controller.signal.aborted) {
           session.latestMoment = moment; session.latestLanguage = input.language; session.latestSlowerVoice = input.need === 'Slower answer voice';

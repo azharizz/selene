@@ -1,8 +1,7 @@
 /* global AbortSignal */
 // Native own-player (demo films and imports). Port of web/App.tsx without a WebView.
-// Voice input and read-aloud are absent: they relied on browser speech APIs that Vega's native runtime does not provide.
 import React from 'react';
-import {AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {Alert as NativeAlert, AppState, BackHandler, Image, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {LayoutChangeEvent, NativeEventSubscription} from 'react-native';
 import AsyncStorage from '@amazon-devices/react-native-async-storage__async-storage';
 import {KeplerVideoSurfaceView} from '@amazon-devices/react-native-w3cmedia';
@@ -13,13 +12,14 @@ import {NativeFilm} from './media';
 import type {FilmEvent} from './media';
 import {AskPanel, MomentPanel, plain} from './Moment';
 import {OwnPlayerSession} from './OwnPlayerSession';
+import {VoiceCapture} from './VoiceCapture';
 import {Actions, Alert, Captions, Control, Field, LoadingPanel, P, Sheet, SheetHead, WelcomeShade, Wordmark, palette, px} from './ui';
 
 type Screen = 'watch' | 'ask' | 'loading' | 'moment' | 'preferences' | 'more' | 'exit' | 'error' | 'tools' | 'pair' | 'return' | 'credits' | 'films' | 'import';
 type Props = {importMp4: boolean; accessibility: AccessibilitySnapshot; onCompanion: () => void; onReady: () => void};
 type State = {
   bundle: Bundle | null; loadError: string; screen: Screen; started: boolean; controls: boolean; position: number; paused: boolean; ended: boolean; captions: boolean;
-  request: string; moment: Moment | null; error: string; anchorAt: number; clarifying: boolean; choice: Choice;
+  request: string; moment: Moment | null; error: string; anchorAt: number; clarifying: boolean; choice: Choice; voice: 'idle' | 'recording' | 'processing';
   savedPlace: {at_seconds: number; epoch: number} | null; returnResult: ReturnResult | null; mirror: Pairing | null; pairing: boolean;
   examples: Example[]; examplesOpen: boolean; examplesStatus: 'loading' | 'ready' | 'error'; importUrl: string; importTitle: string; importing: boolean;
   turns: {question: string; answer: string}[]; reply: string; asked: string;
@@ -30,7 +30,7 @@ const CAPTIONS_KEY = 'selene.captions';
 export class Player extends React.Component<Props, State> {
   state: State = {
     bundle: null, loadError: '', screen: this.props.importMp4 ? 'import' : 'watch', started: false, controls: true, position: 0, paused: true, ended: false, captions: true,
-    request: '', moment: null, error: '', anchorAt: 0, clarifying: false, choice: 'unspecified', savedPlace: null, returnResult: null, mirror: null, pairing: false,
+    request: '', moment: null, error: '', anchorAt: 0, clarifying: false, choice: 'unspecified', voice: 'idle', savedPlace: null, returnResult: null, mirror: null, pairing: false,
     examples: [], examplesOpen: false, examplesStatus: 'ready', importUrl: '', importTitle: '', importing: false,
     turns: [], reply: '', asked: '', corner: 'top-right', placementFallback: false,
   };
@@ -59,6 +59,10 @@ export class Player extends React.Component<Props, State> {
   private back?: NativeEventSubscription;
   private appState?: NativeEventSubscription;
   private session = new OwnPlayerSession(message => this.remote(message as {action: string; position_ms?: number; relative?: boolean}));
+  private voiceCapture = new VoiceCapture();
+  private voiceRequest: AbortController | null = null;
+  private voiceRequesterId?: string;
+  private voicePrompt = false;
 
   componentDidMount() {
     this.mounted = true;
@@ -79,6 +83,7 @@ export class Player extends React.Component<Props, State> {
   }
   componentWillUnmount() {
     this.mounted = false;
+    this.cancelVoice();
     this.back?.remove(); this.appState?.remove();
     if (this.heartbeat) clearInterval(this.heartbeat);
     this.cancel(); this.examplesRequest?.abort(); this.pairingRequest?.abort();
@@ -246,12 +251,14 @@ export class Player extends React.Component<Props, State> {
     this.film?.play().catch(() => {if (this.mounted) this.setState({error: 'Playback could not start. Press Play to try again.', controls: true});});
   };
   private background = () => {
+    this.cancelVoice();
     this.film?.pause(); this.cancel(); void this.stopMirror();
     this.lastInput = null;
     this.setState({screen: 'watch', moment: null, controls: true, request: ''});
   };
 
   private close = () => {
+    this.cancelVoice();
     this.cancel(); this.lastInput = null;
     this.setState({screen: 'watch', moment: null, controls: true, request: '', error: '', clarifying: false, choice: 'unspecified', returnResult: null});
   };
@@ -329,8 +336,8 @@ export class Player extends React.Component<Props, State> {
 
   private openAsk = () => {
     const anchorAt = Math.min(this.story?.duration ?? 0, this.film?.currentTime ?? this.state.position);
-    this.cancelPlacement();
-    this.setState({screen: 'ask', anchorAt, request: '', clarifying: false, error: '', choice: 'unspecified', examples: [], examplesOpen: false}, this.loadExamples);
+    this.cancelPlacement(); this.voiceRequesterId = undefined;
+    this.setState({screen: 'ask', anchorAt, request: '', clarifying: false, error: '', voice: 'idle', choice: 'unspecified', examples: [], examplesOpen: false}, this.loadExamples);
   };
   private loadExamples = async () => {
     const {anchorAt} = this.state, story = this.story;
@@ -345,11 +352,77 @@ export class Player extends React.Component<Props, State> {
     }
   };
   private playStateNow = () => {const film = this.film; return film?.ended ? 'ended' as const : film?.paused ? 'paused' as const : 'playing' as const;};
+  private questionChanged = (value: string) => {
+    if (value !== this.state.request) this.voiceRequesterId = undefined;
+    this.setState({request: value});
+  };
+  private voiceLongPress = () => {
+    if (this.state.voice === 'recording') {void this.finishVoice(); return;}
+    if (this.state.voice !== 'idle' || this.state.screen !== 'ask' || this.state.clarifying) return;
+    NativeAlert.alert('Record your question', 'Your voice recording will be sent to Selene’s relay for transcription and local matching against existing profiles. The transcript will be shown for review before you submit it.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Continue', onPress: () => this.confirmVoicePermission()},
+    ]);
+  };
+  private confirmVoicePermission = () => {
+    NativeAlert.alert('Allow microphone access', 'Selene needs microphone access to record your question. The recording will be sent to Selene’s relay for transcription and existing-profile matching. Review the transcript before submitting.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Allow', onPress: () => {void this.startVoice();}},
+    ]);
+  };
+  private startVoice = async () => {
+    if (this.state.voice !== 'idle' || this.state.screen !== 'ask' || this.state.clarifying) return;
+    this.voiceRequesterId = undefined;
+    this.setState({voice: 'recording', request: '', error: ''});
+    try {
+      await this.voiceCapture.start(() => {
+        if (this.mounted && this.state.voice === 'recording') this.setState({error: 'Recording limit reached. Long-press the question field to finish and review.'});
+      }, error => {
+        if (this.mounted && this.state.voice === 'recording') this.setState({voice: 'idle', error: error.message});
+      }, async () => {
+        return await new Promise<boolean>(resolve => NativeAlert.alert('Microphone permission', 'The system will ask whether Selene may use the microphone for this recording.', [
+          {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+          {text: 'Continue', onPress: () => resolve(true)},
+        ]));
+      });
+      if (!this.mounted || (this.state.voice as State['voice']) !== 'recording') await this.voiceCapture.cancel();
+    } catch (error) {
+      await this.voiceCapture.cancel();
+      if (this.mounted) this.setState({voice: 'idle', error: error instanceof Error ? error.message : 'Microphone recording could not start.'});
+    }
+  };
+  private finishVoice = async () => {
+    if (this.state.voice !== 'recording') return;
+    this.setState({voice: 'processing', error: ''});
+    const controller = new AbortController(); this.voiceRequest = controller;
+    try {
+      const audio = await this.voiceCapture.stop();
+      if (!this.mounted || this.voiceRequest !== controller || controller.signal.aborted || this.state.screen !== 'ask') return;
+      const result = await request<{transcript: string; requester?: {id: string} | null; match: 'matched' | 'unknown'}>('/api/voice', {
+        method: 'POST', session: this.sessionId, signal: controller.signal, timeoutMs: 120000,
+        body: {audio, format: 'wav', action: 'question', consent: true},
+      });
+      if (!this.mounted || this.voiceRequest !== controller || controller.signal.aborted) return;
+      this.voiceRequest = null;
+      this.voiceRequesterId = result.match === 'matched' && result.requester?.id ? result.requester.id : undefined;
+      this.setState({voice: 'idle', request: result.transcript, error: result.transcript ? '' : 'No clear speech was recognized. Try again or type your question.'});
+    } catch (error) {
+      await this.voiceCapture.cancel();
+      if (!this.mounted || this.voiceRequest !== controller || controller.signal.aborted) return;
+      this.voiceRequest = null; this.voiceRequesterId = undefined;
+      this.setState({voice: 'idle', error: error instanceof Error ? error.message : 'Voice transcription failed. Try again or type your question.'});
+    }
+  };
+  private cancelVoice = () => {
+    this.voiceRequest?.abort(); this.voiceRequest = null; this.voiceRequesterId = undefined;
+    if (this.mounted && this.state.voice !== 'idle') this.setState({voice: 'idle'});
+    void this.voiceCapture.cancel();
+  };
   private ask = () => {void this.askAssistant(this.state.request);};
   // Typed questions and suggestions go to the simulated Alexa+ orchestrator, which picks a SELENE skill over MCP.
   // A pending clarification is answered server-side by the same explanation.
   private askAssistant = async (text: string) => {
-    const {anchorAt} = this.state, story = this.story, film = this.film;
+    const {anchorAt} = this.state, story = this.story, film = this.film, requester_id = this.voiceRequesterId;
     if (!story || !film) return;
     const question = text.trim();
     if (!question) {this.setState({error: 'Type a question or choose a suggestion.'}); return;}
@@ -359,7 +432,7 @@ export class Player extends React.Component<Props, State> {
     try {
       await this.publishPlayback(pending.signal);
       const send = (session: string) => request<AssistantReply>('/api/assistant', {method: 'POST', session, signal: pending.signal, timeoutMs: 0,
-        body: {request: question, content_id: story.id, at_seconds: anchorAt}});
+        body: {request: question, content_id: story.id, at_seconds: anchorAt, ...(requester_id ? {requester_id} : {})}});
       let reply: AssistantReply;
       try {reply = await send(this.sessionId);}
       catch (error) {if ((error as RelayError).status !== 410) throw error; reply = await send(await this.reopen(pending.signal));}
@@ -370,6 +443,7 @@ export class Player extends React.Component<Props, State> {
       const moment = reply.moment;
       if (moment?.intervention.playback === 'request_pause') film.pause();
       const clarifying = moment?.state === 'clarification';
+      if (!clarifying) this.voiceRequesterId = undefined;
       this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: '', corner: 'top-right', placementFallback: false},
         () => {if (!clarifying && moment?.state !== 'quiet' && reply.tool !== 'catch_me_up') this.beginPlacement();});
     } catch (error) {
@@ -572,18 +646,19 @@ export class Player extends React.Component<Props, State> {
       </Sheet>}
 
       {screen === 'return' && returnResult && <MomentPanel moment={returnResult.moment?.visual.status === 'ready' ? returnResult.moment : null} onDismiss={this.closeReturn} dismissLabel="Close return" accessibility={a11y}
+        audience={returnResult.moment?.audience}
         text={returnResult.quote ? `“${returnResult.quote.text}”` : returnResult.moment ? plain(returnResult.moment.answer)
           : returnResult.status === 'unavailable' ? 'The recap could not be prepared. Close to try again.' : returnResult.status === 'no_gap' ? 'There was no gap at the sampled TV moment.'
             : 'There is not enough evidence for this gap. Replay it or ask someone watching with you.'}
         lines={[...(returnResult.quote ? [`Original caption · ${clock(returnResult.quote.at_seconds)} · Recap unavailable; close to retry.`] : []),
           `${returnResult.status === 'ready' ? 'Covers' : 'Requested'} ${clock(returnResult.from_seconds)} to ${clock(returnResult.through_seconds)}${position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}`]}/>}
 
-      {screen === 'ask' && <AskPanel clarification={clarifying && moment ? plain(moment.answer) : undefined} request={this.state.request} onChange={value => this.setState({request: value})}
-        onSubmit={this.ask} onClose={this.goBack} error={error} accessibility={a11y} turns={this.state.turns} label="SELENE · SIMULATED ALEXA+ EXPERIENCE"
-        quick={[{label: 'Who is this?', onPress: () => {void this.askAssistant('Who is this?');}}, {label: 'What did I miss?', onPress: () => {void this.askAssistant('What did I miss?');}},
-          {label: 'Something fun', onPress: () => {void this.askAssistant('Tell me something fun about this.');}}]}
+      {screen === 'ask' && <AskPanel clarification={clarifying && moment ? plain(moment.answer) : undefined} request={this.state.request} onChange={this.questionChanged}
+        onVoiceLongPress={this.state.clarifying ? undefined : this.voiceLongPress} voiceStatus={this.state.voice} busy={this.state.voice !== 'idle'} onSubmit={this.ask} onClose={this.goBack} error={error} accessibility={a11y} turns={this.state.turns} label="SELENE · SIMULATED ALEXA+ EXPERIENCE"
+        quick={[{label: 'Who is this?', onPress: () => {this.voiceRequesterId = undefined; void this.askAssistant('Who is this?');}}, {label: 'What did I miss?', onPress: () => {this.voiceRequesterId = undefined; void this.askAssistant('What did I miss?');}},
+          {label: 'Something fun', onPress: () => {this.voiceRequesterId = undefined; void this.askAssistant('Tell me something fun about this.');}}]}
         examples={{status: this.state.examplesStatus, items: this.state.examples, open: this.state.examplesOpen, anchorAt: this.state.anchorAt,
-          onToggle: () => this.setState(({examplesOpen}) => ({examplesOpen: !examplesOpen})), onRetry: this.loadExamples, onSelect: this.selectExample}}/>}
+          onToggle: () => this.setState(({examplesOpen}) => ({examplesOpen: !examplesOpen})), onRetry: this.loadExamples, onSelect: example => {this.voiceRequesterId = undefined; this.selectExample(example);}}}/>}
 
       {screen === 'loading' && <LoadingPanel onCancel={this.close}/>}
 

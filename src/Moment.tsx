@@ -14,10 +14,10 @@ export const plain = (answer: string) => answer.replace(/—/g, ',');
 export type Examples = {status: 'loading' | 'ready' | 'error'; items: Example[]; open: boolean; anchorAt: number;
   onToggle: () => void; onRetry: () => void; onSelect: (example: Example) => void};
 
-export function AskPanel({clarification, request, onChange, onSubmit, onClose, error, examples, quick, turns, label, busy = false, placeholder = 'Ask about this moment…', accessibility}: {
+export function AskPanel({clarification, request, onChange, onSubmit, onClose, error, examples, quick, turns, label, busy = false, placeholder = 'Ask about this moment…', accessibility, onVoiceLongPress, voiceStatus = 'idle'}: {
   clarification?: string; request: string; onChange: (value: string) => void; onSubmit: () => void; onClose: () => void; error?: string;
   examples?: Examples; quick?: {label: string; onPress: () => void}[]; turns?: {question: string; answer: string}[]; label?: string;
-  busy?: boolean; placeholder?: string; accessibility?: AccessibilitySnapshot;
+  busy?: boolean; placeholder?: string; accessibility?: AccessibilitySnapshot; onVoiceLongPress?: () => void; voiceStatus?: 'idle' | 'recording' | 'processing';
 }) {
   return <View accessibilityLabel="Ask Selene" style={styles.ask}>
     <View style={styles.close}><Control variant="ask" square icon="close" accessibilityLabel="Close question" onPress={onClose} accessibility={accessibility}/></View>
@@ -31,10 +31,13 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
     {error ? <Text allowFontScaling={false} accessibilityLiveRegion="assertive" style={[styles.hint, scaled(16, accessibility)]}>{error}</Text> : null}
     <View style={styles.question}>
       {/* On Vega, D-pad Down inside a focused field opens the keyboard, so focus starts on the first action unless an answer is needed. */}
-      <Field style={styles.grow} preferred={Boolean(clarification)} label={clarification ? 'Your answer' : 'Your question'} value={request} onChange={onChange} onSubmit={onSubmit}
-        placeholder={clarification ? 'Add the missing detail…' : placeholder} accessibility={accessibility}/>
-      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={busy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
+      <Field style={styles.grow} preferred={Boolean(clarification)} label={clarification ? 'Your answer' : 'Your question'} value={request} onChange={onChange} onSubmit={() => {if (!busy) onSubmit();}}
+        onLongPress={onVoiceLongPress} placeholder={voiceStatus === 'recording' ? 'Recording — long-press to finish' : voiceStatus === 'processing' ? 'Transcribing — please wait' : clarification ? 'Add the missing detail…' : placeholder} accessibility={accessibility}/>
+      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={busy || voiceStatus !== 'idle' || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
     </View>
+    {onVoiceLongPress && <Text allowFontScaling={false} style={[styles.note, scaled(12, accessibility)]}>
+      {voiceStatus === 'recording' ? 'Recording from the TV microphone. Long-press again to finish.' : voiceStatus === 'processing' ? 'Preparing a transcript for review…' : 'Long-press the question field to record; long-press again to finish.'}
+    </Text>}
     {!clarification && (quick?.length || examples) ? <Text allowFontScaling={false} style={[styles.label, styles.gap, scaled(12, accessibility)]}>Try asking</Text> : null}
     {!clarification && <View style={styles.inlineRow}>
       {quick?.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={busy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
@@ -52,7 +55,7 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, e
 }
 
 // .moment.compact: visual (160x90) | answer (18px, weight 500) | icon column (close, more).
-export function MomentPanel({moment, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; text?: string;
+export function MomentPanel({moment, audience = moment?.audience, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; audience?: Moment['audience']; text?: string;
   question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot;
   corner?: Corner; captions?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
   return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, styles[corner], captions && styles.captionSafe]}>
@@ -60,6 +63,7 @@ export function MomentPanel({moment, text, question, notice, lines, waiting, err
     <ScrollView style={styles.answer} onScroll={onInteract}>
       {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>
+      {audience ? <Text accessible allowFontScaling={false} style={[styles.audience, scaled(12, accessibility)]}>{`For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`}</Text> : null}
       {notice ? <Text allowFontScaling={false} style={[styles.small, scaled(16, accessibility)]}>{notice}</Text> : null}
       {lines?.map(line => <Text key={line} allowFontScaling={false} style={[styles.small, scaled(14, accessibility)]}>{line}</Text>)}
       {waiting ? <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.small, scaled(16, accessibility)]}>Waiting for the playback app…</Text> : null}
@@ -100,6 +104,7 @@ const styles = StyleSheet.create({
   captionSafe: {maxHeight: '75%'},
   answer: {flex: 1, minWidth: 0},
   answerText: {color: palette.ink, fontWeight: '500'},
+  audience: {color: palette.ink, alignSelf: 'flex-start', marginTop: px(6), paddingHorizontal: px(6), paddingVertical: px(2), borderWidth: 1, borderColor: palette.muted, borderRadius: px(6)},
   small: {color: palette.muted, marginTop: px(6)},
   footer: {width: px(32), alignItems: 'center'},
 });
