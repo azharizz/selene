@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends chromium chromi
 # The phone UI and all server contracts must ship from the same checkout.
 COPY --chown=node:node assets/ ./assets/
 COPY server/ ./server/
+COPY scripts/ingest-video.mjs ./scripts/ingest-video.mjs
+COPY scripts/remote-media.mjs ./scripts/remote-media.mjs
 COPY --chown=node:node content/ ./content/
 ENV SELENE_BIND=0.0.0.0 SELENE_CHROMIUM_PATH=/usr/bin/chromium
 USER node
