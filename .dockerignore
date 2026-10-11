@@ -3,6 +3,9 @@
 !assets/**
 !server/
 !server/**
+!scripts/
+!scripts/ingest-video.mjs
+!scripts/remote-media.mjs
 !content/
 !content/**
 !Dockerfile

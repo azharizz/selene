@@ -12,6 +12,7 @@ CMakeUserPresets.json
 npm-debug.log
 .env*
 data/*.json
+/.venv-voice/
 *.log
 
 evaluation/results*.json
@@ -21,6 +22,7 @@ evaluation/results*.json
 /video/
 /.impeccable/
 /.serena/
+/.pi/
 
 # Local playback sources are supplied separately, not stored in Git.
 /assets/media/**/*.mp4

@@ -3,6 +3,7 @@ import {getStory, createMemory} from './context.mjs';
 import {explain} from './agent.mjs';
 import {validHold, validPersonalAsk, validPersonalReturn, validPersonalEnd, validPersonalThread, validThreadCheck} from './contract.mjs';
 import {conflict, holdMoment, publicHold, requireHold, requirePlayback, requireSample, playbackSnapshot, personalContext, guidedReturn, evidenceFor, originalQuote} from './personal.mjs';
+import {requesterContext} from './requester-context.mjs';
 
 const validators = {hold: validHold, ask: validPersonalAsk, return: validPersonalReturn, end: validPersonalEnd, thread: validPersonalThread, 'thread-check': validThreadCheck};
 export const THREAD_CHECK_MS = 15000;
@@ -60,6 +61,7 @@ export async function privateAction(session, action, input, {signal} = {}) {
     if (mirror.thread?.answer_id === help.id) return {thread: publicThread(mirror.thread)};
     mirror.thread = {id: randomUUID(), answer_id: help.id, question: help.request, initial_request: mirror.hold?.initial_request ?? help.request,
       help, checked_through_seconds: help.at_seconds, revision: 0, checked_at: 0, content_version: playback.content_version,
+      requester: structuredClone(mirror.hold?.requester ?? null), preferences: mirror.hold?.preferences ?? {need: 'Show visually', language: 'English', recipient: 'everyone'},
       epoch: playback.epoch, memory: {...createMemory(), lastExplanation: structuredClone(mirror.hold?.memory.lastExplanation ?? null)}};
     return {thread: publicThread(mirror.thread)};
   }
@@ -79,8 +81,9 @@ export async function privateAction(session, action, input, {signal} = {}) {
     if (!freshIds.length) {thread.checked_through_seconds = playback.at_seconds; return {thread: publicThread(thread), updated: false};}
     thread.checked_at = Date.now();
     context.follow_thread = {question: thread.question, new_evidence_ids: freshIds};
-    const moment = await explain(viewer(story, playback.at_seconds, thread.question,
-      {need: 'Show visually', language: 'English', recipient: 'everyone'}), {signal, memory: thread.memory, context});
+    const preference = await requesterContext(viewer(story, playback.at_seconds, '',
+      thread.preferences), {...context, ...(thread.requester ? {requester: thread.requester} : {})});
+    const moment = await explain({...preference.input, request: thread.question}, {signal, memory: thread.memory, context: preference.context});
     stillPaired(); requirePlayback(session, thread.content_version, thread.epoch);
     if (mirror.thread !== thread) throw conflict('That followed question has ended.');
     thread.checked_through_seconds = playback.at_seconds;
@@ -102,7 +105,10 @@ export async function privateAction(session, action, input, {signal} = {}) {
     if (input.content_version !== hold.content_version || input.epoch !== hold.epoch || input.from_seconds !== hold.from_seconds)
       throw conflict('The saved starting point changed. Try Catch me up again.');
     const endpoint = requireSample(session, input, input.through_seconds);
-    const result = await guidedReturn(story, hold.from_seconds, endpoint, preferences(input), {signal, memory: hold.memory, question: hold.question, initialRequest: hold.initial_request});
+    const preference = await requesterContext({request: hold.requester ? '' : hold.initial_request, ...preferences(input),
+      ...(input.requester_id && input.requester_id !== hold.requester_id ? {requester_id: input.requester_id} : {})},
+    hold.requester ? {requester: hold.requester} : {});
+    const result = await guidedReturn(story, hold.from_seconds, endpoint, preference.input, {signal, memory: hold.memory, question: hold.question, initialRequest: hold.initial_request, requester: preference.context.requester});
     stillPaired(); requireHold(session, hold.id);
     if (['ready', 'no_gap'].includes(result.status)) {
       mirror.bridge = {...result, branch_id: hold.id, sequence: input.sequence};
@@ -123,20 +129,26 @@ export async function privateAction(session, action, input, {signal} = {}) {
   const initialRequest = input.new_topic ? input.request.trim() : hold.initial_request || input.request.trim();
   let context = personalContext(story, input.at_seconds, previous, initialRequest);
   let request = viewer(story, input.at_seconds, input.request.trim(), preferences(input));
+  if (!input.new_topic && hold.requester) context.requester = hold.requester;
+  if (input.requester_id && (input.new_topic || input.requester_id !== hold.requester_id)) request.requester_id = input.requester_id;
   if (input.clarification) {
     const old = hold.clarification;
-    if (!old || input.at_seconds !== old.input.at_seconds || input.need !== old.input.need || input.language !== old.input.language || input.recipient !== old.input.recipient)
+    if (!old || input.at_seconds !== old.input.at_seconds || input.need !== old.preferences.need || input.language !== old.preferences.language || input.recipient !== old.preferences.recipient)
       throw conflict('That clarification changed. Ask the question again.');
     context = structuredClone(old.context);
     request = {...old.input, continuation: {request: old.input.request, question: old.question, answer: input.request.trim()}};
   }
+  if (!input.clarification) ({input: request, context} = await requesterContext(request, context));
   const moment = await explain(request, {signal, memory, context});
   stillPaired(); requireHold(session, hold.id);
   hold.memory = memory; hold.initial_request = initialRequest;
+  hold.requester = context.requester ?? null;
+  hold.requester_id = input.clarification ? hold.requester_id : input.new_topic ? input.requester_id : input.requester_id ?? hold.requester_id;
+  hold.preferences = preferences(request);
   hold.question = request.request; hold.question_at_seconds = request.at_seconds;
   hold.previous = {request: request.request, answer: moment.answer, content_id: story.id, at_seconds: request.at_seconds,
     visual: structuredClone(moment.visual), visual_feedback: moment.state === 'response' ? structuredClone(memory.lastExplanation?.visual_feedback ?? []) : []};
-  hold.clarification = moment.state === 'clarification' ? {input: request, context, question: moment.answer} : null;
+  hold.clarification = moment.state === 'clarification' ? {input: request, preferences: preferences(input), context, question: moment.answer} : null;
   if (input.new_topic) mirror.thread = null;
   mirror.help = helpFor(moment, context, request.request); mirror.bridge = null;
   return {...mirror.help, hold: publicHold(hold), thread: publicThread(mirror.thread)};

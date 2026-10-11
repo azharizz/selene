@@ -41,6 +41,7 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .wordmark {display: inline-flex; align-items: center; gap: .22em; font-size: calc(clamp(32px, 2.5vw, 48px) * var(--selene-text-scale)); font-weight: 600; letter-spacing: -.03em; line-height: 1; color: var(--ink); white-space: nowrap}
 .wordmark > svg {width: 1em; height: 1em}
 .small, .eyebrow {font-size: calc(clamp(19px, 1.46vw, 28px) * var(--selene-text-scale)); color: var(--muted)}
+.audience-badge {display: inline-block; margin-top: 6px; padding: 2px 8px; border: 1px solid var(--muted); border-radius: 999px; color: var(--muted); font-size: calc(12px * var(--selene-text-scale)); line-height: 1.4}
 .eyebrow {margin-bottom: 16px}
 .muted {color: var(--muted)}
 .actions {display: flex; align-items: center; gap: clamp(14px, 1.25vw, 24px); flex-wrap: wrap; margin-top: 28px}
@@ -193,10 +194,15 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .personal-heading {display: grid; justify-items: center; gap: 8px; padding-bottom: 14px}
 .personal-heading .wordmark {font-size: 1.5rem}
 .personal-title {font-size: .875rem; color: var(--muted); text-align: center}
-.personal-time {text-align: center; padding: 6px 0 18px; border-bottom: 1px solid #303238; margin-bottom: 18px}
-.personal-app .personal-clock {background: transparent; color: var(--ink); font-size: 2rem; font-weight: 500; font-variant-numeric: tabular-nums; padding: 0 12px; min-height: 44px}
+.personal-viewing .personal-heading {display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 8px 0 16px}
+.personal-viewing .wordmark {flex-shrink: 0; font-size: 1.375rem}
+.personal-viewing .personal-title {min-width: 0; text-align: right; text-wrap: balance; overflow-wrap: anywhere}
+.personal-time {padding: 0 0 16px; border-bottom: 1px solid #303238; margin-bottom: 24px}
+.personal-playback {display: flex; align-items: center; justify-content: space-between; gap: 16px}
+.personal-playback > p {min-width: 0; font-size: .875rem; color: var(--muted)}
+.personal-app .personal-clock {flex-shrink: 0; gap: 10px; background: #202228; color: var(--ink); font-size: 1.25rem; font-weight: 500; font-variant-numeric: tabular-nums; padding: 6px 12px; min-height: 44px}
 .personal-clock:disabled {opacity: 1; cursor: default}
-.personal-time > p {font-size: .8125rem; color: var(--muted); margin-top: 4px}
+.personal-clock .time-hint {font-size: .75rem; font-weight: 400}
 .personal-time-picker {padding-top: 14px}
 .personal-time-picker input {display: block; width: 100%; accent-color: var(--accent); cursor: pointer}
 .personal-time-picker > div {display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .8125rem; font-variant-numeric: tabular-nums}
@@ -264,3 +270,19 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .media-import fieldset > button {justify-self: start}
 .media-import [role=alert]:focus {outline: 2px solid var(--ink); outline-offset: 4px}
 :root[data-high-contrast=true] .media-import input {border-color: #fff}
+
+.personal-conversation {margin: 28px 0 32px; overflow-wrap: anywhere}
+.conversation-heading {display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px}
+.conversation-heading > div {min-width: 0}
+.conversation-heading h2 {max-width: 14ch; font-size: 1.75rem; font-weight: 500; letter-spacing: -.035em; line-height: 1.15; text-wrap: balance}
+.conversation-heading .personal-note {margin: 10px 0 0; font-size: .8125rem; font-variant-numeric: tabular-nums}
+.conversation-heading button {flex: 0 0 44px; border: 1px solid #41454f}
+.personal-conversation ul {list-style: none; margin: 0; padding: 0 20px; background: #1b1d22; border: 1px solid #34373f; border-radius: 16px}
+.personal-conversation li {padding: 22px 0}
+.personal-conversation li + li {border-top: 1px solid #34373f}
+.personal-conversation h3 {font-size: 1.0625rem; color: var(--ink); font-weight: 600; letter-spacing: -.015em; line-height: 1.35; margin: 0 0 10px}
+.personal-conversation li p {color: #d9dbe0; font-size: 1rem; line-height: 1.6; margin: 0}
+.personal-conversation ~ .personal-empty {gap: 8px}
+.personal-conversation ~ .personal-empty h1 {font-size: 1.0625rem; font-weight: 500; text-wrap: initial}
+:root[data-high-contrast=true] .personal-conversation ul, :root[data-high-contrast=true] .personal-conversation li + li, :root[data-high-contrast=true] .conversation-heading button {border-color: var(--ink)}
+:root[data-high-contrast=true] .personal-conversation li p {color: var(--ink)}

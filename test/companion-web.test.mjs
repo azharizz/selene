@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import vm from 'node:vm';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {DOMParser} from '@xmldom/xmldom';
 
 // Exercise component controllers in Node. No browser, WebView, or provider is launched.
 const compiled = await build({stdin: {contents: "export {CompanionMoment} from './web/CompanionMoment'; export {PrivateMirror} from './web/PrivateMirror'; export {Visual} from './web/Visual'; export {App as OwnApp} from './web/App'; export {personalRequest} from './web/personal'; export {readPreferences,savePreferences} from './web/preferences';", resolveDir: process.cwd()},
@@ -32,6 +34,45 @@ function instance() {
   const receive = data => app.receive({source: window, origin: location.origin, data});
   return {app, context, receive, requests, messages, streams};
 }
+
+test('rendered answer DOM shows only host-declared audience across web surfaces', () => {
+  const {app: companion, context} = instance();
+  const story = {id: 'test', title: 'Test', content_version: 'a'.repeat(64), duration: 100, video: '/media/test.mp4', transcript: [], scenes: []};
+  const own = new context.module.exports.OwnApp({session_id: 'test-session', story});
+  const phone = new context.module.exports.PrivateMirror({token: 'test'});
+  own.state.started = true; phone.state.story = story;
+  const badges = app => {
+    const dom = new DOMParser().parseFromString(renderToStaticMarkup(app.render()), 'text/html');
+    return Array.from(dom.getElementsByTagName('span')).filter(node => node.getAttribute('class') === 'audience-badge');
+  };
+  for (const audience of [undefined, {recipient: 'child', source: 'declaration'}, {recipient: 'grandparent', source: 'declaration'},
+    {recipient: 'child', source: 'profile'}, {recipient: 'everyone', source: 'request'}]) {
+    const answer = {...moment, answer: 'I am a grandparent. This text must not identify the audience.', ...(audience ? {audience} : {})};
+    const bridge = {status: 'ready', from_seconds: 1, through_seconds: 2, moment: answer, evidence: []};
+    companion.state.screen = 'moment'; companion.state.moment = answer;
+    own.state.screen = 'moment'; own.state.moment = answer;
+    phone.state.moment = answer; phone.state.bridge = null;
+    const expected = audience ? `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}` : null;
+    for (const surface of [companion, own, phone]) {
+      const nodes = badges(surface);
+      assert.equal(nodes.length, expected ? 1 : 0);
+      if (expected) {assert.equal(nodes[0].textContent, expected); assert.equal(nodes[0].getAttribute('aria-label'), expected);}
+    }
+    own.state.screen = 'return'; own.state.returnResult = bridge;
+    phone.state.bridge = bridge;
+    for (const surface of [own, phone]) {
+      const nodes = badges(surface);
+      assert.equal(nodes.length, expected ? 1 : 0);
+      if (expected) assert.equal(nodes[0].textContent, expected);
+    }
+    for (const status of ['unavailable', 'insufficient_evidence', 'no_gap']) {
+      own.state.returnResult = {...bridge, status}; phone.state.bridge = {...bridge, status};
+      assert.equal(badges(own).length, 0); assert.equal(badges(phone).length, 0);
+    }
+    own.state.returnResult = {...bridge, moment: null}; phone.state.moment = null;
+    assert.equal(badges(own).length, 0); assert.equal(badges(phone).length, 0);
+  }
+});
 
 test('transport refresh keeps the selected moment fixed through clarification and explicit pause', async () => {
   const {app, receive, requests} = instance();
@@ -675,7 +716,9 @@ test('thread updates wait through typing and read-aloud, keep the marker, and ca
   context.fetch = async () => {calls++; return new Promise(resolve => {finish = resolve;});};
   const checking = phone.checkThread(); phone.editing = true; phone.state.request = 'My draft';
   const updated = {...thread, revision: 1, checked_through_seconds: 45,
-    help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45}}}};
+    help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45},
+      visual: {status: 'ready', description: 'A figure is revealed.', svg: '<svg viewBox="0 0 960 540"><g id="figure"><circle cx="480" cy="270" r="60" fill="#ffad33"/></g></svg>',
+        animations: [{target_id: 'figure', duration_ms: 1600, delay_ms: 0, keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]}}}};
   finish({ok: true, json: async () => ({thread: updated, updated: true})}); await checking;
   assert.equal(phone.state.moment.answer, help.moment.answer); assert.ok(phone.queuedThread);
   streams[0].onmessage({data: JSON.stringify({type: 'personal', story: {id: 'test'},
@@ -692,6 +735,11 @@ test('thread updates wait through typing and read-aloud, keep the marker, and ca
   phone.setState = oldSetState; deferred.forEach(args => phone.setState(...args));
   phone.pending = null; phone.state.busy = ''; phone.flushThread();
   assert.equal(phone.state.moment.answer, updated.help.moment.answer); assert.equal(phone.state.hold.from_seconds, 35);
+  const drawn = (tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(tree => drawn(tree))]);
+  phone.state.story = {...phone.state.story, title: 'Football Match'};
+  const diagram = drawn(phone.render()).find(node => node.type === context.module.exports.Visual);
+  assert.equal(diagram?.props.visual.svg, updated.help.moment.visual.svg, 'a Follow thread diagram is drawn on the phone');
+  assert.equal(diagram.props.personal, true);
   phone.receivePlayback({...playback, sequence: 3, at_seconds: 60}); phone.nextThreadCheck = 0;
   context.document.hidden = true; await phone.checkThread(); assert.equal(calls, 1);
   context.document.hidden = false; const next = phone.checkThread();
@@ -737,3 +785,45 @@ test('Guided Return at the film end shows its recap without restarting the film'
   assert.equal(restarts, 0); assert.equal(tv.state.screen, 'moment');
 });
 
+
+test('conversation options arrive automatically, preserve private work, and queue while the viewer is busy', () => {
+  const {context, streams, requests} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'conversation-test'});
+  phone.mounted = true; phone.connect();
+  const story = {id: 'test', title: 'Test', content_version: 'a'.repeat(64), duration: 100, scenes: [], transcript: []};
+  const playback = {content_id: story.id, content_version: story.content_version, epoch: 0, sequence: 1, at_seconds: 90,
+    play_state: 'playing', playback_rate: 1, age_ms: 0, fresh: true};
+  const conversation = {id: 'options-one', content_id: story.id, content_version: story.content_version, epoch: 0, at_seconds: 90,
+    opportunity: 'reflection', boundary_id: 'cue1', options: [
+      {id: 'memory', angle: 'Remember together', question: 'Which game did you play growing up?', recipient: 'grandparent', evidence_ids: ['cue1']},
+      {id: 'imagine', angle: 'Imagine together', question: 'What game would you invent?', recipient: 'child', evidence_ids: ['cue1']},
+      {id: 'compare', angle: 'Compare experiences', question: '<script>not executable</script> What would you teach each other?', recipient: 'everyone', evidence_ids: ['cue1']},
+    ]};
+  const receive = value => streams.at(-1).onmessage({data: JSON.stringify(value)});
+  receive({type: 'personal', story, playback});
+  phone.state.request = 'My unsent question'; phone.state.moment = moment;
+  receive({type: 'conversation', conversation}); phone.flushConversation();
+  assert.equal(phone.state.conversation, null);
+  assert.equal(phone.state.request, 'My unsent question'); assert.equal(phone.state.moment, moment);
+  phone.state.request = '';
+  for (const [field, value] of [['busy', 'ask'], ['voice', 'listening'], ['pickingTime', true], ['selected', 20]]) {
+    const old = phone.state[field]; phone.state[field] = value; phone.flushConversation();
+    assert.equal(phone.state.conversation, null, `defer while ${field}`); phone.state[field] = old;
+  }
+  phone.editing = true; phone.flushConversation(); assert.equal(phone.state.conversation, null); phone.editing = false;
+  context.document.hidden = true; phone.flushConversation(); assert.equal(phone.state.conversation, null); context.document.hidden = false;
+  phone.flushConversation(); assert.equal(phone.state.conversation.id, conversation.id);
+  assert.equal(phone.state.moment, moment); assert.equal(requests.length, 0, 'no submit, voice or playback requests');
+  const html = renderToStaticMarkup(phone.render());
+  assert.match(html, /Which game did you play growing up/); assert.match(html, /What game would you invent/);
+  assert.match(html, /&lt;script&gt;not executable/); assert.doesNotMatch(html, /<script>/);
+  phone.dismissedConversation = conversation.id; phone.state.conversation = null;
+  receive({type: 'personal', story, playback, conversation}); phone.flushConversation();
+  assert.equal(phone.state.conversation, null, 'reconnect does not resurrect a dismissed set');
+  receive({type: 'conversation', conversation: {...conversation, id: 'options-two'}}); phone.flushConversation();
+  assert.equal(phone.state.conversation.id, 'options-two');
+  receive({type: 'playback', playback: {...playback, sequence: 2, epoch: 1, at_seconds: 10}});
+  assert.equal(phone.state.conversation, null, 'seek clears old options');
+  receive({type: 'conversation', conversation}); phone.flushConversation(); assert.equal(phone.state.conversation, null);
+  receive({type: 'closed'}); assert.equal(phone.queuedConversation, null); assert.equal(phone.state.conversation, null);
+});

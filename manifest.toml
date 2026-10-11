@@ -19,10 +19,26 @@ id = "/com.amazon.vega.os@IVega_1_2"
 id = "/com.amazon.kepler.keplerscript_4@IKeplerScript_0"
 
 [[needs.module]]
-id = "/com.amazon.kepler.webview_4@IWebview_4"
+id = "/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0"
 
 [[needs.module]]
-id = "/com.amazon.kepler.kepler_media_controls_1@IKeplerMediaControls_0"
+id = "/com.amazon.kepler.w3cmedia_2@IW3cmedia_3"
+
+[[needs.module]]
+id = "/com.amazon.kepler.audio_lib_2@IAudioLib_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.security_manager_lib_1@ISecurityManagerLib_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.svg_3@ISVG_0"
+
+[[needs.module]]
+id = "/com.amazon.kepler.async_storage__async_storage_2@IAsyncStorage__AsyncStorage_1"
+
+[[needs.module]]
+id = "/com.amazon.kepler.keplermediadescriptor_1@IKeplermediadescriptor_1"
+
 
 [components]
 [[components.interactive]]
@@ -32,15 +48,11 @@ launch-type = "singleton"
 categories = ["com.amazon.category.main"]
 
 [wants]
-# Web renderer service for rendering web content
-[[wants.service]]
-id = "com.amazon.webview.renderer_service"
-
-# If Web App needs keyboard support
+# On-screen keyboard for the native question and import fields
 [[wants.service]]
 id = "com.amazon.inputmethod.service"
 
-# If Web App needs video playback
+# Native W3C media playback
 [[wants.service]]
 id = "com.amazon.media.server"
 
@@ -54,15 +66,19 @@ id = "com.amazon.mediabuffer.service"
 [[wants.service]]
 id = "com.amazon.mediatransform.service"
 
-# If Web App needs audio playback
+# Native audio playback
 [[wants.service]]
 id = "com.amazon.audio.stream"
 
-# Required for audio management features to work in WebView, features like audio focus, volume control 
+# Audio focus and volume control for native playback
 [[wants.service]]
 id = "com.amazon.audio.control"
 
-# Required for the native PlayerSession used by WebView media controls
+# Required by the native W3C media player (audio system connection)
+[[wants.service]]
+id = "com.amazon.audio.system"
+
+# Required for the native PlayerSession media controls
 [[wants.service]]
 id = "com.amazon.media.playersession.service"
 
@@ -70,7 +86,7 @@ id = "com.amazon.media.playersession.service"
 [[wants.service]]
 id = "com.amazon.inputd.service"
 
-# Required by the Vega app-session notifier used by WebView lifecycle handling
+# Required by the Vega app-session notifier used for lifecycle handling
 [[wants.service]]
 id = "com.amazon.lcm.app.session.notifier.service"
 
@@ -85,6 +101,13 @@ id = "com.amazon.kepler.ucc.publisher"
 # id = "com.amazon.drm.crypto"
 # [[needs.privilege]]
 # id = "com.amazon.privilege.security.file-sharing"
+
+# Required for native W3C media captions
+[[wants.privilege]]
+id = "com.amazon.devconf.privilege.accessibility"
+
+[[needs.privilege]]
+id = "com.amazon.audio.privilege.microphone.access"
 
 # Enable Group-IPC to access media services
 [[wants.service]]

@@ -102,15 +102,17 @@ export function originalQuote(moment, context) {
   return cue ? {id: cue.id, at_seconds: cue.start, text: cue.text} : null;
 }
 
-export async function guidedReturn(story, from, playback, preferences, {signal, memory, question = '', initialRequest = '', output = 'personal'} = {}) {
+export async function guidedReturn(story, from, playback, preferences, {signal, memory, question = '', initialRequest = '', output = 'personal', requester} = {}) {
   let context = returnContext(story, from, playback, question, output);
   if (initialRequest) context.initial_request = initialRequest;
+  if (requester) context.requester = requester;
   const boundary = {from_seconds: from, through_seconds: playback.at_seconds, content_version: playback.content_version, epoch: playback.epoch};
   if (playback.at_seconds - from < 0.25) return {...boundary, status: 'no_gap', moment: null, evidence: []};
   if (!context.return_window.interval_evidence_ids.length) return {...boundary, status: 'insufficient_evidence', moment: null, evidence: []};
-  const input = {request: 'Summarize the missed interval using the supplied evidence so I can rejoin the story.',
+  const input = {...preferences,
+    request: 'Summarize the missed interval using the supplied evidence so I can rejoin the story.',
     content_id: story.id, at_seconds: playback.at_seconds, play_state: ['paused', 'ended'].includes(playback.play_state) ? playback.play_state : 'playing', playback_choice: 'keep_watching',
-    ...preferences, session: 'family', continuation: null};
+    session: 'family', continuation: null};
   let moment;
   const started = performance.now();
   try {moment = await explain(input, {signal, memory, context});}
