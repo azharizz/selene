@@ -86,12 +86,12 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 
 Selene positions itself next to Alexa+, not against it. Alexa+ answers *who, what, where*; Selene answers *why and how*, visually, for the moment on screen.
 
-Inside the app, a **simulated Alexa+** orchestrator is a real MCP client. It routes each request to Selene’s skills server (`get_viewing_context`, `explain_moment`, `catch_me_up`, `who_is_on_screen`, `trivia`, `control_playback`) by model tool choice, keeps six turns of memory, and forces the TV position as the spoiler boundary. It is labelled *“Selene · simulated Alexa+ experience”*. When Alexa+ add-on access opens, the same MCP tools are the integration, and the same answers already render as AVG.
+Inside the app, an **Alexa+ look-alike** built on our own AI agent simulates the experience. Its orchestrator is a real MCP client. It routes each request to Selene’s skills server (`get_viewing_context`, `explain_moment`, `catch_me_up`, `who_is_on_screen`, `trivia`, `control_playback`) by model tool choice, keeps six turns of memory, and forces the TV position as the spoiler boundary. It is labelled *“Selene · simulated Alexa+ experience”*. When Alexa+ add-on access opens, the same MCP tools are the integration, and the same answers already render as AVG.
 
 ## How we built it
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-architecture.gif" alt="Selene architecture: Vega OS, Fire OS, paired phone and Alexa+ connect to the Selene relay, which uses the model provider, film evidence and local models" width="100%">
+  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-architecture.gif" alt="Selene architecture with official AWS icons: viewers send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and answers; EventBridge Scheduler and Lambda run a scheduled health check" width="100%">
 </p>
 
 | Technology | Role in Selene |
@@ -105,7 +105,9 @@ Inside the app, a **simulated Alexa+** orchestrator is a real MCP client. It rou
 | **YOLOX-Nano (ONNX Runtime)** | Local, free, two-second placement analysis; no remote inference. |
 | **Headless Chromium** | Renders each diagram so the model can review real pixels. |
 | **SpeechBrain ECAPA** | Optional, consented, local speaker match for household preferences. |
-| **AWS Lightsail** | The deployed relay used for TV and phone pairing. |
+| **Alexa+ (look-alike)** | We simulate the Alexa+ experience with our own AI agent: an in-app orchestrator that routes requests to Selene’s MCP skills and renders answers as AVG, ready for real Alexa+ add-on access. |
+| **Amazon Lightsail** | The container service that runs the relay used for TV and phone pairing. |
+| **Amazon EventBridge Scheduler + AWS Lambda** | A recurring schedule invokes a Lambda function that calls the relay’s `/api/health`, checking the deployment from outside the container. |
 
 ## Challenges we ran into
 
@@ -135,15 +137,15 @@ The useful role for AI on a shared TV is not to talk more. It is to answer one p
 
 ## Honest limits
 
-- Alexa+ is simulated in-app; no live Alexa+ integration, Alexa voice or Amazon branding is used.
-- Selene does not overlay Prime Video or other providers’ apps.
+- Alexa+ is a look-alike simulated with our own agent; no live Alexa+ integration, Alexa voice or Amazon branding is used.
+- **Overlay is limited by the platform, not by design.** We designed Selene to be a true overlay that floats over whatever is playing. Today the Vega SDK and Fire OS documentation expose no API, permission or capability that lets a third-party app draw over another provider's player (such as Prime Video), and we found no supported overlay privilege to request. So Selene overlays its own player only, and for other apps it works as a companion: Media Controls session discovery on the TV and the paired phone as a second screen. If an overlay capability opens, the same placement engine is ready to use it.
 - Placement uses a general object detector on sparse samples and can miss subjects.
 - Demo films and prepared examples are authored for this project; ordinary questions use the live agent.
-- Several paths are verified on the Vega Virtual Device, an Android TV emulator and the phone, not on physical Fire TV hardware. See the [verification record](https://github.com/azharizz/selene/blob/main/docs/vega-verification.md).
+- Several paths are verified on the Vega Virtual Device, an Android TV emulator and the phone, not on physical Fire TV hardware. See the [technical notes](https://github.com/azharizz/selene/blob/main/submission/technical-notes.md).
 
 ## Try it
 
 - **Source:** [github.com/azharizz/selene](https://github.com/azharizz/selene)
 - **Live relay:** [selene-phone-demo-v2 on AWS Lightsail](https://selene-phone-demo-v2.yyaex8bhyrtby.us-east-1.cs.amazonlightsail.com/)
 - **Product decisions:** [PRODUCT.md](https://github.com/azharizz/selene/blob/main/PRODUCT.md)
-- **Technical notes:** [docs/technical-notes.md](https://github.com/azharizz/selene/blob/main/submission/technical-notes.md)
+- **Technical notes:** [submission/technical-notes.md](https://github.com/azharizz/selene/blob/main/submission/technical-notes.md)

@@ -122,41 +122,75 @@ SCENES.loop = () => {
   };
 };
 
-// ------------------------------------------------------------------ architecture 1600x940, 2 s marching loop
+// ------------------------------------------------------------------ architecture 1600x1000, 4 s loop
+// Official AWS Architecture Icons (aws/*.svg). Numbered pulses walk one question end to end.
 SCENES.arch = () => {
-  st.style.cssText = 'width:1600px;height:940px';
-  const sk = sky(1600, 940, 200, 5);
-  h(`<div class="a" style="left:60px;top:44px;display:flex;align-items:center;gap:14px">${logo(30)}<span class="label">How Selene is built</span></div>`);
-  const box = (x, y, w, hh, title, sub, col = 'rgba(232,236,246,.16)', dash = false) => h(`<div class="a card" style="left:${x}px;top:${y}px;width:${w}px;height:${hh}px;padding:20px 22px;border:${dash ? '2px dashed' : '1.5px solid'} ${col}">
-      <div style="font-size:23px;font-weight:700;letter-spacing:-.01em">${title}</div><div style="font-size:15.5px;line-height:1.45;color:#aab0c6;margin-top:6px">${sub}</div></div>`);
-  box(60, 120, 330, 150, 'Vega OS TV app', 'React Native for Vega · Media Controls sessions · WebView answer surface');
-  box(60, 300, 330, 150, 'Fire OS app', 'Android TV build · same relay contract · Select-hold voice');
-  box(60, 480, 330, 150, 'Paired phone', 'Private SVG explainer · type or speak · 6-digit, single-use code');
-  box(60, 660, 330, 150, 'Alexa+ <span style="font-weight:500;color:var(--cyan)">when access opens</span>', 'Same MCP skills a real add-on uses · simulated in-app today', 'rgba(59,211,255,.7)', true);
-  const R = h(`<div class="a card" style="left:520px;top:120px;width:580px;height:690px;padding:26px;border:1.5px solid rgba(255,153,0,.55);box-shadow:0 0 70px rgba(255,153,0,.14),0 30px 80px rgba(0,0,0,.45)">
-      <div style="display:flex;align-items:center;gap:14px">${logo(44)}<div><div style="font-size:30px;font-weight:700;letter-spacing:-.02em">Selene relay</div><div style="font-size:16px;color:var(--muted)">Node.js · credentials never reach the TV</div></div></div>
-      <div class="mods" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px"></div>
-      <div style="position:absolute;left:26px;right:26px;bottom:20px;font-size:15px;color:var(--muted);line-height:1.6"><div>Deployed on AWS Lightsail · us-east-1</div><div class="mono" style="font-size:13.5px">/api/moment · /api/placement · /api/skills/mcp · /api/assistant</div></div></div>`);
-  const MODS = [['Moment agent', 'answer + animated SVG / WAAPI'], ['Rendered feedback', 'headless Chromium, ≤ 2 revisions'], ['Smart placement', 'YOLOX-Nano, local, 2 s deadline'],
-    ['SVG → AVG 1.2', 'same answer for Alexa / APL'], ['Skills MCP server', 'explain · catch up · trivia · playback'], ['Simulated Alexa+', 'MCP client + tool-choice routing'],
-    ['Thread + Catch me up', 'reviewed, spoiler-bounded updates'], ['Conversation agent', 'schedules “something to talk about”'], ['Voice personalization', 'consented, local ECAPA match'],
-    ['Pairing + private routes', 'token-scoped phone access']];
-  const mods = MODS.map(([a, b]) => h(`<div style="padding:12px 14px;border-radius:14px;background:rgba(7,8,13,.45);border:1px solid var(--line)"><div style="font-size:17px;font-weight:700">${a}</div><div style="font-size:13.5px;color:#9aa0b8;margin-top:3px">${b}</div></div>`, R.querySelector('.mods')));
-  box(1230, 120, 310, 170, 'Model provider', '<span class="mono" style="font-size:13.5px">AGENT_PROVIDER_MODEL</span><br>HTTPS · strict structured outputs · function calls', 'rgba(255,197,107,.6)');
-  box(1230, 330, 310, 190, 'Film evidence', 'Completed captions up to the sampled time · per-film caption graph · source frames t−10…+10 s · prepared examples');
-  box(1230, 560, 310, 170, 'Local models', 'YOLOX-Nano ONNX placement · ECAPA speaker match · APL viewhost (WASM) preview');
-  const E = h(`<svg class="a" width="1600" height="940" style="left:0;top:0">
-      ${[195, 375, 555].map(y => `<path class="m" d="M390 ${y} L520 ${y}" stroke="#ff9900" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>`).join('')}
-      <path class="m" d="M390 735 C460 735 450 700 520 700" stroke="#3bd3ff" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
-      <path class="m" d="M1100 205 L1230 205" stroke="#ffc56b" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
-      <path class="m" d="M1100 425 L1230 425" stroke="rgba(232,236,246,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
-      <path class="m" d="M1100 645 L1230 645" stroke="rgba(232,236,246,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
+  st.style.cssText = 'width:1600px;height:1000px';
+  const sk = sky(1600, 1000, 200, 5);
+  h(`<div class="a" style="left:60px;top:40px;display:flex;align-items:center;gap:14px">${logo(30)}<span class="label">How Selene is built · one question, end to end</span></div>`);
+  const ico = (f, s = 44) => `<img src="aws/${f}.svg" width="${s}" height="${s}" style="flex:none;border-radius:8px">`;
+  const node = (x, y, w, hh, icon, title, sub, col = 'rgba(232,236,246,.16)', dash = false) => h(`<div class="a card" style="left:${x}px;top:${y}px;width:${w}px;height:${hh}px;padding:16px 18px;border:${dash ? '2px dashed' : '1.5px solid'} ${col};display:flex;gap:14px;align-items:flex-start">
+      ${icon}<div><div style="font-size:20px;font-weight:700;letter-spacing:-.01em;line-height:1.2">${title}</div><div style="font-size:14.5px;line-height:1.4;color:#aab0c6;margin-top:5px">${sub}</div></div></div>`);
+  const phoneGlyph = `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><rect x="12" y="3" width="20" height="38" rx="5" fill="none" stroke="#e8ecf6" stroke-width="2.5"/><rect x="18" y="7" width="8" height="2.5" rx="1.2" fill="#e8ecf6"/><path d="M27 30A6 6 0 1 1 27 20 5 5 0 1 0 27 30Z" fill="#ff9900"/></svg>`;
+  h(`<div class="a label" style="left:60px;top:116px;font-size:13px">Viewers</div>`);
+  const V = [node(60, 140, 330, 118, ico('AWSIoTFireTV'), 'Fire TV · Vega OS app', 'React Native for Vega · own player + Media Controls sessions'),
+    node(60, 278, 330, 118, ico('AWSIoTFireTVStick'), 'Fire TV · Fire OS app', 'Android TV build · same relay contract · Select-hold voice'),
+    node(60, 416, 330, 118, phoneGlyph, 'Paired phone', 'Private SVG explainer · type or speak · 6-digit code'),
+    node(60, 554, 330, 134, ico('AWSIoTAlexaVoiceService'), 'Alexa+ look-alike', 'Simulated with Selene’s own agent over MCP · real Alexa+ when access opens', 'rgba(59,211,255,.7)', true)];
+  // AWS cloud boundary
+  h(`<div class="a" style="left:440px;top:110px;width:760px;height:800px;border:2px solid rgba(232,236,246,.28);border-radius:6px"></div>`);
+  h(`<div class="a" style="left:440px;top:110px;display:flex;align-items:center;gap:10px;padding-right:14px;background:#0f1330">${ico('AWSCloudlogo', 40)}<span style="font-size:16px;font-weight:700">AWS Cloud · us-east-1</span></div>`);
+  const LS = h(`<div class="a card" style="left:480px;top:176px;width:680px;height:520px;padding:20px 22px;border:1.5px solid rgba(237,113,0,.75);box-shadow:0 0 70px rgba(255,153,0,.14),0 30px 80px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:14px">${ico('AmazonLightsail', 46)}<div><div style="font-size:21px;font-weight:700">Amazon Lightsail · container service</div><div class="mono" style="font-size:13.5px;color:var(--muted)">selene-phone-demo-v2</div></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px">${logo(34)}<div style="font-size:22px;font-weight:700;letter-spacing:-.02em">Selene relay</div></div></div>
+      <div class="mods" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px"></div>
+      <div class="mono" style="position:absolute;left:22px;bottom:16px;font-size:13px;color:var(--muted)">Node.js · /api/moment · /api/placement · /api/skills/mcp · /api/health</div></div>`);
+  const MODS = [['Moment agent', 'answer + animated SVG / WAAPI'], ['Rendered feedback', 'headless Chromium, ≤ 2 revisions'], ['Smart placement', 'YOLOX-Nano ONNX, local'],
+    ['SVG → AVG 1.2', 'same answer for Alexa / APL'], ['Skills MCP server', 'explain · catch up · trivia · playback'], ['Alexa+ look-alike orchestrator', 'MCP client + tool-choice routing'],
+    ['Thread + Catch me up', 'reviewed, spoiler-bounded'], ['Conversation agent', '“something to talk about”'], ['Voice personalization', 'consented, local ECAPA'], ['Pairing + private routes', 'token-scoped phone access']];
+  const mods = MODS.map(([a, b]) => h(`<div style="padding:10px 13px;border-radius:12px;background:rgba(7,8,13,.45);border:1px solid var(--line)"><div style="font-size:16px;font-weight:700">${a}</div><div style="font-size:13px;color:#9aa0b8;margin-top:2px">${b}</div></div>`, LS.querySelector('.mods')));
+  node(480, 760, 290, 112, ico('AmazonEventBridgeScheduler'), 'EventBridge Scheduler', 'Amazon EventBridge · recurring schedule', 'rgba(231,21,123,.6)');
+  node(870, 760, 290, 112, ico('AWSLambda'), 'AWS Lambda', 'Calls the relay’s health endpoint', 'rgba(237,113,0,.6)');
+  h(`<div class="a label" style="left:1240px;top:116px;font-size:13px">Outside the TV</div>`);
+  node(1240, 176, 300, 150, `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><circle cx="22" cy="22" r="18" fill="none" stroke="#ffc56b" stroke-width="2.5"/><path d="M14 22h16M22 14v16" stroke="#ffc56b" stroke-width="2.5"/></svg>`, 'Model provider', '<span class="mono" style="font-size:13px">AGENT_PROVIDER_MODEL</span><br>HTTPS · structured outputs · function calls', 'rgba(255,197,107,.6)');
+  node(1240, 400, 300, 170, `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><rect x="5" y="9" width="34" height="26" rx="4" fill="none" stroke="#7fe0b0" stroke-width="2.5"/><path d="M5 17h34M13 9v26" stroke="#7fe0b0" stroke-width="2"/></svg>`, 'Film evidence', 'Completed captions ≤ now · per-film graph · frames t−10…+10 s · prepared examples');
+  // edges (ids double as pulse tracks)
+  const E = h(`<svg class="a" width="1600" height="1000" style="left:0;top:0">
+      <path id="e0" d="M390 199 C430 199 440 300 480 300" stroke="#ff9900"/>
+      <path id="e1" d="M390 337 C430 337 440 380 480 380" stroke="#ff9900"/>
+      <path id="e2" d="M390 475 C430 475 440 460 480 460" stroke="#ff9900"/>
+      <path id="e3" d="M390 621 C430 621 440 540 480 540" stroke="#3bd3ff"/>
+      <path id="e4" d="M1160 485 C1200 485 1200 485 1240 485" stroke="rgba(232,236,246,.7)"/>
+      <path id="e5" d="M1160 250 C1200 250 1200 250 1240 250" stroke="#ffc56b"/>
+      <path id="e6" d="M770 816 L870 816" stroke="#e7157b"/>
+      <path id="e7" d="M1015 760 L1015 696" stroke="#ed7100"/>
     </svg>`);
-  h(`<div class="a" style="left:60px;top:850px;width:1480px;display:flex;gap:30px;font-size:16px;color:var(--muted);white-space:nowrap">
-      <span><b style="color:var(--orange)">━</b> viewer requests</span><span><b style="color:var(--cyan)">━</b> Alexa+ / MCP</span><span><b style="color:var(--gold)">━</b> model calls</span><span><b style="color:#c9cee0">━</b> evidence + local inference</span>
-      <span style="margin-left:auto">The model interprets · host code enforces playback, consent and safety</span></div>`);
-  const L = 2;
-  RENDER = t => { sk(t * Math.PI); E.querySelectorAll('.m').forEach(e => e.style.strokeDashoffset = (-t * 32).toFixed(1)); const k = Math.floor((t % L) / L * MODS.length); mods.forEach((m, i) => m.style.borderColor = k === i ? 'rgba(255,153,0,.7)' : ''); };
+  const paths = [...E.querySelectorAll('path')];
+  paths.forEach(p => { p.setAttribute('fill', 'none'); p.setAttribute('stroke-width', '3'); p.setAttribute('stroke-dasharray', '5 11'); p.setAttribute('stroke-linecap', 'round'); p.style.opacity = '.75'; });
+  const pulse = (c) => h(`<div class="a" style="width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 14px ${c},0 0 32px ${c}"></div>`);
+  const pA = pulse('#ff9900'), pB = pulse('#e7157b');
+  const at = (i, u) => { const p = paths[i], L = p.getTotalLength(); return p.getPointAtLength(clamp(u) * L); };
+  // ① ask → ② read only this moment → ③ generate + render check → ④ answer back
+  const STEPS = [['1', 'Ask', '#ff9900'], ['2', 'Read only this moment', '#e8ecf6'], ['3', 'Generate + render check', '#ffc56b'], ['4', 'Answer, placed or on the phone', '#ff9900'], ['5', 'Scheduled health check', '#e7157b']];
+  const leg = h(`<div class="a" style="left:60px;top:930px;width:1480px;display:flex;gap:14px;flex-wrap:nowrap"></div>`);
+  const chips = STEPS.map(([n, s, c]) => h(`<div class="chip" style="font-size:16px;padding:7px 15px"><span style="width:24px;height:24px;border-radius:50%;background:${c};color:#07080d;font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-size:13px">${n}</span>${s}</div>`, leg));
+  const L = 4;
+  RENDER = t => {
+    sk(t * Math.PI / 2);
+    paths.forEach(p => p.style.strokeDashoffset = (-t * 32).toFixed(1));
+    const q = t % L; let pt = null, step = -1;
+    if (q < .7) { pt = at(0, io(q / .7)); step = 0; }
+    else if (q < 1.4) { const u = (q - .7) / .7; pt = at(4, u < .5 ? io(u * 2) : io(2 - u * 2)); step = 1; }
+    else if (q < 2.6) { const u = (q - 1.4) / 1.2; pt = at(5, u < .5 ? io(u * 2) : io(2 - u * 2)); step = 2; }
+    else if (q < 3.4) { pt = at(0, 1 - io((q - 2.6) / .8)); step = 3; }
+    if (pt) { pA.style.left = (pt.x - 8) + 'px'; pA.style.top = (pt.y - 8) + 'px'; pA.style.opacity = 1; } else pA.style.opacity = 0;
+    const r = (t % 2) / 2, pb = r < .5 ? at(6, io(r * 2)) : at(7, io((r - .5) * 2));
+    pB.style.left = (pb.x - 8) + 'px'; pB.style.top = (pb.y - 8) + 'px'; pB.style.opacity = r < .95 ? 1 : 0;
+    chips.forEach((c, i) => c.style.boxShadow = (i === step || (i === 4 && r > .5)) ? `0 0 0 2px ${STEPS[i][2]}` : '');
+    V[0].style.borderColor = step === 0 || step === 3 ? '#ff9900' : '';
+    const k = step === 2 ? 0 : step === 1 ? 2 : step === 3 ? 1 : -1;
+    mods.forEach((m, i) => m.style.borderColor = i === k ? 'rgba(255,153,0,.75)' : '');
+  };
 };
 
 // ------------------------------------------------------------------ evidence window 1600x760, 6 s

@@ -11,7 +11,7 @@ SRC = os.path.join(HERE, 'src')
 # scene, output, size, loop seconds (None = still), fps, GIF width
 ART = [('banner', 'selene-readme-banner.png', (2400, 760), None, 0, 0),
        ('loop', 'selene-moment-loop.gif', (1600, 760), 6, 15, 1200),
-       ('arch', 'selene-architecture.gif', (1600, 940), 2, 15, 1200),
+       ('arch', 'selene-architecture.gif', (1600, 1000), 4, 15, 1200),
        ('evidence', 'selene-evidence-window.gif', (1600, 760), 6, 15, 1200)]
 # launch-film excerpts: output, start, duration
 FILM = [('film-svg-avg.gif', 54.0, 6.0), ('film-placement.gif', 66.0, 6.0), ('film-second-screen.gif', 73.2, 4.2),

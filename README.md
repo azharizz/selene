@@ -24,21 +24,23 @@
     <img src="https://img.shields.io/badge/Alexa-AVG%201.2%20%2F%20APL%202024.3-3BD3FF.svg" alt="AVG 1.2 and APL 2024.3">
     <img src="https://img.shields.io/badge/agent-MCP%20skills-3BD3FF.svg" alt="MCP skills">
     <img src="https://img.shields.io/badge/placement-YOLOX--Nano%20ONNX-8FB3FF.svg" alt="YOLOX-Nano ONNX">
-    <img src="https://img.shields.io/badge/hosted-AWS%20Lightsail-232F3E.svg" alt="AWS Lightsail">
+    <img src="https://img.shields.io/badge/Amazon-Lightsail-ED7100.svg" alt="Amazon Lightsail">
+    <img src="https://img.shields.io/badge/Amazon-EventBridge%20Scheduler-E7157B.svg" alt="Amazon EventBridge Scheduler">
+    <img src="https://img.shields.io/badge/AWS-Lambda-ED7100.svg" alt="AWS Lambda">
+    <img src="https://img.shields.io/badge/Alexa%2B-look--alike%20agent-3BD3FF.svg" alt="Alexa+ look-alike agent">
   </p>
   <p>
     <a href="submission/submission-description.md">Submission</a> ·
     <a href="submission/assets/selene-moment-loop.gif">The Selene moment</a> ·
     <a href="submission/assets/selene-architecture.gif">Architecture</a> ·
     <a href="submission/technical-notes.md">Technical notes</a> ·
-    <a href="docs/vega-verification.md">Verification record</a> ·
     <a href="DESIGN.md">Design contract</a>
   </p>
   <p><sub>Ask about the moment → Selene reads only that moment → draws it as SVG or AVG → steps aside</sub></p>
 </div>
 
 > [!IMPORTANT]
-> Selene runs on Vega OS and Fire OS today, with a paired phone. Its Alexa+ experience is **simulated inside the app** over the same MCP skills a real Alexa+ add-on would call; it is not a live Alexa+ integration, and Selene never claims an overlay inside Prime Video or another provider's app. Playback keeps going unless the viewer says otherwise.
+> Selene runs on Vega OS and Fire OS today, with a paired phone. Its Alexa+ experience is **simulated inside the app** over the same MCP skills a real Alexa+ add-on would call; it is not a live Alexa+ integration. Selene overlays its own player; drawing over other providers' apps is not exposed by the Vega or Fire OS SDKs today (see [Truth boundaries](#truth-boundaries)). Playback keeps going unless the viewer says otherwise.
 
 <details>
 <summary><kbd>Contents</kbd></summary>
@@ -231,12 +233,12 @@ Selene's agent is a coordinator inside a tight boundary. The model interprets an
 | `trivia` | Authored, safe-after facts. | Each item carries a `safe_after` time. |
 | `control_playback` | Pause, play, go back. | A claim of pause or play needs a provider result. |
 
-Inside the app, a **simulated Alexa+** orchestrator is a real MCP client: it routes a request to these skills by model tool choice, keeps the last six turns, and labels itself *“Selene · simulated Alexa+ experience”*. When Alexa+ add-on access opens, the same MCP server is the integration point. See the [Alexa+ integration plan](docs/alexa-plus-integration-plan.md) and the [MCP experiment](docs/mcp.md).
+Inside the app, an **Alexa+ look-alike** built on Selene's own AI agent simulates the Alexa+ experience. Its orchestrator is a real MCP client: it routes a request to these skills by model tool choice, keeps the last six turns, and labels itself *“Selene · simulated Alexa+ experience”*. When Alexa+ add-on access opens, the same MCP server is the integration point. Design details are in the [technical notes](submission/technical-notes.md).
 
 ## How the system is built
 
 <p align="center">
-  <img src="submission/assets/selene-architecture.gif" alt="Animated Selene architecture: Vega OS app, Fire OS app, paired phone and future Alexa+ connect to the Selene relay, which calls the model provider, film evidence and local models" width="100%">
+  <img src="submission/assets/selene-architecture.gif" alt="Animated Selene architecture with official AWS icons: Fire TV Vega OS and Fire OS apps, the paired phone and the Alexa+ look-alike send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and returns the answer; EventBridge Scheduler and Lambda run a scheduled health check" width="100%">
 </p>
 
 | Layer | Responsibility |
@@ -244,13 +246,13 @@ Inside the app, a **simulated Alexa+** orchestrator is a real MCP client: it rou
 | [`src/`](src/) | Vega OS app: React Native for Vega, Media Controls session discovery, own player, voice capture, native SVG motion. |
 | [`fireos/`](fireos/) | Fire OS (Android TV) build of the same experience and relay contract. |
 | [`web/`](web/) | WebView answer surface, paired-phone private mirror, SVG and AVG renderers, APL runtime host. |
-| [`server/`](server/) | Node relay: moment agent, placement, SVG→AVG, skills MCP server, simulated Alexa+, conversation scheduler, voice, pairing. |
+| [`server/`](server/) | Node relay: moment agent, placement, SVG→AVG, skills MCP server, Alexa+ look-alike orchestrator, conversation scheduler, voice, pairing. |
 | [`content/`](content/) | Catalog packages: captions, facts, per-film caption graph, prepared-example bindings. |
 | [`shared/`](shared/) | Visual transform math shared by native and web renderers. |
 | [`scripts/`](scripts/) | Build, ingest, Vega VVD launch, automation, live checks, phone-contract check. |
 | [`test/`](test/) | Node and native test suites, fixture catalog, live-model checks. |
 
-The relay reads `AGENT_PROVIDER_URL`, `AGENT_PROVIDER_MODEL` and `AGENT_PROVIDER_API_KEY` from `../.env` and calls the provider over HTTPS with strict structured outputs and function calls. Credentials never enter the TV bundle or the Chromium process. The demo relay runs as the AWS Lightsail container service `selene-phone-demo-v2` in `us-east-1`.
+The relay reads `AGENT_PROVIDER_URL`, `AGENT_PROVIDER_MODEL` and `AGENT_PROVIDER_API_KEY` from `../.env` and calls the provider over HTTPS with strict structured outputs and function calls. Credentials never enter the TV bundle or the Chromium process. The relay runs as the Amazon Lightsail container service `selene-phone-demo-v2` in `us-east-1`. An Amazon EventBridge Scheduler schedule invokes an AWS Lambda function that calls the relay's `/api/health` endpoint, so the deployment is checked on a schedule from outside the container.
 
 ## Try the demo
 
@@ -300,16 +302,16 @@ npm run test:live -- --visual-quality   # five cross-intent real-model diagrams
 npm run vega:automation -- --feature football-match
 ```
 
-The latest local record lists 193 Node tests and 25 native Jest tests passing, with Vega/web and Fire OS TypeScript checks and the web build. [`docs/vega-verification.md`](docs/vega-verification.md) is the dated source of truth for what was exercised on the VDA, the Android TV emulator and the phone. Passing schema and runtime checks is not proof of teaching quality.
+The latest local record lists 193 Node tests and 25 native Jest tests passing, with Vega/web and Fire OS TypeScript checks and the web build. The [technical notes](submission/technical-notes.md) keep the dated record of what was exercised on the VDA, the Android TV emulator and the phone. Passing schema and runtime checks is not proof of teaching quality.
 
 ## Truth boundaries
 
-- **Alexa+ is simulated.** The in-app orchestrator uses real MCP calls to Selene's own skills. No live Alexa+, wake word, Alexa voice or Amazon branding is used.
-- **No overlay in other apps.** Selene does not draw over Prime Video or third-party players. The companion discovers opt-in Media Controls sessions; without an authorized scene-context feed it works from metadata plus what the viewer types.
+- **Alexa+ is a look-alike.** We simulate the Alexa+ experience with Selene's own AI agent; the in-app orchestrator uses real MCP calls to Selene's own skills. No live Alexa+, wake word, Alexa voice or Amazon branding is used.
+- **Overlay on other apps is an SDK limit, not a design choice.** We designed Selene to be a true overlay that floats over whatever is playing. Today the Vega SDK and Fire OS documentation expose no API, permission or capability that lets a third-party app draw over another provider's player (such as Prime Video), and we found no supported overlay privilege to request. So Selene overlays its own player only, and for other apps it works as a companion: Media Controls session discovery on the TV and the paired phone as a second screen. If an overlay capability opens, the same placement engine is ready to use it. Without an authorized scene-context feed, the companion works from session metadata plus what the viewer types.
 - **Only the sampled moment.** Captions stop at the question time. Frames after it give ten seconds of visual lookahead, never future dialogue or plot.
 - **Personalization is stated, not guessed.** Roles come from the viewer's words, an explicit preference, or a consented local voice match. Age or family role never implies disability or low literacy.
 - **Placement can be wrong.** Sparse samples and a general object detector can miss subjects; uncertain or slow analysis keeps the answer outside the video.
-- **Device coverage.** Builds, VDA runs and emulator runs are recorded in the verification log. Physical Fire TV and physical Vega hardware remain unverified for several paths.
+- **Device coverage.** Builds, VDA runs and emulator runs are recorded in the technical notes. Physical Fire TV and physical Vega hardware remain unverified for several paths.
 - **Demo content.** Both demo films are authored for this project. Prepared examples are labelled, title-matched and source-checked; ordinary questions invoke the real agent.
 
 ## Repository map
@@ -320,10 +322,6 @@ The latest local record lists 193 Node tests and 25 native Jest tests passing, w
 | [`DESIGN.md`](DESIGN.md) | Fire TV visual language, focus states, spacing and the original orange crescent mark. |
 | [`submission/submission-description.md`](submission/submission-description.md) | Devpost-ready project narrative. |
 | [`submission/technical-notes.md`](submission/technical-notes.md) | Detailed implementation and dated verification history (the previous README). |
-| [`docs/vega-verification.md`](docs/vega-verification.md) | Source of truth for build, launcher, playback, recap and phone results. |
-| [`docs/personal-pause.md`](docs/personal-pause.md) | Paired phone, Catch me up, Follow thread and deployment routes. |
-| [`docs/alexa-plus-integration-plan.md`](docs/alexa-plus-integration-plan.md) | Simulated Alexa+ design, MCP skills and the path to real add-on access. |
-| [`docs/scene-context.md`](docs/scene-context.md) | Contract for an authorized transcript / scene-context provider. |
 | [`submission/assets/`](submission/assets/) | README banner, animated diagrams, launch-film GIFs and their generator. |
 | [`submission/screenshots/`](submission/screenshots/) | Product frames from the Vega and phone screen recordings. |
 
