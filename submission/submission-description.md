@@ -43,14 +43,22 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 
 ## Product walkthrough
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-logo.gif" alt="Selene launch film: the crescent and the selene wordmark" width="72%">
+</p>
+
 <table>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-svg-avg.gif" alt="SVG and AVG renderers drawing the same offside answer"><br><sub><strong>Drawn live, in SVG or AVG.</strong> The switch lights whichever renderer is drawing.</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-placement.gif" alt="Answer panel dodging the goal mouth in slow motion"><br><sub><strong>Never in the way.</strong> The real Vega recording at 0.5×: the goal mouth enters, the panel moves, then steps aside for the shot.</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-svg-avg.gif" alt="SVG and AVG renderers drawing the same offside answer"><br><sub><strong>I · Drawn live, in SVG or AVG.</strong> The switch lights whichever renderer is drawing.</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-placement.gif" alt="Answer panel dodging the goal mouth in slow motion"><br><sub><strong>II · Never in the way.</strong> The real Vega recording at 0.5×: the goal mouth enters, the panel moves, then steps aside for the shot.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-second-screen.gif" alt="Answers switched from the TV to the paired phone"><br><sub><strong>Second screen.</strong> The TV keeps only a quiet crescent.</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-thread.gif" alt="Thread diagram updating automatically"><br><sub><strong>Follow thread.</strong> Auto-updated at every story point, zero taps.</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-agent.gif" alt="Agent core calling its tools"><br><sub><strong>III · An agent behind every answer.</strong> Tools in, one Moment Response out.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-thread.gif" alt="Thread diagram updating automatically"><br><sub><strong>VI · Follow-ups that grow with the story.</strong> Auto-updated at every story point, zero taps.</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-conversation.gif" alt="Grandpa and grandchild on the sofa with a Then and now card"><br><sub><strong>VIII · Selene invites conversation.</strong> AI opens the door; family walks through it.</sub></td>
   </tr>
 </table>
 
