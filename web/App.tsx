@@ -9,7 +9,7 @@ import './style.css';
 import {Brand, Icon, LoadingMark} from './Brand';
 import {readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
 import {accessibilitySettings, initialAccessibility, applyAccessibility, captionChoice, saveCaptionChoice, captionStyle, type AccessibilitySettings} from './accessibility';
-import {clock, audienceLabel, personalRequest, type PersonalStory, type PersonalMoment, type ReturnResult, type Pairing} from './personal';
+import {clock, audienceLabel, provenanceLabel, personalRequest, type AnswerMode, type PersonalStory, type PersonalMoment, type ReturnResult, type Pairing} from './personal';
 import {observeMedia, reportMedia} from './mediaDiagnostics';
 import {MediaImport} from './MediaImport';
 
@@ -19,6 +19,7 @@ type CatalogStory = {id: string; title: string; subtitle: string; duration: numb
 type Moment = PersonalMoment;
 type PreparedExample = {id: string; request: string; at_seconds: number};
 type Input = {
+  answer_mode?: AnswerMode;
   request: string; content_id: string; at_seconds: number; play_state: 'playing' | 'paused' | 'ended';
   playback_choice: Choice; need: Need; language: Language; session: 'family' | 'solo'; recipient: Recipient;
   continuation: {request: string; question: string; answer: string} | null;
@@ -354,20 +355,20 @@ export class App extends React.Component<Bundle, State> {
       request: clarifying && this.lastInput ? this.lastInput.request : request.trim(),
       content_id: this.props.story.id, at_seconds: anchorAt,
       play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing',
-      playback_choice: choice, need, language, recipient, session,
+      playback_choice: choice, need, language, recipient, session, answer_mode: clarifying ? this.lastInput?.answer_mode : 'generate',
       continuation: clarifying && moment && this.lastInput ? {request: this.lastInput.request, question: moment.answer, answer: request.trim()} : null,
       requester_id: clarifying ? this.lastInput?.requester_id : this.requesterId,
     };
     this.deliver(input);
   };
-  private selectExample = (example: PreparedExample) => {
+  private selectExample = (example: PreparedExample, answer_mode: AnswerMode = 'prepared') => {
     const player = this.video.current;
     if (!player) return;
     // Prepared demos have a fixed presentation; ordinary questions keep the viewer's preferences.
     const input: Input = {request: example.request, content_id: this.props.story.id, at_seconds: example.at_seconds,
       play_state: player.ended ? 'ended' : player.paused ? 'paused' : 'playing', playback_choice: 'keep_watching',
       need: this.state.need === 'Slower answer voice' ? 'Slower answer voice' : 'Show visually', language: 'English',
-      recipient: 'everyone', session: this.state.session, continuation: null};
+      recipient: 'everyone', session: this.state.session, answer_mode, continuation: null};
     return this.deliver(input, example.at_seconds > this.state.anchorAt ? example.at_seconds : undefined);
   };
   private deliver = async (input: Input, seekTo?: number) => {
@@ -598,6 +599,7 @@ export class App extends React.Component<Bundle, State> {
         <div className="answer"><h2>{returnResult.quote ? `“${returnResult.quote.text}”` : returnResult.moment?.answer.replace(/\u2014/g, ',') || (returnResult.status === 'unavailable' ? 'The recap could not be prepared. Close to try again.' : returnResult.status === 'no_gap' ? 'There was no gap at the sampled TV moment.' : 'There is not enough evidence for this gap. Replay it or ask someone watching with you.')}</h2>
           {returnResult.quote && <p className="small">Original caption · {clock(returnResult.quote.at_seconds)} · Recap unavailable; close to retry.</p>}
           {returnResult.status === 'ready' && returnResult.moment?.audience && <span className="audience-badge" aria-label={audienceLabel(returnResult.moment.audience)}>{audienceLabel(returnResult.moment.audience)}</span>}
+          {returnResult.status === 'ready' && returnResult.moment?.provenance && <p className="small">{provenanceLabel(returnResult.moment.provenance)}</p>}
           <p className="small">{returnResult.status === 'ready' ? 'Covers' : 'Requested'} {clock(returnResult.from_seconds)} to {clock(returnResult.through_seconds)}{position - returnResult.through_seconds >= 2 ? ` · TV ${clock(position)}` : ''}</p></div>
         <button data-initial aria-label="Close return" onClick={this.closeReturn}><Icon name="close"/></button>
       </section>}
@@ -606,14 +608,16 @@ export class App extends React.Component<Bundle, State> {
         <div className="sheet-head"><h1 id="ask-title" className={clarifying ? '' : 'sr-only'}>{clarifying && moment ? moment.answer.replace(/\u2014/g, ',') : 'Ask Selene'}</h1><button className="ask-close" aria-label="Close question" onClick={this.back}><Icon name="close"/></button></div>
         <p className="request-hint" id="request-hint" role={error ? 'alert' : undefined}>{error}</p>
         <form onSubmit={event => {event.preventDefault(); this.ask('unspecified');}}><label className="sr-only" htmlFor="request">{clarifying ? 'Your answer' : 'Your question'}</label>
-          <div className="question-input"><textarea data-initial id="request" rows={1} maxLength={600} disabled={voice === 'listening' || voice === 'processing'} value={request} onChange={event => {this.requesterId = undefined; this.setState({request: event.target.value});}} placeholder={clarifying ? 'Add the missing detail…' : 'Ask about this moment…'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button className="primary" data-submit disabled={voice === 'listening' || voice === 'processing' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Ask'}</button></div>
+          <div className="question-input"><textarea data-initial id="request" rows={1} maxLength={600} disabled={voice === 'listening' || voice === 'processing'} value={request} onChange={event => {this.requesterId = undefined; this.setState({request: event.target.value});}} placeholder={clarifying ? 'Add the missing detail…' : 'Ask about this moment…'} onKeyDown={event => {if (event.key === 'Enter' && !event.shiftKey) {event.preventDefault(); this.ask('unspecified');}}}/><button className="primary" data-submit disabled={voice === 'listening' || voice === 'processing' || !request.trim()}><Icon name="send"/>{clarifying ? 'Answer' : 'Generate answer'}</button></div>
         </form>
         {!clarifying && <div className="quick-questions"><button aria-expanded={this.state.examplesOpen} onClick={() => this.setState({examplesOpen: !this.state.examplesOpen})}>Prepared examples</button></div>}
         {!clarifying && this.state.examplesOpen && <div className="example-list" role="group" aria-label="Prepared examples">
           {this.state.examplesStatus === 'loading' ? <p className="small" role="status">Loading prepared examples…</p>
             : this.state.examplesStatus === 'error' ? <><p className="small" role="alert">Prepared examples could not load.</p><button onClick={this.loadExamples}>Retry examples</button></>
-            : this.state.examples.length ? this.state.examples.map(example => <button key={example.id} onClick={() => this.selectExample(example)}>
-              {example.at_seconds > this.state.anchorAt && `Jump to ${example.at_seconds.toFixed(3)}s · `}{example.request}</button>)
+            : this.state.examples.length ? this.state.examples.map(example => <div key={example.id}>
+              <button onClick={() => this.selectExample(example, 'prepared')}>Prepared example · {example.at_seconds > this.state.anchorAt && `Jump to ${example.at_seconds.toFixed(3)}s · `}{example.request}</button>
+              <button onClick={() => this.selectExample(example, 'generate')}>Generate answer · {example.request}</button>
+            </div>)
             : <p className="small">No supported prepared example for this film. Ask in your own words.</p>}
         </div>}
         <div className="request-options">{this.voice.canListen && <button className="text-button" disabled={voice === 'processing'} onClick={this.listen}><Icon name="mic"/>{voice === 'listening' ? 'Stop listening' : voice === 'processing' ? 'Processing voice…' : 'Use voice'}</button>}</div>
@@ -626,6 +630,7 @@ export class App extends React.Component<Bundle, State> {
         <div className="moment-content"><div className="answer">
           <h2>{moment.answer.replace(/\u2014/g, ',')}</h2>
           {moment.audience && <span className="audience-badge" aria-label={audienceLabel(moment.audience)}>{audienceLabel(moment.audience)}</span>}
+          {moment.provenance && <p className="small">{provenanceLabel(moment.provenance)}</p>}
           {story.ingestion && moment.grounding.evidence_ids.some(id => id.startsWith('frame-')) && <p className="small">Sampled image; details may be inaccurate.</p>}
         </div>{moment.visual.status !== 'none' && <div className="visual"><Visual compact key={moment.visual.svg + moment.visual.description} visual={moment.visual} /></div>}</div>
         <footer className="actions">

@@ -117,7 +117,7 @@ export function Alert({children, accessibility}: {children: React.ReactNode; acc
 export function Field({value, onChange, placeholder, onSubmit, onLongPress, preferred, label, maxLength = 600, style, accessibility}: {value: string; onChange: (value: string) => void; placeholder: string;
   onSubmit?: () => void; onLongPress?: () => void; preferred?: boolean; label: string; maxLength?: number; style?: StyleProp<ViewStyle>; accessibility?: AccessibilitySnapshot}) {
   const [focused, setFocused] = React.useState(false);
-  const pressTimer = React.useRef<number | undefined>(undefined);
+  const pressTimer = React.useRef<NodeJS.Timeout | number | undefined>(undefined);
   React.useEffect(() => {
     if (!onLongPress) return;
     const subscription = DeviceEventEmitter.addListener('SeleneQuestionLongPress', onLongPress);

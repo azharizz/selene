@@ -6,6 +6,6 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
   *
 + * @type {import('metro-config').MetroConfig}
   */
-const config = {resolver: {useWatchman: false}};
+const config = {resolver: {useWatchman: false, sourceExts: [...getDefaultConfig(__dirname).resolver.sourceExts, 'mjs']}};
  
 module.exports = mergeConfig(getDefaultConfig(__dirname), config);

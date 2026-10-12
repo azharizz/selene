@@ -172,7 +172,8 @@ test('phone explains live and selected moments without a video, preference menus
   const phone = new context.module.exports.PrivateMirror({token: 'token'});
   phone.componentDidMount();
   streams[0].onmessage({data: JSON.stringify({type: 'personal', story, playback: report, hold: null})});
-  assert.equal(nodes(phone.render()).some(node => ['video', 'select'].includes(node.type)), false);
+  assert.equal(nodes(phone.render()).some(node => node.type === 'video'), false);
+  assert.ok(nodes(phone.render()).some(node => node.type === 'select' && node.props['aria-label'] === 'Answer source'));
   phone.state.request = "I'm grandma. Explain that simply.";
   await nodes(phone.render()).find(node => node.type === 'form').props.onSubmit({preventDefault() {}});
   assert.equal(phone.state.moment.grounding.at_seconds, 35);
@@ -312,6 +313,7 @@ test('prepared example selection seeks and samples before sending, fixes demo pr
   assert.equal(sent[0].at_seconds, example.at_seconds);
   assert.equal(sent[0].need, 'Show visually'); assert.equal(sent[0].language, 'English'); assert.equal(sent[0].recipient, 'everyone');
   assert.equal(sent[0].session, 'solo'); assert.equal(sent[0].continuation, null);
+  assert.equal(sent[0].answer_mode, 'prepared');
   assert.equal(tv.state.moment.grounding.at_seconds, example.at_seconds);
   tv.playbackSeek();
   assert.equal(tv.state.screen, 'watch', 'an unrelated later seek still closes the answer');
@@ -325,6 +327,7 @@ test('prepared example selection seeks and samples before sending, fixes demo pr
   tv.ask('unspecified');
   assert.equal(ordinary.need, 'Translate'); assert.equal(ordinary.language, 'Spanish'); assert.equal(ordinary.recipient, 'child');
   assert.equal(ordinary.at_seconds, 40); assert.equal(ordinary.playback_choice, 'unspecified');
+  assert.equal(ordinary.answer_mode, 'generate');
 });
 
 test('failed prepared seek sends nothing and retry still seeks instead of answering at the old playback moment', async () => {
@@ -571,13 +574,18 @@ function iframeMotion({compact = false, reduced = false, missingTarget = false} 
   const svg = {querySelectorAll: selector => selector === 'text' ? [label] : [background, target],
     setAttribute: (name, value) => attributes.set(name, value)};
   const preference = {matches: reduced, addEventListener: (type, fn) => events.set(`preference:${type}`, fn)};
-  const rendered = renderer.render(), iframe = rendered.props.children[0], srcDoc = iframe.props.srcDoc;
+  const nodes = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(nodes)];
+  const rendered = renderer.render(), elements = nodes(rendered);
+  const iframe = elements.find(node => node.type === 'iframe');
+  const replay = elements.find(node => node.type === 'button' && node.props['aria-label'] === 'Replay explanation animation');
+  assert.ok(iframe); assert.ok(replay);
+  const srcDoc = iframe.props.srcDoc;
   vm.runInNewContext(srcDoc.match(/<script nonce="test-nonce">([\s\S]*?)<\/script>/)[1], {
     document: {querySelector: () => svg, getElementById: id => !missingTarget && id === 'person' ? target : null},
     parent: {postMessage: message => messages.push(message)},
     addEventListener: (type, fn) => events.set(type, fn), requestAnimationFrame: fn => frames.push(fn), matchMedia: () => preference,
   });
-  return {renderer, rendered, iframe, srcDoc, motions, messages, attributes, background, label, target, events, frames, preference, animation,
+  return {renderer, rendered, iframe, replay, nodes, srcDoc, motions, messages, attributes, background, label, target, events, frames, preference, animation,
     start() {events.get('load')(); frames.shift()(); frames.shift()();}};
 }
 
@@ -613,20 +621,22 @@ test('only the nonce-restricted host script is enabled, replay remounts the ifra
   const host = iframeMotion();
   assert.equal(host.iframe.props.sandbox, 'allow-scripts');
   assert.equal(host.iframe.props.tabIndex, -1);
-  assert.equal(host.rendered.props['aria-label'], 'Replay explanation animation');
+  assert.equal(host.replay.props['aria-label'], 'Replay explanation animation');
   assert.equal(host.srcDoc.match(/<script\b/g).length, 1);
   assert.match(host.srcDoc, /default-src 'none'/);
   assert.match(host.srcDoc, /script-src 'nonce-test-nonce';/);
   assert.match(host.srcDoc, /<script nonce="test-nonce">/);
-  host.rendered.props.onClick();
+  host.replay.props.onClick();
   assert.equal(host.renderer.state.play, 1);
-  assert.notEqual(host.renderer.render().props.children[0].key, host.iframe.key, 'replay starts a fresh finite animation');
+  assert.notEqual(host.nodes(host.renderer.render()).find(node => node.type === 'iframe').key, host.iframe.key, 'replay starts a fresh animation');
   const frameWindow = {};
   host.renderer.frame.current = {contentWindow: frameWindow};
   host.renderer.receive({source: {}, data: 'selene:visual-invalid'});
   assert.equal(host.renderer.state.failed, false);
   host.renderer.receive({source: frameWindow, data: 'selene:visual-invalid'});
-  assert.equal(host.renderer.render().props.className, 'visual-fallback');
+  const failed = host.nodes(host.renderer.render());
+  assert.ok(failed.some(node => node.props?.className === 'visual-fallback'));
+  assert.equal(failed.some(node => node.type === 'iframe'), false, 'a failed diagram no longer runs its host script');
 });
 
 test('reduced motion shows the static final diagram and cancels live motion without replay', () => {
@@ -858,4 +868,49 @@ test('conversation options arrive automatically, preserve private work, and queu
   assert.equal(phone.state.conversation, null, 'seek clears old options');
   receive({type: 'conversation', conversation}); phone.flushConversation(); assert.equal(phone.state.conversation, null);
   receive({type: 'closed'}); assert.equal(phone.queuedConversation, null); assert.equal(phone.state.conversation, null);
+});
+
+test('real TV example controls and phone source form carry both modes and display host provenance', async () => {
+  const {context, streams} = instance();
+  const story = {id: 'football-match', content_version: 'a'.repeat(64), title: 'Film', subtitle: '', duration: 60, video: '/media/test.mp4', poster: '', transcript: [], scenes: []};
+  const walk = tree => !tree || typeof tree !== 'object' ? [] : [tree, ...[tree.props?.children].flat(Infinity).flatMap(walk)];
+  const tv = new context.module.exports.OwnApp({session_id: 'test', story});
+  tv.state = {...tv.state, started: true, screen: 'ask', examplesOpen: true, examplesStatus: 'ready', anchorAt: 20,
+    examples: [{id: 'example', request: 'Why offside?', at_seconds: 20}]};
+  tv.video.current = {paused: false, ended: false, currentTime: 20};
+  const sent = [];
+  tv.deliver = async input => {sent.push(input);};
+  const text = node => [node?.props?.children].flat(Infinity).filter(value => typeof value === 'string').join('');
+  for (const mode of ['prepared', 'generate']) {
+    const label = mode === 'prepared' ? 'Prepared example · ' : 'Generate answer · ';
+    const button = walk(tv.render()).find(node => node.type === 'button' && text(node).startsWith(label));
+    assert.ok(button); button.props.onClick(); assert.equal(sent.at(-1).answer_mode, mode);
+  }
+  const phone = new context.module.exports.PrivateMirror({token: 'test'});
+  const report = {content_id: story.id, content_version: story.content_version, epoch: 0, sequence: 1, at_seconds: 20,
+    play_state: 'playing', playback_rate: 1, age_ms: 0, fresh: true};
+  const hold = {id: 'hold', from_seconds: 20, content_version: story.content_version, epoch: 0, question_at_seconds: 20};
+  phone.componentDidMount();
+  streams[0].onmessage({data: JSON.stringify({type: 'personal', story, playback: report, hold: null, help: null, bridge: null, thread: null, conversation: null})});
+  phone.chooseMoment(20);
+  phone.ensureHold = async () => hold;
+  phone.post = async (action, input) => {
+    assert.equal(action, 'ask'); sent.push(input);
+    return {id: 'answer', request: input.request, at_seconds: 20,
+      moment: {...moment, grounding: {...moment.grounding, content_id: story.id, scene_id: 'test', at_seconds: 20}},
+      evidence: [], quote: null, hold, thread: null};
+  };
+  for (const mode of ['prepared', 'generate']) {
+    const select = walk(phone.render()).find(node => node.type === 'select' && node.props['aria-label'] === 'Answer source');
+    select.props.onChange({target: {value: mode}});
+    phone.state.request = 'Why offside?';
+    await walk(phone.render()).find(node => node.type === 'form').props.onSubmit({preventDefault() {}});
+    assert.equal(sent.at(-1).answer_mode, mode);
+  }
+  for (const [kind, label] of [['prepared', 'Prepared example · authored'], ['generated', 'Generated answer · model'], ['reused', 'Generated answer · reused in this session']]) {
+    const answer = {...moment, provenance: {kind, source: kind === 'prepared' ? 'authored_example' : kind === 'generated' ? 'model' : 'session_cache', content_id: story.id, at_seconds: 20}};
+    tv.state.screen = 'moment'; tv.state.moment = answer; phone.state.moment = answer;
+    for (const surface of [tv, phone]) assert.ok(renderToStaticMarkup(surface.render()).includes(label));
+  }
+  phone.componentWillUnmount();
 });

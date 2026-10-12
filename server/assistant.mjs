@@ -72,7 +72,8 @@ export async function assist(session, sessionId, input, {port, host, signal, com
   const memory = session.assistant ??= {turns: [], trivia: [], lastAt: null};
   const client = suppliedClient ?? await mcpClient({port, host}, sessionId, signal);
   // A pending clarification is answered by the same explanation, never re-routed.
-  const chosen = session.clarification && memory.turns.at(-1)?.tool === 'explain_moment' && memory.turns.at(-1)?.clarification
+  const chosen = input.answer_mode === 'prepared' ? {name: 'explain_moment', args: {}}
+    : session.clarification && memory.turns.at(-1)?.tool === 'explain_moment' && memory.turns.at(-1)?.clarification
     ? {name: 'explain_moment', args: {clarification_answer: input.request}}
     : await route(client.tools, memory.turns, input, story, {signal, complete});
   if (delegate.includes(chosen.name)) return {tool: chosen.name, delegate: true, text: '', moment: null, command: null, entities: null, label: 'Simulated Alexa+ experience'};
@@ -82,9 +83,16 @@ export async function assist(session, sessionId, input, {port, host, signal, com
     args.requester_request = input.request;
     if (input.requester_id) args.requester_id = input.requester_id;
     else delete args.requester_id;
+    if (input.communication_preferences) args.communication_preferences = input.communication_preferences;
+    else delete args.communication_preferences;
   }
   if (timed.has(chosen.name)) args.at_seconds = input.at_seconds; // The TV position is the spoiler boundary, never the model's.
-  if (chosen.name === 'explain_moment') args.request = input.request;
+  if (chosen.name === 'explain_moment') {
+    args.request = input.request;
+    // Mode is a host choice, never a router-model argument.
+    if (input.answer_mode) args.answer_mode = input.answer_mode;
+    else delete args.answer_mode;
+  }
   // "What did I miss" covers the time since the last turn, or the story so far when that was just now.
   if (chosen.name === 'catch_me_up') args.from_seconds = memory.lastAt !== null && input.at_seconds - memory.lastAt >= 10 ? memory.lastAt : 0;
   if (chosen.name === 'trivia') args.exclude_ids = memory.trivia;

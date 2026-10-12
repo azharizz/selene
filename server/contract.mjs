@@ -17,6 +17,14 @@ export const requestSchema = object({
 });
 // One clarification belongs to the same moment, not an open conversation history.
 requestSchema.properties.continuation = {anyOf: [{type: 'null'}, object({request: text(600), question: text(560), answer: text(600)})]};
+// Optional for existing authored-demo clients; explicit generate always bypasses prepared answers and reuse.
+export const answerModeSchema = choice(['prepared', 'generate']);
+export const communicationPreferencesSchema = {...object({
+  role: requestSchema.properties.recipient, style: choice(['simple', 'standard', 'detailed']),
+  language: requestSchema.properties.language, need: requestSchema.properties.need,
+}), required: []};
+requestSchema.properties.answer_mode = answerModeSchema;
+requestSchema.properties.communication_preferences = communicationPreferencesSchema;
 
 export const companionRequestSchema = object({
   ...Object.fromEntries(Object.entries(requestSchema.properties).filter(([key]) => !['content_id', 'at_seconds', 'play_state', 'continuation'].includes(key))),
@@ -29,6 +37,7 @@ export const companionRequestSchema = object({
   scene_detail: text(1200), scene_answer: text(600),
   continuation: requestSchema.properties.continuation,
 });
+companionRequestSchema.required = companionRequestSchema.required.filter(key => !['answer_mode', 'communication_preferences'].includes(key));
 const requesterId = {...text(36), minLength: 36, pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'};
 requestSchema.properties.requester_id = requesterId;
 companionRequestSchema.properties.requester_id = requesterId;
@@ -95,13 +104,17 @@ holdSchema.properties.from_seconds = position;
 export const validHold = ajv.compile(holdSchema);
 export const personalAskSchema = object({branch_id: {...text(36), minLength: 36}, request: {...text(600), minLength: 1},
   at_seconds: position, clarification: {type: 'boolean'}, new_topic: {type: 'boolean'}, ...personalPreferences});
+personalAskSchema.properties.answer_mode = answerModeSchema;
+personalAskSchema.properties.communication_preferences = communicationPreferencesSchema;
 personalAskSchema.properties.requester_id = requesterId;
 export const validPersonalAsk = ajv.compile(personalAskSchema);
 const returnProperties = {content_version: version, epoch, from_seconds: position, ...personalPreferences};
 const returnSchema = object({...returnProperties});
+returnSchema.properties.communication_preferences = communicationPreferencesSchema;
 returnSchema.properties.requester_id = requesterId;
 export const validReturn = ajv.compile(returnSchema);
 export const personalReturnSchema = object({...returnProperties, branch_id: {...text(36), minLength: 36}, sequence: epoch, through_seconds: position});
+personalReturnSchema.properties.communication_preferences = communicationPreferencesSchema;
 personalReturnSchema.properties.requester_id = requesterId;
 export const validPersonalReturn = ajv.compile(personalReturnSchema);
 export const validPersonalEnd = ajv.compile(object({branch_id: {...text(36), minLength: 36}}));
@@ -114,6 +127,10 @@ export function validRequest(input) {if (!validRequestShape(input)) return false
 export const validCompanionRequest = ajv.compile(companionRequestSchema);
 export const validResponse = ajv.compile(responseSchema);
 export const validReview = ajv.compile(reviewSchema);
+export const validAssistantRequest = ajv.compile({...object({
+  request: {...text(500), minLength: 1}, content_id: text(100), at_seconds: position,
+  requester_id: requesterId, answer_mode: answerModeSchema, communication_preferences: communicationPreferencesSchema,
+}), required: ['request', 'content_id', 'at_seconds']});
 
 export function quietResponse(input, sceneId) {
   return {

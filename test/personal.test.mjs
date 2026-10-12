@@ -141,6 +141,7 @@ test('caption-led Guided Return never reuses removed historical frame observatio
       return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify({supported: true, issue: '', pause_requested: false})}}]});
     }
     const runtime = JSON.parse(body.messages.at(-1).content.split('\n').at(-1));
+    assert.equal(runtime.answer_mode, 'generate', 'recaps must not inherit a prepared-example question mode');
     assert.deepEqual(runtime.playback_context.return_window.interval_evidence_ids, source.return_window.interval_evidence_ids);
     assert.equal(runtime.playback_context.facts.some(fact => fact.source === 'model_observation'), false, 'historical visual observations are not interval evidence');
     const moment = {version: '1.0', state: 'response', answer: 'Someone says they are nearly done, then tells someone to sit still.',
@@ -149,7 +150,7 @@ test('caption-led Guided Return never reuses removed historical frame observatio
     return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(moment)}}]});
   };
   try {
-    const result = await guidedReturn(story, 20, playback, {need: 'Explain simply', language: 'English', recipient: 'everyone'}, {output: 'shared_tv'});
+    const result = await guidedReturn(story, 20, playback, {answer_mode: 'prepared', need: 'Explain simply', language: 'English', recipient: 'everyone'}, {output: 'shared_tv'});
     assert.equal(result.status, 'ready');
     assert.deepEqual(result.evidence.map(item => item.id), ['caption-1', 'caption-2']);
   } finally {

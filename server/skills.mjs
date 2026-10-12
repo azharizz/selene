@@ -3,6 +3,8 @@ import {explain} from './agent.mjs';
 import {getStory, sceneContext} from './context.mjs';
 import {conflict, guidedReturn, playbackSnapshot, requirePlayback} from './personal.mjs';
 import {requesterContext} from './requester-context.mjs';
+import Ajv from 'ajv';
+import {answerModeSchema, communicationPreferencesSchema} from './contract.mjs';
 
 // SELENE skills for the TV session, served over MCP (/api/skills/mcp). The simulated Alexa+ orchestrator
 // (assistant.mjs) is a real MCP client of this endpoint; a future Alexa+ add-on can reuse the same tools.
@@ -12,7 +14,8 @@ const object = (properties, required = Object.keys(properties)) => ({type: 'obje
 export const skillTools = [
   {name: 'get_viewing_context', description: 'The film and position currently reported by the TV.', inputSchema: object({}), annotations: {readOnlyHint: true}},
   {name: 'explain_moment', description: 'Explain why/how something happened at this moment, grounded in captions seen so far, with an animated diagram when useful. Use for why/how/what-does-it-mean questions and follow-ups.',
-    inputSchema: object({request: {type: 'string', minLength: 1, maxLength: 500}, at_seconds: at, clarification_answer: {type: 'string', maxLength: 500}}, ['request', 'at_seconds']), annotations: {readOnlyHint: true, openWorldHint: true}},
+    inputSchema: object({request: {type: 'string', minLength: 1, maxLength: 500}, at_seconds: at, answer_mode: answerModeSchema,
+      clarification_answer: {type: 'string', maxLength: 500}}, ['request', 'at_seconds']), annotations: {readOnlyHint: true, openWorldHint: true}},
   {name: 'catch_me_up', description: 'Recap what happened between from_seconds and the TV position ("what did I miss", "catch me up", "recap").',
     inputSchema: object({from_seconds: {type: 'number', minimum: 0}, at_seconds: at}), annotations: {readOnlyHint: true, openWorldHint: true}},
   {name: 'who_is_on_screen', description: 'Who or what is in the current moment and how they relate so far ("who is she", "who is that").',
@@ -22,6 +25,11 @@ export const skillTools = [
   {name: 'control_playback', description: 'Control the TV player: play, pause, start_over, skip_back / skip_forward by seconds ("go back 30 seconds"), or seek_to an absolute second.',
     inputSchema: object({action: {type: 'string', enum: ['play', 'pause', 'start_over', 'skip_back', 'skip_forward', 'seek_to']}, seconds: {type: 'number', minimum: 0, maximum: 600}}, ['action']), annotations: {readOnlyHint: false, destructiveHint: false}},
 ];
+for (const tool of skillTools) {
+  if (Object.hasOwn(tool.inputSchema.properties, 'at_seconds'))
+    tool.inputSchema.properties.communication_preferences = communicationPreferencesSchema;
+}
+const validCommunicationPreferences = new Ajv().compile(communicationPreferencesSchema);
 
 const RECENT_SECONDS = 15;
 // Authored trivia lives beside the relay, not in content/*.json: film hashes bind prepared answers.
@@ -74,6 +82,8 @@ export function playbackCommand({action, seconds}) {
 
 // One skill call. at_seconds comes from the TV (the orchestrator never lets the model choose it).
 export async function runSkill(session, name, args, {signal, onMoment = () => {}, output = 'shared_tv', requester} = {}) {
+  if (args.answer_mode !== undefined && !['prepared', 'generate'].includes(args.answer_mode)
+    || args.communication_preferences !== undefined && !validCommunicationPreferences(args.communication_preferences)) throw conflict('Invalid answer preferences', 400);
   const story = getStory(session.contentId);
   if (!story && name !== 'control_playback') throw conflict('Open a SELENE film to use this skill.');
   if (name === 'get_viewing_context') {
@@ -89,7 +99,7 @@ export async function runSkill(session, name, args, {signal, onMoment = () => {}
     const playback = requirePlayback(session, latest.content_version, latest.epoch);
     const from = Math.min(timeFor(story, args.from_seconds), playback.at_seconds);
     const preference = await requesterContext({request: args.requester_request ?? '', requester_id: args.requester_id,
-      need: 'Show visually', language: 'English', recipient: 'everyone'}, requester ? {requester} : {});
+      communication_preferences: args.communication_preferences, need: 'Show visually', language: 'English', recipient: 'everyone'}, requester ? {requester} : {});
     const {need, language, recipient} = preference.input;
     const result = await guidedReturn(story, from, playback, {need, language, recipient}, {signal, memory: session.memory, output, requester: preference.context.requester});
     const text = result.moment ? plain(result.moment.answer) : result.status === 'no_gap' ? 'You have not missed anything yet.' : 'There is not enough in the captions to recap that part yet.';
@@ -101,6 +111,7 @@ export async function runSkill(session, name, args, {signal, onMoment = () => {}
     let context = previous && previous.context.at_seconds === atSeconds ? structuredClone(previous.context) : sceneContext(atSeconds, story);
     let input = {request: previous ? previous.request : args.request, content_id: story.id, at_seconds: atSeconds, play_state: playbackSnapshot(session)?.play_state ?? 'playing',
       playback_choice: 'unspecified', need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family',
+      answer_mode: previous?.answer_mode ?? args.answer_mode, communication_preferences: args.communication_preferences,
       continuation: previous ? {request: previous.request, question: previous.question, answer: args.clarification_answer} : null};
     input.requester_id = args.requester_id;
     const personalized = await requesterContext({...input, request: args.requester_request ?? input.request}, context);
@@ -111,7 +122,7 @@ export async function runSkill(session, name, args, {signal, onMoment = () => {}
       if (signal?.aborted || error.agentFailure?.stage !== 'validation') throw error;
       return explain(input, {signal, memory: session.memory, context});
     });
-    session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context} : null;
+    session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context, answer_mode: input.answer_mode} : null;
     onMoment(moment);
     return {moment, text: plain(moment.answer)};
   }

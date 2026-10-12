@@ -38,9 +38,14 @@ function setup(t, storyId = 'the-red-kite') {
     }
     if (body.response_format.json_schema.name === 'selene_visual_feedback')
       return Response.json({choices: [{message: {content: JSON.stringify({action: 'keep', issue: '', response: null})}}]});
-    const runtime = JSON.parse(body.messages.find(item => item.role === 'user').content.split('runtime data:\n')[1]);
-    // Phone requests fetch captions and facts through the tool; playback_context keeps the request boundary.
-    const context = JSON.parse(body.messages.find(item => item.role === 'tool').content); calls.push(runtime);
+    const content = body.messages.find(item => item.role === 'user').content;
+    const text = Array.isArray(content) ? content.find(part => part.type === 'text' && part.text.includes('runtime data:\n')).text : content;
+    const runtime = JSON.parse(text.split('runtime data:\n')[1]);
+    // Imported questions include bounded multimodal evidence inline; other phone requests retrieve it through the tool.
+    const tool = body.messages.find(item => item.role === 'tool');
+    const context = tool ? JSON.parse(tool.content) : runtime.playback_context;
+    assert.ok(Array.isArray(context.transcript) && Array.isArray(context.facts), 'generation uses supplied bounded evidence');
+    calls.push(runtime);
     await behavior.generating?.(runtime);
     const quiet = behavior.quiet && context.follow_thread;
     const id = behavior.future ? 'unseen-future' : context.follow_thread?.new_evidence_ids[0] ?? context.return_window?.interval_evidence_ids[0]
@@ -225,4 +230,41 @@ test('matched requester belongs to one question through clarification, follow-up
   assert.deepEqual(newTopic.moment.audience, {recipient: 'everyone', source: 'request'});
   assert.equal(calls.at(-1).playback_context.requester, undefined, 'new topics do not reuse a previous acoustic match');
   assert.equal(session.mirror.thread, null);
+});
+
+test('generated demo-matching questions forward current communication choices into diagrams, follow-ups and thread updates', async t => {
+  const {session, report, sample, hold, calls} = setup(t, 'football-match');
+  report(18); const held = await hold();
+  const input = {branch_id: held.id, at_seconds: 18, request: 'What is offside?', new_topic: true, clarification: false,
+    answer_mode: 'generate', ...preferences,
+    communication_preferences: {role: 'adult', style: 'detailed', language: 'Spanish', need: 'Slower answer voice'}};
+  const answer = await privateAction(session, 'ask', input);
+  assert.equal(calls.length, 1, 'matching an authored question still invokes generation when requested');
+  assert.equal(answer.moment.provenance.kind, 'generated');
+  assert.deepEqual(answer.moment.audience, {recipient: 'adult', source: 'request'});
+  assert.equal(answer.moment.visual.status, 'ready');
+  assert.equal(calls.at(-1).language, 'Spanish');
+  assert.equal(calls.at(-1).need, 'Slower answer voice');
+  assert.equal(calls.at(-1).playback_context.requester.style, 'detailed',
+    'the same effective requester reaches answer and SVG generation, not an authored title lookup');
+  const cited = answer.moment.grounding.evidence_ids;
+  assert.ok(cited.every(id => getStory('football-match').transcript.some(cue => cue.id === id && cue.end <= 18)
+    || getStory('football-match').facts.some(fact => fact.id === id && fact.available_at <= 18)));
+  const followup = await privateAction(session, 'ask', {...input, request: 'Why does that rule matter?', new_topic: false,
+    communication_preferences: {style: 'simple', language: 'English', need: 'Explain simply'}});
+  assert.equal(followup.moment.audience.recipient, 'adult');
+  assert.equal(calls.at(-1).language, 'English');
+  assert.equal(calls.at(-1).need, 'Explain simply');
+  assert.equal(calls.at(-1).playback_context.requester.style, 'simple');
+  await privateAction(session, 'thread', {enabled: true, answer_id: followup.id});
+  report(60);
+  const update = await privateAction(session, 'thread-check', sample());
+  assert.equal(update.updated, true);
+  assert.equal(calls.length, 3, 'a generated followed question cannot switch to authored updates');
+  assert.equal(calls.at(-1).answer_mode, 'generate');
+  assert.equal(calls.at(-1).language, 'English');
+  assert.equal(calls.at(-1).playback_context.requester.role, 'adult');
+  assert.equal(calls.at(-1).playback_context.requester.style, 'simple');
+  assert.equal(update.thread.help.moment.provenance.kind, 'generated');
+  assert.equal(session.playback.play_state, 'playing');
 });

@@ -15,7 +15,11 @@ export type Story = {
 export type CatalogStory = {id: string; title: string; subtitle: string; duration: number; poster: string};
 export type Animation = {target_id: string; duration_ms: number; delay_ms: number; keyframes: {opacity?: number; transform?: string}[]};
 export type VisualArtifact = {status: 'ready' | 'fallback' | 'none'; svg: string; description: string; animations: Animation[]};
+export type AnswerMode = 'prepared' | 'generate';
+export type CommunicationPreferences = {role?: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; style?: 'simple' | 'standard' | 'detailed'; language?: 'English' | 'Indonesian' | 'Spanish'; need?: 'Explain simply' | 'Slower answer voice' | 'Translate' | 'Show visually'};
+export type Provenance = {kind: 'prepared' | 'generated' | 'reused'; source: 'authored_example' | 'model' | 'session_cache'; content_id: string; at_seconds: number; example_id?: string; content_version?: string; from_seconds?: number; until_seconds?: number};
 export type Moment = {state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  provenance?: Provenance;
   audience?: {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request'} | null;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
   grounding: {content_id: string; scene_id: string; at_seconds: number; evidence_ids: string[]}};
@@ -25,15 +29,17 @@ export type ReturnResult = {status: 'ready' | 'no_gap' | 'insufficient_evidence'
 export type Pairing = {url: string; code: string; join_url: string; expires_at: number};
 export type Example = {id: string; request: string; at_seconds: number};
 export type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type Placement = {corner: Corner; at_seconds: number; duration_seconds: 10};
+export type Placement = {layout: 'overlay' | 'outside-video'; corner: Corner | null; reason: string; semantic: {model: 'yolox-nano'; status: 'detected' | 'uncertain' | 'unavailable'}; at_seconds: number; duration_seconds: 10};
 // One turn of the simulated Alexa+ orchestrator (/api/assistant).
 export type AssistantReply = {tool: string; text: string; moment: Moment | null; label: string;
   command: {action: string; position_ms?: number; relative?: boolean} | null};
 export type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
 export type Need = 'Show visually' | 'Slower answer voice';
 export type Input = {
+  answer_mode?: AnswerMode; communication_preferences?: CommunicationPreferences;
   request: string; content_id: string; at_seconds: number; play_state: 'playing' | 'paused' | 'ended';
-  playback_choice: Choice; need: Need; language: 'English'; session: 'family' | 'solo'; recipient: 'everyone';
+  playback_choice: Choice; need: Need; language: 'English' | 'Indonesian' | 'Spanish'; session: 'family' | 'solo'; recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone';
+  requester_id?: string;
   continuation: {request: string; question: string; answer: string} | null;
 };
 export type Bundle = {session_id: string; private_mirror_available?: boolean; story: Story; catalog?: CatalogStory[]};

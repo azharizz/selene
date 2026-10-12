@@ -5,7 +5,7 @@ import {readFile, stat} from 'node:fs/promises';
 import {resolve, extname, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID, randomInt} from 'node:crypto';
-import {validRequest, validCompanionRequest, validPlayback, validReturn, validMediaImport} from './contract.mjs';
+import {validRequest, validCompanionRequest, validPlayback, validReturn, validMediaImport, validAssistantRequest} from './contract.mjs';
 import {explain} from './agent.mjs';
 import {story, stories, getStory, registerStory, createMemory, companionContext, sceneContext} from './context.mjs';
 import {enrichCompanionContext} from './external-context.mjs';
@@ -39,10 +39,7 @@ const active = new Set();
 const sessions = new Map();
 // Internal MCP calls present the TV's own host; /api/skills/mcp is never reachable from a phone address.
 const skillsHost = new URL(appUrl).host;
-const validAssistant = input => Boolean(input) && Object.keys(input).every(key => ['request', 'content_id', 'at_seconds', 'requester_id'].includes(key))
-  && typeof input.request === 'string' && input.request.trim().length > 0 && input.request.length <= 500
-  && typeof input.content_id === 'string' && Number.isFinite(input.at_seconds) && input.at_seconds >= 0
-  && (input.requester_id === undefined || typeof input.requester_id === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requester_id));
+const validAssistant = input => validAssistantRequest(input) && Boolean(input.request.trim());
 const joinAttempts = new Map();
 let importing = false; // ponytail: one media import per relay; use a worker queue only for multi-TV hosting.
 function closeMirror(session) {
@@ -132,6 +129,10 @@ export const server = createServer(async (req, res) => {
   if (!allowedHosts.has(host) && !(req.method === 'GET' && req.url === '/api/health')) return send(res, 403, {error: 'Unrecognized host'});
   try {
     const url = new URL(req.url, `http://${host}`);
+    if (url.pathname === '/apl-preview.html') {
+      res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'");
+    }
     const mcpSession = url.pathname === '/api/mcp' ? mcpAccess(req, res, sessions, send) : null;
     if (url.pathname === '/api/mcp' && !mcpSession) return;
     if (!deviceHosts.has(host) && url.pathname.startsWith('/api/')
@@ -229,7 +230,7 @@ export const server = createServer(async (req, res) => {
           return send(res, 200, placement);
         } catch {
           if (!res.destroyed) return send(res, controller.signal.aborted ? 409 : 502,
-            {error: 'Adaptive placement is unavailable. The answer can still be shown in the safe top-right corner.'});
+            {error: 'Adaptive placement is unavailable. Show the answer outside the video.'});
         } finally {finishRequest(owner, controller);}
         return;
       }
@@ -355,7 +356,7 @@ export const server = createServer(async (req, res) => {
         if (!entry) return send(res, 410, {error: 'This phone connection has ended. Pair again on the TV.'});
         const [sessionId, session] = entry;
         if (!input || !validAssistant({...input, content_id: session.contentId, at_seconds: 0})
-          || Object.keys(input).some(key => !['request', 'requester_id'].includes(key))) return send(res, 400, {error: 'Invalid assistant request'});
+          || Object.keys(input).some(key => !['request', 'requester_id', 'answer_mode', 'communication_preferences'].includes(key))) return send(res, 400, {error: 'Invalid assistant request'});
         const playback = playbackSnapshot(session);
         if (!session.contentId || !playback?.fresh) return send(res, 409, {error: 'The TV position is unavailable. Keep Selene open on the TV and try again.'});
         if (isDemoPreparedQuestion({...input, at_seconds: playback.at_seconds}, sceneContext(playback.at_seconds, getStory(session.contentId))))
@@ -414,6 +415,7 @@ export const server = createServer(async (req, res) => {
           if (!previous || input.request !== previous.request || input.continuation.request !== input.request || input.continuation.question !== previous.question || context.content_id !== previous.context.content_id || context.provider?.session_id !== previous.context.provider?.session_id || context.at_seconds !== previous.context.at_seconds) return send(res, 409, {error: 'That clarification has ended. Close this response and ask about the moment again.'});
           // The answer belongs to the original evidence, even if an external feed changes or fails later.
           context = structuredClone(previous.context);
+          input.answer_mode = previous.answer_mode ?? input.answer_mode;
         } else if (companion && process.env.SELENE_SCENE_CONTEXT_URL) {
           try {context = await enrichCompanionContext(context, input.snapshot, controller.signal);} catch {controller.signal.throwIfAborted(); context = {...context, scene_source: 'viewer'};}
         }
@@ -427,7 +429,7 @@ export const server = createServer(async (req, res) => {
         if (!controller.signal.aborted) {
           session.latestMoment = moment; session.latestLanguage = input.language; session.latestSlowerVoice = input.need === 'Slower answer voice';
           publishMirror(session, {type: 'moment', moment, language: input.language, slower_answer_voice: session.latestSlowerVoice});
-          session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context} : null;
+          session.clarification = moment.state === 'clarification' ? {request: input.request, question: moment.answer, context, answer_mode: input.answer_mode} : null;
           send(res, 200, moment);
         }
       } finally {finishRequest(session, controller);}

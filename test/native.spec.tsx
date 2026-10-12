@@ -1,8 +1,7 @@
 import {avcCodec} from '../src/media';
-import {pose} from '../src/Visual';
+import {animationPose, transformMatrix} from '../shared/visual-transform.mjs';
 
 jest.mock('@amazon-devices/react-native-w3cmedia', () => ({VideoPlayer: class {}, MediaSource: class {}}));
-jest.mock('@amazon-devices/react-native-svg', () => ({__esModule: true, default: 'Svg', G: 'G'}));
 
 describe('native media helpers', () => {
   it('reads the RFC 6381 codec from the avcC box of an init segment', () => {
@@ -11,10 +10,14 @@ describe('native media helpers', () => {
     expect(avcCodec(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))).toBeNull();
   });
 
-  it('turns validated keyframe transforms into an animatable pose', () => {
-    expect(pose({opacity: 0.4, transform: 'translate(64.667px, -29.333px) scale(1.5) rotate(0.25turn)'}))
-      .toEqual({opacity: 0.4, translateX: 64.667, translateY: -29.333, scaleX: 1.5, scaleY: 1.5, rotation: 90});
-    expect(pose({})).toEqual({opacity: 1, translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotation: 0});
-    expect(pose({transform: 'scale(1, 2) rotate(3.14159rad)'}).scaleY).toBe(2);
+  it('composes skew and rotation rather than flattening transforms', () => {
+    const matrix = transformMatrix('translate(64.667px, -29.333px) scale(1.5) rotate(0.25turn)');
+    expect(matrix[0]).toBeCloseTo(0);
+    expect(matrix[1]).toBeCloseTo(1.5);
+    expect(matrix[2]).toBeCloseTo(-1.5);
+    expect(matrix.slice(4)).toEqual([64.667, -29.333]);
+    const frames = [{opacity: 0.4, transform: 'skewX(0deg)'}, {opacity: 1, transform: 'skewX(45deg)'}];
+    expect(animationPose(frames, 0.5).matrix[2]).toBeCloseTo(Math.tan(Math.PI / 8));
+    expect(animationPose(frames, 0.5).opacity).toBeCloseTo(0.7);
   });
 });

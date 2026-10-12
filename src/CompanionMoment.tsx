@@ -14,6 +14,7 @@ import {Actions, Alert, Control, LoadingPanel, P, Sheet, SheetHead} from './ui';
 export type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
 export type Playback = {state: 'playing' | 'paused' | 'unknown'; can_pause: boolean; can_play: boolean; revision: number; observing: boolean};
 type Input = {
+  answer_mode: 'generate';
   snapshot: Snapshot; request: string; scene_detail: string; scene_answer: string; need: 'Show visually'; language: 'English'; recipient: 'everyone';
   session: 'family'; play_state: Playback['state']; playback_choice: Choice; continuation: {request: string; question: string; answer: string} | null; requester_id?: string;
 };
@@ -151,7 +152,7 @@ export class CompanionMoment extends React.Component<Props, State> {
     const previous = clarifying ? this.lastInput : null;
     void this.deliver({snapshot: this.props.snapshot, request: previous?.request ?? (quickRequest ?? text.trim()), scene_detail: previous?.scene_detail ?? text.trim(),
       scene_answer: sceneAnswer, need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family', play_state: this.props.playback.state,
-      playback_choice: choice, continuation: previous && moment ? {request: previous.request, question: moment.answer, answer: text.trim()} : null,
+      playback_choice: choice, answer_mode: 'generate', continuation: previous && moment ? {request: previous.request, question: moment.answer, answer: text.trim()} : null,
       ...(previous?.requester_id ?? this.voiceRequesterId ? {requester_id: previous?.requester_id ?? this.voiceRequesterId} : {})});
   };
   private deliver = async (input: Input) => {

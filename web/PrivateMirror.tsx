@@ -3,7 +3,7 @@ import {Visual} from './Visual';
 import {Voice, type VoiceState} from './voice';
 import {Brand, Icon} from './Brand';
 import type {Language} from './preferences';
-import {clock, audienceLabel, personalRequest, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread, type ConversationOptions} from './personal';
+import {clock, audienceLabel, provenanceLabel, personalRequest, type AnswerMode, type PersonalStory, type Playback, type PersonalHold, type PersonalMoment, type ReturnResult, type PersonalHelp, type FollowedThread, type ConversationOptions} from './personal';
 
 const locale = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
 const clean = (text: string) => text.replace(/\u2014/g, ',');
@@ -11,6 +11,7 @@ const THREAD_POLL_MS = 5000;
 // The question carries any explicitly volunteered audience or style needs.
 const explanation = {need: 'Show visually', language: 'English', recipient: 'everyone'};
 type State = {
+  answerMode: AnswerMode;
   story: PersonalStory | null; playback: Playback | null; hold: PersonalHold | null;
   moment: PersonalMoment | null; bridge: ReturnResult | null;
   help: PersonalHelp | null; thread: FollowedThread | null; threadNotice: string;
@@ -25,7 +26,7 @@ type AssistantResult = {tool: string; text: string; delegate?: boolean};
 
 export class PrivateMirror extends React.Component<{token: string}, State> {
   state: State = {story: null, playback: null, hold: null, moment: null, bridge: null, help: null, thread: null, threadNotice: '', request: '', error: '', notice: '', busy: '',
-    connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle', reply: null, conversation: null};
+    answerMode: 'generate', connection: 'connecting', mirrorOnly: false, selected: null, pickingTime: false, now: Date.now(), receivedAt: 0, voice: 'idle', reply: null, conversation: null};
   private stream: EventSource | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   private pending: AbortController | null = null;
@@ -203,14 +204,14 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     const newTopic = !clarification && (this.newTopic || this.questionAt === null);
     const pending = this.begin('ask');
     try {
-      if (!clarification && selected === null) {
+      if (!clarification && selected === null && this.state.answerMode !== 'prepared') {
         // If the orchestrator is unavailable, the question still gets the private explanation below.
-        const routed = await this.post('assistant', {request: request.trim(), requester_id: this.requesterId}, pending)
+        const routed = await this.post('assistant', {request: request.trim(), requester_id: this.requesterId, answer_mode: this.state.answerMode}, pending)
           .catch(error => {if (pending.signal.aborted || this.pending !== pending) throw error; return null;}) as AssistantResult | null;
         if (routed?.tool && !routed.delegate) {this.pending = null; this.requesterId = undefined; this.setState({busy: '', request: '', reply: {tool: routed.tool, text: routed.text}}); return;}
       }
       const hold = await this.ensureHold(playback!, pending);
-      const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), requester_id: this.requesterId, at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
+      const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), requester_id: this.requesterId, answer_mode: this.state.answerMode, at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
       this.pending = null; this.requesterId = undefined; this.answerLanguage = 'English'; this.slowerAnswer = false;
       this.held = result.hold ?? {...hold, question_at_seconds: at}; this.questionAt = at; this.newTopic = false; this.queuedThread = null;
       this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, mirrorOnly: false, request: '', busy: '', reply: null});
@@ -348,6 +349,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
         {help?.quote && <blockquote className="personal-quote"><p>{help.quote.text}</p><cite>Original caption · {clock(help.quote.at_seconds)}</cite></blockquote>}
         <p className="personal-answer-text" aria-live="polite">{clean(moment.answer)}</p>
         {moment.audience && (!bridge || bridge.status === 'ready') && <span className="audience-badge" aria-label={audienceLabel(moment.audience)}>{audienceLabel(moment.audience)}</span>}
+        {moment.provenance && (!bridge || bridge.status === 'ready') && <p className="personal-note">{provenanceLabel(moment.provenance)}</p>}
         <div className="personal-answer-meta"><span>{bridge ? `${clock(bridge.from_seconds)} to ${clock(bridge.through_seconds)}` : `Explained at ${clock(moment.grounding.at_seconds)}`}</span></div>
         <div className="personal-answer-actions">
           {this.voice.canSpeak && <button type="button" className="personal-read" onClick={this.readAloud} aria-label={voice === 'speaking' ? 'Stop reading' : 'Read explanation aloud'}><Icon name="volume"/>{voice === 'speaking' ? 'Stop reading' : 'Read aloud'}</button>}
@@ -364,6 +366,10 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       {story && connection !== 'closed' && <>
         {!moment && !busy && !bridge && !this.state.reply && <div className="personal-empty"><h1>What would you like explained?</h1><p>Ask in your own words, or try: Who is this? · What did I miss? · Pause the TV.</p></div>}
         <form className="personal-question" onSubmit={this.ask}>
+          {moment?.state !== 'clarification' && <label>Answer source <select aria-label="Answer source" value={this.state.answerMode} disabled={!!busy}
+            onChange={event => this.setState({answerMode: event.target.value as AnswerMode})}>
+            <option value="generate">Generate answer</option><option value="prepared">Prepared example</option>
+          </select></label>}
           <label className="sr-only" htmlFor="personal-question">{moment?.state === 'clarification' ? 'Answer the clarification' : 'Ask about this moment'}</label>
           <textarea id="personal-question" rows={2} maxLength={600} value={request} disabled={!!busy || voice === 'listening' || voice === 'processing'}
             onFocus={() => {this.editing = true;}} onBlur={() => {this.editing = false; this.flushThread();}}

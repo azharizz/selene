@@ -5,7 +5,7 @@ import {Voice, type VoiceState} from './voice';
 import {Brand, Icon, LoadingMark} from './Brand';
 import {readPreferences, savePreferences, type Need, type Recipient, type Language, type Preferences} from './preferences';
 import {accessibilitySettings, initialAccessibility, applyAccessibility, type AccessibilitySettings} from './accessibility';
-import {audienceLabel, type Audience} from './personal';
+import {audienceLabel, provenanceLabel, type Audience, type Provenance} from './personal';
 
 type Snapshot = {package_id: string; session_id: number; catalog_name: string; content_id: string; title: string; provider_name: string; at_seconds: number};
 type Playback = {state: 'playing' | 'paused' | 'unknown'; can_pause: boolean; can_play: boolean; revision: number; observing: boolean};
@@ -13,11 +13,13 @@ export type CompanionBootstrap = {snapshot: Snapshot; playback: Playback};
 type Choice = 'unspecified' | 'keep_watching' | 'pause_to_explore';
 type Moment = {
   state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  provenance?: Provenance;
   audience?: Audience;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
 };
 type Input = {
   snapshot: Snapshot; request: string; scene_detail: string; scene_answer: string; need: Need; language: Language; recipient: Recipient;
+  answer_mode: 'generate';
   session: 'family' | 'solo'; play_state: Playback['state']; playback_choice: Choice;
   continuation: {request: string; question: string; answer: string} | null;
   requester_id?: string;
@@ -203,7 +205,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
       snapshot,
       request: previous?.request ?? (quickRequest ?? request.trim()),
       scene_detail: previous?.scene_detail ?? request.trim(), scene_answer: this.state.sceneAnswer, need, language, recipient, session, play_state: playback.state,
-      playback_choice: choice,
+      playback_choice: choice, answer_mode: 'generate',
       continuation: previous && moment ? {request: previous.request, question: moment.answer, answer: request.trim()} : null,
       requester_id: previous ? previous.requester_id : quickRequest ? undefined : this.requesterId,
     };
@@ -302,6 +304,7 @@ export class CompanionMoment extends React.Component<{initial: CompanionBootstra
         <div className="moment-content"><div className="answer">
           <h2>{moment.answer.replace(/\u2014/g, ',')}</h2>
           {moment.audience && <span className="audience-badge" aria-label={audienceLabel(moment.audience)}>{audienceLabel(moment.audience)}</span>}
+          {moment.provenance && <p className="small">{provenanceLabel(moment.provenance)}</p>}
         </div>{moment.visual.status !== 'none' && <div className="visual"><Visual compact key={moment.visual.svg + moment.visual.description} visual={moment.visual} /></div>}</div>
         <footer className="actions">
           <button data-initial aria-label="Dismiss answer" disabled={controlling} onClick={this.close}><Icon name="close"/></button>

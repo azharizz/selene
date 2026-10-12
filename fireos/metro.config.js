@@ -2,6 +2,8 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+config.watchFolders = [require('node:path').resolve(__dirname, '../shared')];
+config.resolver.sourceExts.push('mjs');
 
 // When enabled, the optional code below will allow Metro to resolve
 // and bundle source files with TV-specific extensions

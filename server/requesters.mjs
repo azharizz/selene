@@ -132,7 +132,7 @@ export async function resolveRequester(request, requesterId) {
   const text = typeof request === 'string' ? request : request?.request;
   const id = requesterId ?? (typeof request === 'object' ? request?.requester_id : undefined);
   if (id !== undefined && !validId(id)) fail('Invalid requester ID');
-  const profiles = await listRequesters();
+  const profiles = id ? await listRequesters() : [];
   const selected = id ? profiles.find(profile => profile.id === id) : null;
   if (id && !selected) fail('Requester profile was not found', 404);
   const declaration = typeof text === 'string' && /^\s*(?:I[’']?m|I am)\s+(?:(?:a|the)\s+)?(grandma|grandmother|grandpa|grandfather|dad|father|mom|mother|kid|child|adult)(?=\s|[,.;!?]|$)/i.exec(text);

@@ -24,7 +24,9 @@ export function privateState(session) {
   return {hold: publicHold(mirror.hold), help: mirror.help ?? null, bridge: mirror.bridge ?? null, thread: publicThread(mirror.thread)};
 }
 
-const preferences = input => ({need: input.need, language: input.language, recipient: input.recipient});
+const preferences = input => ({need: input.need, language: input.language, recipient: input.recipient,
+  ...(input.answer_mode !== undefined ? {answer_mode: input.answer_mode} : {}),
+  ...(input.communication_preferences !== undefined ? {communication_preferences: structuredClone(input.communication_preferences)} : {})});
 const viewer = (story, at, request, prefs) => ({request, content_id: story.id, at_seconds: at, play_state: 'paused',
   playback_choice: 'keep_watching', ...prefs, session: 'solo', continuation: null});
 const helpFor = (moment, context, request, id = randomUUID()) => ({id, request, at_seconds: context.at_seconds,
@@ -63,7 +65,8 @@ export async function privateAction(session, action, input, {signal} = {}) {
     mirror.thread = {id: randomUUID(), answer_id: help.id, question: help.request, initial_request: mirror.hold?.initial_request ?? help.request,
       help, anchor_at_seconds: help.at_seconds, anchor_evidence_ids: [...help.moment.grounding.evidence_ids],
       checked_through_seconds: help.at_seconds, revision: 0, checked_at: 0, content_version: playback.content_version,
-      requester: structuredClone(mirror.hold?.requester ?? null), preferences: mirror.hold?.preferences ?? {need: 'Show visually', language: 'English', recipient: 'everyone'},
+      requester: structuredClone(mirror.hold?.requester ?? null), preferences: mirror.hold?.requester?.source === 'fixture'
+        ? mirror.hold.preferences : mirror.hold?.current_preferences ?? mirror.hold?.preferences ?? {need: 'Show visually', language: 'English', recipient: 'everyone'},
       epoch: playback.epoch, memory: {...createMemory(), lastExplanation: structuredClone(mirror.hold?.memory.lastExplanation ?? null)}};
     return {thread: publicThread(mirror.thread)};
   }
@@ -84,7 +87,7 @@ export async function privateAction(session, action, input, {signal} = {}) {
       if (!coolingDown) thread.checked_through_seconds = playback.at_seconds;
       return {thread: publicThread(thread), updated: false};
     }
-    const demo = demoThreadUpdate(thread, context, freshIds);
+    const demo = thread.preferences.answer_mode === 'generate' ? null : demoThreadUpdate(thread, context, freshIds);
     if (demo) {
       thread.checked_at = Date.now();
       thread.checked_through_seconds = playback.at_seconds;
@@ -98,7 +101,7 @@ export async function privateAction(session, action, input, {signal} = {}) {
     context.follow_thread = {question: thread.question, new_evidence_ids: freshIds};
     const preference = await requesterContext(viewer(story, playback.at_seconds, '',
       thread.preferences), {...context, ...(thread.requester ? {requester: thread.requester} : {})});
-    const moment = await explain({...preference.input, request: thread.question}, {signal, memory: thread.memory, context: preference.context});
+    const moment = await explain({...preference.input, request: thread.question, answer_mode: 'generate'}, {signal, memory: thread.memory, context: preference.context});
     stillPaired(); requirePlayback(session, thread.content_version, thread.epoch);
     if (mirror.thread !== thread) throw conflict('That followed question has ended.');
     thread.checked_through_seconds = playback.at_seconds;
@@ -121,6 +124,7 @@ export async function privateAction(session, action, input, {signal} = {}) {
       throw conflict('The saved starting point changed. Try Catch me up again.');
     const endpoint = requireSample(session, input, input.through_seconds);
     const preference = await requesterContext({request: hold.requester ? '' : hold.initial_request, ...preferences(input),
+      answer_mode: input.answer_mode ?? hold.preferences?.answer_mode,
       ...(input.requester_id && input.requester_id !== hold.requester_id ? {requester_id: input.requester_id} : {})},
     hold.requester ? {requester: hold.requester} : {});
     const result = await guidedReturn(story, hold.from_seconds, endpoint, preference.input, {signal, memory: hold.memory, question: hold.question, initialRequest: hold.initial_request, requester: preference.context.requester});
@@ -143,16 +147,22 @@ export async function privateAction(session, action, input, {signal} = {}) {
   let memory = input.new_topic ? createMemory() : hold.memory;
   let initialRequest = input.new_topic ? input.request.trim() : hold.initial_request || input.request.trim();
   let context = personalContext(story, input.at_seconds, previous, initialRequest);
-  let request = viewer(story, input.at_seconds, input.request.trim(), preferences(input));
+  let request = viewer(story, input.at_seconds, input.request.trim(), {...preferences(input),
+    ...(!input.new_topic && input.answer_mode === undefined && hold.preferences?.answer_mode ? {answer_mode: hold.preferences.answer_mode} : {})});
   if (!input.new_topic && hold.requester) context.requester = hold.requester;
   if (input.requester_id && (input.new_topic || input.requester_id !== hold.requester_id)) request.requester_id = input.requester_id;
-  const demoPrepared = !input.clarification && isDemoPreparedQuestion(request, context);
+  const demoPrepared = !input.clarification && request.answer_mode !== 'generate' && isDemoPreparedQuestion(request, context);
   if (input.clarification) {
     const old = hold.clarification;
-    if (!old || input.at_seconds !== old.input.at_seconds || input.need !== old.preferences.need || input.language !== old.preferences.language || input.recipient !== old.preferences.recipient)
+    if (!old || input.at_seconds !== old.input.at_seconds || input.need !== old.preferences.need || input.language !== old.preferences.language || input.recipient !== old.preferences.recipient
+      || (input.answer_mode !== undefined && input.answer_mode !== old.input.answer_mode))
       throw conflict('That clarification changed. Ask the question again.');
     context = structuredClone(old.context);
     request = {...old.input, continuation: {request: old.input.request, question: old.question, answer: input.request.trim()}};
+    if (input.communication_preferences !== undefined) {
+      const personalized = await requesterContext({...request, request: input.request.trim(), communication_preferences: input.communication_preferences}, context);
+      request = {...personalized.input, request: old.input.request}; context = personalized.context;
+    }
   }
   if (!input.clarification && demoPrepared) {
     initialRequest = input.request.trim(); memory = createMemory();
@@ -168,6 +178,7 @@ export async function privateAction(session, action, input, {signal} = {}) {
   hold.requester = context.requester ?? null;
   hold.requester_id = input.clarification ? hold.requester_id : demoPrepared ? null : input.new_topic ? input.requester_id : input.requester_id ?? hold.requester_id;
   hold.preferences = preferences(request);
+  hold.current_preferences = {...preferences(input), ...(request.answer_mode !== undefined ? {answer_mode: request.answer_mode} : {})};
   hold.question = request.request; hold.question_at_seconds = request.at_seconds;
   hold.previous = {request: request.request, answer: moment.answer, content_id: story.id, at_seconds: request.at_seconds,
     visual: structuredClone(moment.visual), visual_feedback: moment.state === 'response' ? structuredClone(memory.lastExplanation?.visual_feedback ?? []) : []};

@@ -1,5 +1,5 @@
 import {getStory, sceneContext} from './context.mjs';
-import {preloadedAnswer} from './preloaded-answers.mjs';
+import {preloadedAnswer, preparedAnswer} from './preloaded-answers.mjs';
 
 const normalize = value => value?.normalize('NFKC').toLowerCase().replace(/[’‘]/g, "'").trim().replace(/[.!?]+$/u, '').replace(/\s+/gu, ' ');
 const fixtures = {
@@ -37,6 +37,7 @@ function hasPreparedAnchor(contentId, fixture, request = fixture.questions[0]) {
 }
 
 export function isDemoPreparedQuestion(input, context) {
+  if (input.answer_mode === 'generate') return false;
   const fixture = fixtures[context.content_id];
   if (!fixture || !['authored_demo', 'automatic_ingestion'].includes(context.source)
     || !fixture.questions.some(question => normalize(question) === normalize(input.request))) return false;
@@ -47,6 +48,7 @@ export function isDemoPreparedQuestion(input, context) {
 }
 
 export function demoThreadUpdate(thread, context, freshIds) {
+  if (thread.preferences?.answer_mode === 'generate' || thread.help?.moment.provenance?.kind === 'generated') return null;
   const fixture = fixtures[context.content_id];
   const anchorAt = thread.anchor_at_seconds ?? thread.help.at_seconds;
   const anchorEvidence = thread.anchor_evidence_ids ?? thread.help.moment.grounding.evidence_ids;
@@ -54,8 +56,9 @@ export function demoThreadUpdate(thread, context, freshIds) {
     || !fixture.questions.some(question => normalize(question) === normalize(thread.initial_request))) return null;
   const story = getStory(context.content_id);
   const anchorContext = {...sceneContext(anchorAt, story), source_only: true, output: 'personal', initial_request: thread.initial_request};
-  const anchorMoment = preloadedAnswer({request: thread.question, content_id: context.content_id, at_seconds: anchorAt,
+  const anchor = preparedAnswer({request: thread.question, content_id: context.content_id, at_seconds: anchorAt,
     playback_choice: 'keep_watching', ...thread.preferences}, anchorContext);
+  const anchorMoment = anchor?.moment;
   if (!anchorMoment || !anchorMoment.grounding.evidence_ids.every(id => anchorEvidence.includes(id))) return null;
 
   if (context.content_id === 'football-match') {
@@ -68,16 +71,22 @@ export function demoThreadUpdate(thread, context, freshIds) {
     const stage = stages.findLast(value => value.ids.every(id => cues.some(cue => cue.id === id))
       && !value.ids.every(id => shown.has(id)));
     if (!stage) return {matched: true};
+    const availableAt = value => Math.max(...value.ids.map(id => story.transcript.find(cue => cue.id === id).end));
+    const next = stages[stages.indexOf(stage) + 1];
     return {matched: true, moment: {...thread.help.moment, answer: stage.answer,
       visual: structuredClone(stage.visual ?? thread.help.moment.visual),
+      provenance: {...anchor.provenance, example_id: `football-thread-${stage.ids.at(-1)}`,
+        at_seconds: context.at_seconds, from_seconds: availableAt(stage), until_seconds: next ? availableAt(next) : story.duration},
       grounding: {content_id: context.content_id, scene_id: context.scene_id, at_seconds: context.at_seconds,
         evidence_ids: [...new Set([fixture.anchor, ...stage.ids])], graph_ids: []}}};
   }
 
   const answerContext = {...sceneContext(context.at_seconds, story), source_only: true, output: 'personal', initial_request: thread.initial_request};
-  const moment = preloadedAnswer({request: thread.question, content_id: context.content_id, at_seconds: context.at_seconds,
+  const prepared = preparedAnswer({request: thread.question, content_id: context.content_id, at_seconds: context.at_seconds,
     playback_choice: 'keep_watching', ...thread.preferences}, answerContext);
-  if (!moment || moment.answer === thread.help.moment.answer || !moment.grounding.evidence_ids.some(id => freshIds.includes(id))) return {matched: true};
+  if (!prepared) return {matched: true};
+  const moment = {...prepared.moment, provenance: {...prepared.provenance, example_id: `${prepared.provenance.example_id}-thread`}};
+  if (moment.answer === thread.help.moment.answer || !moment.grounding.evidence_ids.some(id => freshIds.includes(id))) return {matched: true};
   if (context.at_seconds >= 107.297)
     moment.answer = 'Alisson came back carrying the true crown. The story now explains why he left: he had protected it all along.';
   else if (context.at_seconds >= 101.728)

@@ -3,6 +3,8 @@
 !assets/**
 !server/
 !server/**
+!shared/
+!shared/**
 !scripts/
 !scripts/ingest-video.mjs
 !scripts/remote-media.mjs

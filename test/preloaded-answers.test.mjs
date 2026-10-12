@@ -14,7 +14,7 @@ for (const id of new Set(entries.map(entry => entry.content_id))) {
 function request(entry, at = entry.from_seconds, text = entry.requests[0]) {
   const input = {request: text, content_id: entry.content_id, at_seconds: at, play_state: 'paused',
     playback_choice: 'keep_watching', need: 'Show visually', language: 'English', recipient: 'everyone',
-    session: 'solo', continuation: null};
+    session: 'solo', answer_mode: 'prepared', continuation: null};
   return {input, context: personalContext(getStory(entry.content_id), at, null, text)};
 }
 
@@ -130,8 +130,51 @@ test('private prepared explanation leaves the shared film playing', async t => {
   recordPlayback(session, sample);
   const {hold} = await privateAction(session, 'hold', {content_version: sample.content_version, epoch: 0, sequence: 1, at_seconds: at});
   const result = await privateAction(session, 'ask', {branch_id: hold.id, request: entry.requests[0], at_seconds: at,
-    new_topic: true, clarification: false, need: 'Show visually', language: 'English', recipient: 'everyone'});
+    new_topic: true, clarification: false, answer_mode: 'prepared', need: 'Show visually', language: 'English', recipient: 'everyone'});
   assert.equal(result.moment.answer, entry.answer);
   assert.equal(result.hold.from_seconds, at);
   assert.equal(session.playback.play_state, 'playing');
+});
+
+test('explicit Generate reaches the provider for a matching alias and never reads or writes response reuse', async t => {
+  const entry = entries.find(item => item.content_id === 'football-match');
+  const {input, context} = request(entry, entry.from_seconds + 0.001, entry.requests.at(-1).toUpperCase() + '!?');
+  const draft = preloadedAnswer(input, context);
+  const generated = {...input, answer_mode: 'generate'};
+  assert.equal(preloadedAnswer(generated, context), null);
+  const keys = ['AGENT_PROVIDER_URL', 'AGENT_PROVIDER_MODEL', 'AGENT_PROVIDER_API_KEY'];
+  const saved = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  Object.assign(process.env, {AGENT_PROVIDER_URL: 'https://model.test.invalid', AGENT_PROVIDER_MODEL: 'fixture', AGENT_PROVIDER_API_KEY: 'test-only'});
+  t.after(() => {for (const key of keys) saved[key] === undefined ? delete process.env[key] : process.env[key] = saved[key];});
+  let generations = 0;
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    const body = JSON.parse(options.body);
+    const generation = body.response_format.json_schema.name === 'selene_moment_response';
+    if (generation) generations++;
+    return Response.json({choices: [{finish_reason: 'stop', message: {content: JSON.stringify(generation ? draft : {action: 'keep', issue: '', response: null})}}]});
+  });
+  const memory = createMemory();
+  // A populated cache must be entirely bypassed, not just missed by a different key.
+  memory.responses.set('existing', {moment: draft, visual_feedback: []});
+  for (const method of ['has', 'get', 'set']) t.mock.method(memory.responses, method, () => {assert.fail(`Generate must bypass cache.${method}`);});
+  for (let n = 0; n < 2; n++) {
+    const answer = await explain(generated, {memory, context: {...context, source: 'authored_demo', output: 'shared_tv', previous_help: null},
+      inspect: async () => ({viewport: {width: 960, height: 540}, frames: [], observations: []})});
+    assert.equal(answer.provenance.kind, 'generated');
+    assert.equal(answer.provenance.source, 'model');
+    assert.equal(answer.provenance.at_seconds, input.at_seconds);
+  }
+  assert.equal(generations, 2);
+});
+
+test('Prepared fails closed without a matching source/time and model provenance is rejected', async t => {
+  const entry = entries.find(item => item.content_id === 'football-match'), {input, context} = request(entry);
+  t.mock.method(globalThis, 'fetch', () => {assert.fail('Prepared must remain model-free even when unavailable');});
+  const answer = await explain(input, {context});
+  assert.deepEqual(answer.provenance, {kind: 'prepared', source: 'authored_example', example_id: entry.id,
+    content_id: entry.content_id, content_version: entry.content_version, at_seconds: input.at_seconds,
+    from_seconds: entry.from_seconds, until_seconds: entry.until_seconds});
+  for (const changed of [{...input, request: 'A new question'}, {...input, at_seconds: 0}, {...input, language: 'Spanish'}])
+    await assert.rejects(explain(changed, {context}), error => error.status === 409);
+  assert.throws(() => validateMoment({...preloadedAnswer(input, context), provenance: answer.provenance}, input, context), /must NOT have additional properties/);
 });

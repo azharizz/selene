@@ -14,7 +14,11 @@ export type ConversationOptions = {id: string; content_id: string; content_versi
 export type PersonalHold = {id: string; from_seconds: number; content_version: string; epoch: number; question_at_seconds: number | null};
 export type Audience = {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request' | 'fixture'};
 export const audienceLabel = (audience: Audience) => `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected', fixture: 'demo'}[audience.source]}`;
+export type AnswerMode = 'prepared' | 'generate';
+export type Provenance = {kind: 'prepared' | 'generated' | 'reused'; source: 'authored_example' | 'model' | 'session_cache'; content_id: string; at_seconds: number; example_id?: string; content_version?: string; from_seconds?: number; until_seconds?: number};
+export const provenanceLabel = (provenance: Provenance) => provenance.kind === 'prepared' ? 'Prepared example · authored' : provenance.kind === 'reused' ? 'Generated answer · reused in this session' : 'Generated answer · model';
 export type PersonalMoment = {state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
+  provenance?: Provenance;
   audience?: Audience;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};
   grounding: {content_id: string; scene_id: string; at_seconds: number; evidence_ids: string[]}};

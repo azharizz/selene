@@ -13,6 +13,12 @@ const result = () => ({...quietResponse(request, 'made-together'), state: 'respo
 test('request trust boundary rejects unknown fields, future times and inferred preferences', () => {
   assert.equal(validRequest(request), true);
   for (const altered of [{...request, at_seconds: 100}, {...request, request: 'x'.repeat(601)}, {...request, recipient: 'probably old'}, {...request, provider_url: 'https://evil.invalid'}, {...request, obsolete_option: 'yes'}]) assert.equal(validRequest(altered), false);
+  for (const answer_mode of ['prepared', 'generate']) {
+    assert.equal(validRequest({...request, answer_mode}), true);
+    assert.equal(validRequest({...request, answer_mode, communication_preferences: {language: 'Spanish', style: 'simple'}}), true);
+  }
+  assert.equal(validRequest({...request, answer_mode: 'automatic'}), false);
+  assert.equal(validRequest({...request, provenance: {kind: 'prepared'}}), false);
 });
 test('every moment excludes future facts, unfinished dialogue and future graph relationships', () => {
   for (let at = 0; at <= story.duration; at += 0.25) {
@@ -92,6 +98,9 @@ test('third-party evidence stays separate from the demo film and is identified a
   const {content_id, at_seconds, ...preferences} = request;
   const input = {...preferences, snapshot, scene_detail: 'A player passed forward and the flag went up.', scene_answer: '', continuation: null};
   assert.equal(validCompanionRequest(input), true);
+  for (const answer_mode of ['prepared', 'generate']) assert.equal(validCompanionRequest({...input, answer_mode}), true);
+  assert.equal(validCompanionRequest({...input, communication_preferences: {language: 'English', style: 'standard'}}), true);
+  assert.equal(validCompanionRequest({...input, communication_preferences: {role: 'inferred elder'}}), false);
   assert.equal(validCompanionRequest({...input, snapshot: {...snapshot, at_seconds: null}}), false);
   const context = companionContext(snapshot, input.scene_detail);
   assert.equal(context.scene, null);

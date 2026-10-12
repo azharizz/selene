@@ -4,7 +4,7 @@ import {once} from 'node:events';
 import {request} from 'node:http';
 import {Readable} from 'node:stream';
 import {whoIsOnScreen, triviaAt, playbackCommand, skillTools} from '../server/skills.mjs';
-import {route} from '../server/assistant.mjs';
+import {route, assist} from '../server/assistant.mjs';
 
 const film = {id: 'demo', title: 'Demo', duration: 100,
   transcript: [{id: 'c1', start: 0, end: 5, text: 'Lyra smiled.'}, {id: 'c2', start: 40, end: 45, text: 'Voss whispered.'}],
@@ -52,6 +52,24 @@ test('the router uses the model tool choice and falls back to the grounded expla
   assert.equal(seen.tool_choice, 'required');
   assert.ok(!seen.tools.some(tool => tool.function.name === 'get_viewing_context'));
   assert.deepEqual(seen.messages.slice(1, 3).map(message => message.content), ['Why offside?', 'He was beyond the defender.'], 'earlier turns resolve follow-ups');
+});
+
+test('assistant mode and communication preferences are host-owned across skill routing', async () => {
+  const calls = [], preferences = {language: 'Spanish', style: 'simple'};
+  const client = {tools: skillTools, callTool: async (name, args) => {
+    calls.push({name, args}); return {structuredContent: {text: 'Answer'}};
+  }};
+  const session = {contentId: 'football-match'};
+  await assist(session, 'test', {request: 'Why was that offside?', at_seconds: 15.5, answer_mode: 'prepared'},
+    {client, complete: () => {assert.fail('Prepared must not invoke the routing model');}});
+  assert.equal(calls[0].name, 'explain_moment'); assert.equal(calls[0].args.answer_mode, 'prepared');
+  const complete = async () => ({tool_calls: [{function: {name: 'explain_moment',
+    arguments: JSON.stringify({request: 'spoof', at_seconds: 999, answer_mode: 'prepared', communication_preferences: {language: 'English'}})}}]});
+  await assist(session, 'test', {request: 'Why was that offside?', at_seconds: 16, answer_mode: 'generate', communication_preferences: preferences}, {client, complete});
+  assert.equal(calls[1].args.answer_mode, 'generate');
+  assert.equal(calls[1].args.request, 'Why was that offside?');
+  assert.equal(calls[1].args.at_seconds, 16);
+  assert.deepEqual(calls[1].args.communication_preferences, preferences);
 });
 
 test('the real relay runs the simulated Alexa+ through its MCP skills endpoint', async t => {

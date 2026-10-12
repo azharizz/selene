@@ -140,6 +140,8 @@ describe('native answer placement lifecycle', () => {
   const answer = {state: 'response', answer: 'A grounded answer.', visual: {status: 'none', svg: '', description: '', animations: []},
     intervention: {playback: 'keep_watching', audio: 'silent'}, grounding: {content_id: story.id, scene_id: '', at_seconds: 2, evidence_ids: []}};
   const reply = {tool: 'explain', text: answer.answer, moment: answer, label: '', command: null};
+  const placement = (corner: string | null, at_seconds: number) => ({layout: corner ? 'overlay' : 'outside-video', corner,
+    reason: corner ? 'sampled-objects-avoided' : 'semantic-uncertain', semantic: {model: 'yolox-nano', status: corner ? 'detected' : 'uncertain'}, at_seconds, duration_seconds: 10});
   let fetch: jest.Mock;
   beforeEach(() => {
     jest.useFakeTimers();
@@ -148,7 +150,7 @@ describe('native answer placement lifecycle', () => {
       if (url.includes('/api/examples?')) return respond(200, {examples: [{id: 'e1', request: 'Prepared question', at_seconds: 0}]});
       if (url.endsWith('/api/assistant')) return respond(200, reply);
       if (url.endsWith('/api/moment')) return respond(200, answer);
-      if (url.endsWith('/api/placement')) return respond(200, {corner: 'top-left', at_seconds: mockPlayer.currentTime, duration_seconds: 10});
+      if (url.endsWith('/api/placement')) return respond(200, placement('top-left', mockPlayer.currentTime));
       return respond(200, {});
     });
     (globalThis as {fetch?: unknown}).fetch = fetch;
@@ -165,7 +167,7 @@ describe('native answer placement lifecycle', () => {
   }
   async function answered(screenReader = false, prepared = false) {
     const app = await watching(screenReader);
-    await act(async () => {fireEvent.press(app.getByText(prepared ? 'Prepared question' : 'Who is this?'));});
+    await act(async () => {fireEvent.press(app.getByText(prepared ? 'Prepared example · Prepared question' : 'Who is this?'));});
     return app;
   }
   function measure(app: {getByLabelText: (label: string) => unknown}, width = 280, height = 90) {
@@ -177,9 +179,9 @@ describe('native answer placement lifecycle', () => {
     expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
     const question = "I'm grandma. What does this mean?";
     fireEvent.changeText(app.getByLabelText('Your question'), question);
-    await act(async () => {fireEvent.press(app.getByText('Ask'));});
+    await act(async () => {fireEvent.press(app.getByText('Generate answer'));});
     const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/assistant'));
-    expect(JSON.parse(call![1].body)).toEqual({request: question, content_id: story.id, at_seconds: 0});
+    expect(JSON.parse(call![1].body)).toEqual({request: question, content_id: story.id, at_seconds: 0, answer_mode: 'generate'});
     expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
     fireEvent.press(app.getByLabelText('Dismiss answer'));
     fireEvent.press(app.getByLabelText('Selene'));
@@ -203,7 +205,7 @@ describe('native answer placement lifecycle', () => {
     await act(async () => {fireEvent(app.getByLabelText('Your question'), 'submitEditing');});
     const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/companion/moment'));
     expect(JSON.parse(call![1].body)).toEqual({snapshot, request: question, scene_detail: question, scene_answer: '', need: 'Show visually',
-      language: 'English', recipient: 'everyone', session: 'family', play_state: 'playing', playback_choice: 'unspecified', continuation: null});
+      language: 'English', recipient: 'everyone', session: 'family', play_state: 'playing', playback_choice: 'unspecified', continuation: null, answer_mode: 'generate'});
     expect(command.mock.calls).toEqual([['refresh', undefined], ['refresh', undefined]]);
     expect(app.getByText(answer.answer)).toBeTruthy();
     expect(app.queryAllByLabelText(/requester|profile|voice|record|enroll/i)).toHaveLength(0);
@@ -216,6 +218,7 @@ describe('native answer placement lifecycle', () => {
     fetch.mockImplementation((url: string, options: unknown) => url.endsWith('/api/placement')
       ? new Promise(resolve => {finishPlacement = resolve;}) : original(url, options));
     const app = await answered();
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
     mockPlayer.currentTime = 24; mockPlayer.paused = true;
     await act(async () => {measure(app, 300, 100);});
     const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/placement'));
@@ -224,9 +227,10 @@ describe('native answer placement lifecycle', () => {
     expect(call![1].headers['X-Selene-Session']).toBe('s1');
     expect(app.getByText(answer.answer)).toBeTruthy();
     await act(async () => {jest.advanceTimersByTime(2000);});
-    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => ({corner: 'bottom-left', at_seconds: 24, duration_seconds: 10})});});
+    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => placement('bottom-left', 24)});});
     expect(app.getByLabelText('Moment Response').props.style).toContainEqual({left: '5%', bottom: '5%'});
     await act(async () => {measure(app, 300, 120); jest.advanceTimersByTime(9999);});
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
     expect(fetch.mock.calls.filter(([url]) => url.endsWith('/api/placement'))).toHaveLength(1);
     expect(app.getByText(answer.answer)).toBeTruthy();
     await act(async () => {jest.advanceTimersByTime(1);});
@@ -248,16 +252,18 @@ describe('native answer placement lifecycle', () => {
     expect(app.queryByText(answer.answer)).toBeNull();
   });
 
-  it('keeps the answer with explicit top-right fallback when placement fails', async () => {
+  it('keeps the answer outside the resized video when placement fails', async () => {
     const original = fetch.getMockImplementation()!;
     fetch.mockImplementation((url: string, options: unknown) => url.endsWith('/api/placement') ? respond(503, {error: 'No frames'}) : original(url, options));
     const app = await answered();
     await act(async () => {measure(app);});
     expect(app.getByText(answer.answer)).toBeTruthy();
-    expect(app.getByText('Placement unavailable; using the top-right corner.')).toBeTruthy();
-    expect(app.getByLabelText('Moment Response').props.style).toContainEqual({right: '5%', top: '5%'});
+    expect(app.getByText('Placement unconfirmed; answer shown outside the video.')).toBeTruthy();
+    expect(app.getByLabelText('Moment Response').props.style).toContainEqual({right: '2%', top: '5%', maxWidth: '45%', maxHeight: '90%', flexDirection: 'row', alignItems: 'center'});
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
     await act(async () => {jest.advanceTimersByTime(10000);});
     expect(app.queryByText(answer.answer)).toBeNull();
+    expect(app.getByLabelText('Film viewport').props.style).not.toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
   });
 
   it('aborts placement on a seek and rejects late results without closing a newer answer', async () => {
@@ -275,7 +281,7 @@ describe('native answer placement lifecycle', () => {
     await act(async () => {fireEvent.press(app.getByText('Ask Selene'));});
     await act(async () => {fireEvent.press(app.getByLabelText('Who is this?'));});
     await act(async () => {measure(app);});
-    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => ({corner: 'bottom-right', at_seconds: 0, duration_seconds: 10})});});
+    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => placement('bottom-right', 0)});});
     expect(app.getByLabelText('Moment Response').props.style).toContainEqual({left: '5%', top: '5%'});
     await act(async () => {jest.advanceTimersByTime(9999);});
     expect(app.getByText(answer.answer)).toBeTruthy();
@@ -320,11 +326,25 @@ describe('native answer placement lifecycle', () => {
     const call = fetch.mock.calls.find(([url]) => url.endsWith('/api/placement'));
     expect(JSON.parse(call![1].body)).toMatchObject({width_fraction: 280 / 640, height_fraction: 0.75, play_state: 'playing'});
     mockPlayer.currentTime = 2;
-    await act(async () => {jest.advanceTimersByTime(2000); finishPlacement({ok: true, status: 200, json: async () => ({corner: 'top-left', at_seconds: 0, duration_seconds: 10})});});
+    await act(async () => {jest.advanceTimersByTime(2000); finishPlacement({ok: true, status: 200, json: async () => placement('top-left', 0)});});
     await act(async () => {jest.advanceTimersByTime(7999);});
     expect(app.getByText(answer.answer)).toBeTruthy();
     await act(async () => {jest.advanceTimersByTime(1);});
     expect(app.queryByText(answer.answer)).toBeNull();
+  });
+
+  it.each(['uncertain', 'stale'])('shows uncertain or stale placement outside the video (%s)', async mode => {
+    let finishPlacement!: (value: unknown) => void;
+    const original = fetch.getMockImplementation()!;
+    fetch.mockImplementation((url: string, options: unknown) => url.endsWith('/api/placement')
+      ? new Promise(resolve => {finishPlacement = resolve;}) : original(url, options));
+    const app = await answered();
+    await act(async () => {measure(app);});
+    if (mode === 'stale') mockPlayer.currentTime = 7;
+    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => placement(mode === 'uncertain' ? null : 'top-left', 0)});});
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
+    expect(app.getByLabelText('Moment Response').props.style).toContainEqual({right: '2%', top: '5%', maxWidth: '45%', maxHeight: '90%', flexDirection: 'row', alignItems: 'center'});
+    expect(app.getByText(answer.answer)).toBeTruthy();
   });
 
   it.each(['close', 'unmount'])('aborts pending placement on %s', async action => {
@@ -349,9 +369,9 @@ describe('native answer placement lifecycle', () => {
     const app = await answered();
     await act(async () => {measure(app);});
     if (changed === 'time') mockPlayer.currentTime = 3; else mockPlayer.paused = true;
-    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => ({corner: 'bottom-left', at_seconds: 0, duration_seconds: 10})});});
-    expect(app.getByLabelText('Moment Response').props.style).toContainEqual({right: '5%', top: '5%'});
-    expect(app.getByText('Placement unavailable; using the top-right corner.')).toBeTruthy();
+    await act(async () => {finishPlacement({ok: true, status: 200, json: async () => placement('bottom-left', 0)});});
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
+    expect(app.getByLabelText('Moment Response').props.style).toContainEqual({right: '2%', top: '5%', maxWidth: '45%', maxHeight: '90%', flexDirection: 'row', alignItems: 'center'});
     expect(app.getByText(answer.answer)).toBeTruthy();
   });
 
@@ -362,6 +382,6 @@ describe('native answer placement lifecycle', () => {
     const app = await answered();
     await act(async () => {measure(app); jest.advanceTimersByTime(3000);});
     expect(app.getByText(answer.answer)).toBeTruthy();
-    expect(app.getByText('Placement unavailable; using the top-right corner.')).toBeTruthy();
+    expect(app.getByLabelText('Film viewport').props.style).toContainEqual({right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'});
   });
 });

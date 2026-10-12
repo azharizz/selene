@@ -32,7 +32,7 @@ export class Player extends React.Component<Props, State> {
     bundle: null, loadError: '', screen: this.props.importMp4 ? 'import' : 'watch', started: false, controls: true, position: 0, paused: true, ended: false, captions: true,
     request: '', moment: null, error: '', anchorAt: 0, clarifying: false, choice: 'unspecified', voice: 'idle', savedPlace: null, returnResult: null, mirror: null, pairing: false,
     examples: [], examplesOpen: false, examplesStatus: 'ready', importUrl: '', importTitle: '', importing: false,
-    turns: [], reply: '', asked: '', corner: 'top-right', placementFallback: false,
+    turns: [], reply: '', asked: '', corner: 'top-right', placementFallback: true,
   };
   private film: NativeFilm | null = null;
   private filmFor = '';
@@ -80,6 +80,10 @@ export class Player extends React.Component<Props, State> {
     if (previous.accessibility !== this.props.accessibility) this.setState({captions: this.captionChoice()});
     if (this.props.accessibility.screenReader) this.keepMoment();
     if (previousState.screen === 'moment' && this.state.screen !== 'moment') this.cancelPlacement();
+    if (this.state.screen === 'moment' && !this.state.placementFallback
+      && (previousState.captions !== this.state.captions || previousState.paused !== this.state.paused || previousState.ended !== this.state.ended)) {
+      this.setState({placementFallback: true});
+    }
   }
   componentWillUnmount() {
     this.mounted = false;
@@ -106,6 +110,9 @@ export class Player extends React.Component<Props, State> {
   };
   private measureMoment = ({nativeEvent: {layout}}: LayoutChangeEvent) => {
     if (Number.isFinite(layout.width) && layout.width > 0 && Number.isFinite(layout.height) && layout.height > 0) {
+      if (!this.state.placementFallback && this.panelSize && (layout.width > this.panelSize.width || layout.height > this.panelSize.height)) {
+        this.setState({placementFallback: true});
+      }
       this.panelSize = {width: layout.width, height: layout.height};
       this.placementReady?.();
     }
@@ -133,11 +140,13 @@ export class Player extends React.Component<Props, State> {
     const at = Math.min(story.duration, Math.max(0, film.currentTime)), playState = this.playStateNow(), startedAt = Date.now();
     const width = this.panelSize ? this.panelSize.width / 640 : px(560) / 640;
     const height = this.panelSize ? this.panelSize.height / 360 : captions ? 0.75 : 0.8;
-    let corner: Corner = 'top-right', placementFallback = false, visibleMs = 10000;
+    let corner: Corner = 'top-right', placementFallback = true, visibleMs = 10000;
     try {
       const result = await request<Placement>('/api/placement', {method: 'POST', session, signal: pending.signal, timeoutMs: 3000,
         body: {content_id: story.id, at_seconds: at, duration_seconds: 10, width_fraction: width, height_fraction: height, captions, play_state: playState}});
-      if (!result || !['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(result.corner)
+      if (!result || !['overlay', 'outside-video'].includes(result.layout)
+        || (result.layout === 'overlay' ? !result.corner || !['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(result.corner)
+          || result.semantic?.status !== 'detected' : result.corner !== null)
         || result.duration_seconds !== 10 || !Number.isFinite(result.at_seconds) || Math.abs(result.at_seconds - at) > 0.01) throw new Error('Invalid placement.');
       const elapsed = (Date.now() - startedAt) / 1000, advanced = film.currentTime - at;
       if (this.playStateNow() !== playState || Math.abs(advanced) > 2 || Math.abs(advanced - (playState === 'playing' ? elapsed : 0)) > 2
@@ -145,7 +154,8 @@ export class Player extends React.Component<Props, State> {
         || (this.panelSize && (this.panelSize.width / 640 > width || this.panelSize.height / 360 > height))) throw new Error('Placement became stale.');
       if (playState === 'playing') visibleMs -= Math.max(elapsed, advanced) * 1000;
       if (visibleMs <= 0) throw new Error('Placement expired.');
-      corner = result.corner;
+      placementFallback = result.layout === 'outside-video';
+      if (result.corner) corner = result.corner;
     } catch {
       // Placement is optional presentation: never replace a delivered answer with an error.
       placementFallback = true; visibleMs = 10000;
@@ -432,7 +442,7 @@ export class Player extends React.Component<Props, State> {
     try {
       await this.publishPlayback(pending.signal);
       const send = (session: string) => request<AssistantReply>('/api/assistant', {method: 'POST', session, signal: pending.signal, timeoutMs: 0,
-        body: {request: question, content_id: story.id, at_seconds: anchorAt, ...(requester_id ? {requester_id} : {})}});
+        body: {request: question, content_id: story.id, at_seconds: anchorAt, answer_mode: 'generate', ...(requester_id ? {requester_id} : {})}});
       let reply: AssistantReply;
       try {reply = await send(this.sessionId);}
       catch (error) {if ((error as RelayError).status !== 410) throw error; reply = await send(await this.reopen(pending.signal));}
@@ -444,7 +454,7 @@ export class Player extends React.Component<Props, State> {
       if (moment?.intervention.playback === 'request_pause') film.pause();
       const clarifying = moment?.state === 'clarification';
       if (!clarifying) this.voiceRequesterId = undefined;
-      this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: '', corner: 'top-right', placementFallback: false},
+      this.setState({turns, moment, reply: reply.text, screen: clarifying ? 'ask' : 'moment', clarifying, request: '', corner: 'top-right', placementFallback: true},
         () => {if (!clarifying && moment?.state !== 'quiet' && reply.tool !== 'catch_me_up') this.beginPlacement();});
     } catch (error) {
       if (pending.signal.aborted || !this.mounted) return;
@@ -452,10 +462,10 @@ export class Player extends React.Component<Props, State> {
       this.setState({error: error instanceof Error ? error.message : 'Selene could not answer. Please try again.', screen: 'error'});
     }
   };
-  private selectExample = (example: Example) => {
+  private selectExample = (example: Example, answer_mode: 'prepared' | 'generate' = 'prepared') => {
     if (!this.story) return;
     void this.deliver({request: example.request, content_id: this.story.id, at_seconds: example.at_seconds, play_state: this.playStateNow(), playback_choice: 'keep_watching',
-      need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family', continuation: null}, example.at_seconds > this.state.anchorAt ? example.at_seconds : undefined);
+      need: 'Show visually', language: 'English', recipient: 'everyone', session: 'family', answer_mode, continuation: null}, example.at_seconds > this.state.anchorAt ? example.at_seconds : undefined);
   };
   private deliver = async (input: Input, seekTo?: number) => {
     const film = this.film, story = this.story;
@@ -496,7 +506,7 @@ export class Player extends React.Component<Props, State> {
       this.pending = null;
       this.setState({moment: result, reply: '', asked: input.request, screen: result.state === 'clarification' ? 'ask' : 'moment', clarifying: result.state === 'clarification',
         request: result.state === 'clarification' ? '' : this.state.request, choice: result.intervention.playback === 'request_pause' ? 'pause_to_explore' : choice,
-        corner: 'top-right', placementFallback: false}, () => {if (result.state === 'response') this.beginPlacement();});
+        corner: 'top-right', placementFallback: true}, () => {if (result.state === 'response') this.beginPlacement();});
     } catch (error) {
       if (pending.signal.aborted || !this.mounted) return;
       this.pending = null;
@@ -571,10 +581,13 @@ export class Player extends React.Component<Props, State> {
         : story.ingestion.caption_source === 'embedded' ? 'Embedded captions' : 'Supplied captions' : '';
     const showCaptions = started && captions && ['watch', 'loading', 'moment', 'return', 'tools', 'pair'].includes(screen);
     const close = (label: string) => <Control icon="close" accessibilityLabel={label} preferred onPress={this.close} accessibility={a11y}/>;
+    const outsideVideo = screen === 'moment' && this.state.placementFallback;
     return <View style={styles.page}>
-      {film && <KeplerVideoSurfaceView key={this.filmFor} style={styles.video} onSurfaceViewCreated={handle => film.attach(handle)} onSurfaceViewDestroyed={handle => film.detach(handle)}/>}
-      {!started && <Image source={{uri: mediaUrl(story.poster)}} style={styles.video} resizeMode="contain"/>}
-      {showCaptions && <Captions line={caption} accessibility={a11y}/>}
+      <View accessibilityLabel="Film viewport" style={[styles.video, outsideVideo && styles.videoBesideAnswer]}>
+        {film && <KeplerVideoSurfaceView key={this.filmFor} style={styles.video} onSurfaceViewCreated={handle => film.attach(handle)} onSurfaceViewDestroyed={handle => film.detach(handle)}/>}
+        {!started && <Image source={{uri: mediaUrl(story.poster)}} style={styles.video} resizeMode="contain"/>}
+        {showCaptions && <Captions line={caption} accessibility={a11y}/>}
+      </View>
 
       {!started && screen === 'watch' && <View style={styles.welcome}>
         <WelcomeShade/>
@@ -663,9 +676,9 @@ export class Player extends React.Component<Props, State> {
       {screen === 'loading' && <LoadingPanel onCancel={this.close}/>}
 
       {screen === 'moment' && (moment || this.state.reply) && <MomentPanel moment={moment} text={moment ? undefined : this.state.reply} question={this.state.asked} error={error} onDismiss={this.dismiss} onMore={() => this.setState({screen: 'more'})} accessibility={a11y}
-        corner={this.state.corner} captions={captions && story.transcript.length > 0} onLayout={this.measureMoment} onInteract={this.keepMoment}
+        corner={this.state.corner} outsideVideo={outsideVideo} captions={captions && story.transcript.length > 0} onLayout={this.measureMoment} onInteract={this.keepMoment}
         notice={[story.ingestion && moment?.grounding.evidence_ids.some(id => id.startsWith('frame-')) ? 'Sampled image; details may be inaccurate.' : '',
-          this.state.placementFallback ? 'Placement unavailable; using the top-right corner.' : ''].filter(Boolean).join(' ') || undefined}/>}
+          this.state.placementFallback ? 'Placement unconfirmed; answer shown outside the video.' : 'Sampled objects avoided; detection can miss people or objects.'].filter(Boolean).join(' ') || undefined}/>}
 
       {screen === 'more' && <Sheet label="This moment">
         <SheetHead title="This moment" accessibility={a11y}><Control preferred icon="back" label="Back" onPress={this.goBack} accessibility={a11y}/></SheetHead>
@@ -760,6 +773,7 @@ const styles = StyleSheet.create({
   page: {flex: 1, backgroundColor: palette.page},
   startup: {justifyContent: 'center', padding: '5%', gap: px(16)},
   video: {position: 'absolute', left: 0, top: 0, right: 0, bottom: 0},
+  videoBesideAnswer: {right: '50%', top: '25%', bottom: '25%', overflow: 'hidden'},
   welcome: {position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, padding: '5%', justifyContent: 'center', gap: px(32)},
   welcomeCopy: {width: px(640), maxWidth: '90%', padding: px(8)},
   welcomeTitle: {color: palette.ink, fontWeight: '600', letterSpacing: -0.025 * px(32)},

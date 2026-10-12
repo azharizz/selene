@@ -7,40 +7,27 @@ import {AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, Text, View} 
 import Svg, {Circle, Ellipse, G, Line, Path, Polygon, Polyline, Rect, Text as SvgText, TSpan} from '@amazon-devices/react-native-svg';
 import {DOMParser} from '@xmldom/xmldom';
 import type {Animation, VisualArtifact} from './api';
+import {animationPose, interpolationPlan, transformMatrix} from '../shared/visual-transform.mjs';
 import {palette, px} from './ui';
 
-const AnimatedG = Animated.createAnimatedComponent(G);
 const components: Record<string, React.ComponentType<any>> = {
   g: G, rect: Rect, circle: Circle, ellipse: Ellipse, line: Line, polyline: Polyline, polygon: Polygon, path: Path, text: SvgText, tspan: TSpan,
 };
 const camel = (name: string) => name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
 
-type Pose = {opacity: number; translateX: number; translateY: number; scaleX: number; scaleY: number; rotation: number};
-export function pose(keyframe: {opacity?: number; transform?: string}): Pose {
-  const result: Pose = {opacity: keyframe.opacity ?? 1, translateX: 0, translateY: 0, scaleX: 1, scaleY: 1, rotation: 0};
-  for (const [, name, a, unit, b] of (keyframe.transform ?? '').matchAll(/(translate|scale|rotate)\(\s*([-+.\d e]+)(px|deg|rad|turn)?\s*(?:,\s*([-+.\d e]+)(?:px)?\s*)?\)/g)) {
-    const first = Number(a), second = b === undefined ? undefined : Number(b);
-    if (name === 'translate') {result.translateX += first; result.translateY += second ?? 0;}
-    if (name === 'scale') {result.scaleX *= first; result.scaleY *= second ?? first;}
-    if (name === 'rotate') result.rotation += unit === 'rad' ? first * 180 / Math.PI : unit === 'turn' ? first * 360 : first;
-  }
-  // ponytail: skewX/skewY keyframes render unskewed; add a matrix prop if generated visuals start relying on skew.
-  return result;
-}
-
 function KeyframeGroup({animation, children}: {animation: Animation; children: React.ReactNode}) {
   const t = React.useRef(new Animated.Value(0)).current;
+  const group = React.useRef<React.ElementRef<typeof G>>(null);
+  const plans = React.useMemo(() => animation.keyframes.slice(0, -1).map((frame, index) => interpolationPlan(frame.transform ?? 'none', animation.keyframes[index + 1].transform ?? 'none')), [animation]);
+  const first = animationPose(animation.keyframes, 0, plans);
   React.useEffect(() => {
+    const listener = t.addListener(({value}) => group.current?.setNativeProps(animationPose(animation.keyframes, value, plans)));
     const motion = Animated.sequence([Animated.delay(animation.delay_ms),
       Animated.loop(Animated.timing(t, {toValue: 1, duration: animation.duration_ms, easing: Easing.bezier(0, 0, 0.58, 1), useNativeDriver: false}))]);
     motion.start();
-    return () => motion.stop();
-  }, [animation, t]);
-  const poses = animation.keyframes.map(pose);
-  const inputRange = poses.map((_, i) => poses.length > 1 ? i / (poses.length - 1) : 0);
-  const track = (key: keyof Pose) => poses.length > 1 ? t.interpolate({inputRange, outputRange: poses.map(value => value[key])}) : poses[0][key];
-  return <AnimatedG opacity={track('opacity')} translateX={track('translateX')} translateY={track('translateY')}
-    scaleX={track('scaleX')} scaleY={track('scaleY')} rotation={track('rotation')}>{children}</AnimatedG>;
+    return () => {motion.stop(); t.removeListener(listener);};
+  }, [animation, plans, t]);
+  return <G ref={group} opacity={first.opacity} transform={`matrix(${first.matrix.join(' ')})`}>{children}</G>;
 }
 
 function build(node: Element, animations: Map<string, Animation>, key: string): React.ReactNode {
@@ -49,11 +36,11 @@ function build(node: Element, animations: Map<string, Animation>, key: string): 
   if (!Component) return null;
   const id = node.getAttribute('id') ?? '';
   const animation = animations.get(id);
-  const props: Record<string, string> = {};
+  const props: Record<string, string | number[]> = {};
   for (let i = 0; i < node.attributes.length; i++) {
     const {name, value} = node.attributes[i];
-    if (['id', 'role', 'aria-label', 'xmlns'].includes(name) || (animation && name === 'transform')) continue;
-    props[camel(name)] = value;
+    if (['id', 'role', 'aria-label', 'xmlns'].includes(name) || (animation && ['transform', 'opacity'].includes(name))) continue;
+    props[camel(name)] = name === 'transform' ? transformMatrix(value, false) : value;
   }
   const children: React.ReactNode[] = [];
   for (let i = 0; i < node.childNodes.length; i++) {
@@ -71,16 +58,24 @@ export function parseVisual(visual: VisualArtifact, animate: boolean) {
   const animations = new Map(animate ? visual.animations.map(animation => [animation.target_id, animation]) : []);
   const children: React.ReactNode[] = [];
   for (let i = 0; i < root.childNodes.length; i++) if (root.childNodes[i].nodeType === 1) children.push(build(root.childNodes[i] as Element, animations, String(i)));
-  return {viewBox: root.getAttribute('viewBox') ?? '0 0 160 90', children};
+  const props: Record<string, string | number[]> = {};
+  for (let i = 0; i < root.attributes.length; i++) {
+    const {name, value} = root.attributes[i];
+    if (['xmlns', 'viewBox', 'width', 'height', 'role', 'aria-label', 'id'].includes(name)) continue;
+    props[camel(name)] = name === 'transform' ? transformMatrix(value, false) : value;
+  }
+  return {viewBox: root.getAttribute('viewBox') ?? '0 0 160 90', children: <G {...props}>{children}</G>};
 }
 
 // MomentPanel requests 240x135 CSS px; the fallback is 14px muted text.
 export function Visual({visual, width = px(160), onInteract}: {visual: VisualArtifact; width?: number; onInteract?: () => void}) {
   const [play, setPlay] = React.useState(0);
-  const [still, setStill] = React.useState(false);
+  const [still, setStill] = React.useState(true);
   const [focused, setFocused] = React.useState(false);
   React.useEffect(() => {
-    void Promise.resolve().then(() => AccessibilityInfo.isReduceMotionEnabled()).then(reduce => setStill(Boolean(reduce)), () => undefined);
+    void Promise.resolve().then(() => AccessibilityInfo.isReduceMotionEnabled()).then(reduce => setStill(Boolean(reduce)), () => setStill(true));
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setStill);
+    return () => subscription.remove();
   }, []);
   const parsed = React.useMemo(() => {
     if (visual.status !== 'ready') return null;

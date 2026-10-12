@@ -109,7 +109,8 @@ export async function guidedReturn(story, from, playback, preferences, {signal, 
   const boundary = {from_seconds: from, through_seconds: playback.at_seconds, content_version: playback.content_version, epoch: playback.epoch};
   if (playback.at_seconds - from < 0.25) return {...boundary, status: 'no_gap', moment: null, evidence: []};
   if (!context.return_window.interval_evidence_ids.length) return {...boundary, status: 'insufficient_evidence', moment: null, evidence: []};
-  const input = {...preferences,
+  // Recaps are live interval summaries, independent of an ordinary question's prepared-example choice.
+  const input = {...preferences, answer_mode: 'generate',
     request: 'Summarize the missed interval using the supplied evidence so I can rejoin the story.',
     content_id: story.id, at_seconds: playback.at_seconds, play_state: ['paused', 'ended'].includes(playback.play_state) ? playback.play_state : 'playing', playback_choice: 'keep_watching',
     session: 'family', continuation: null};

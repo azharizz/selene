@@ -25,8 +25,8 @@ const earlyAnimations = {
 };
 
 // ponytail: explicit question aliases only; add reviewed examples instead of fuzzy intent matching.
-export function preloadedAnswer(input, context) {
-  if ((!context.source_only && context.source !== 'authored_demo') || context.source === 'vega_media_controls' || context.return_window || context.follow_thread
+export function preparedAnswer(input, context) {
+  if (input.answer_mode === 'generate' || (!context.source_only && context.source !== 'authored_demo') || context.source === 'vega_media_controls' || context.return_window || context.follow_thread
     || context.previous_help || input.continuation || !['keep_watching', 'unspecified'].includes(input.playback_choice)
     || !['Show visually', 'Slower answer voice'].includes(input.need) || input.language !== 'English' || input.recipient !== 'everyone'
     || input.at_seconds !== context.at_seconds || input.content_id !== context.content_id) return null;
@@ -40,12 +40,14 @@ export function preloadedAnswer(input, context) {
         const evidence = stage.evidence_ids.map(id => context.transcript.find(cue => cue.id === id));
         if (evidence.some(cue => !cue)) return null;
         const target = Object.keys(earlyAnimations).find(id => stage.svg.includes(`id="${id}"`));
-        return {version: '1.0', state: 'response', answer: context.output === 'personal' ? stage.answer : stage.tv_answer,
+        return {provenance: {kind: 'prepared', source: 'authored_example', example_id: `early-crown-${stage.until}`,
+          content_id: input.content_id, content_version: hash(getStory(input.content_id)), at_seconds: input.at_seconds,
+          from_seconds: stage.from ?? 4.410, until_seconds: stage.until}, moment: {version: '1.0', state: 'response', answer: context.output === 'personal' ? stage.answer : stage.tv_answer,
           visual: {status: 'ready', description: stage.description, svg: stage.svg,
             animations: [{target_id: target, duration_ms: 2200, delay_ms: 0, keyframes: earlyAnimations[target]}]},
           intervention: {playback: input.playback_choice === 'unspecified' ? 'offer_choice' : 'keep_watching', audio: 'silent'},
           grounding: {content_id: input.content_id, scene_id: context.scene_id, at_seconds: context.at_seconds,
-            evidence_ids: [...stage.evidence_ids], graph_ids: []}};
+            evidence_ids: [...stage.evidence_ids], graph_ids: []}}};
       }
     }
     const entry = entries.find(item => item.content_id === input.content_id && input.at_seconds >= item.from_seconds
@@ -54,14 +56,18 @@ export function preloadedAnswer(input, context) {
     const sources = [...context.transcript, ...context.facts];
     const evidence = entry.evidence_ids.map(id => sources.find(source => source.id === id));
     if (evidence.some(source => !source) || hash(evidence) !== entry.evidence_sha256) return null;
-    return {
+    return {provenance: {kind: 'prepared', source: 'authored_example', example_id: entry.id,
+      content_id: input.content_id, content_version: entry.content_version, at_seconds: input.at_seconds,
+      from_seconds: entry.from_seconds, until_seconds: entry.until_seconds}, moment: {
       version: '1.0', state: 'response', answer: context.output === 'personal' ? entry.answer : (entry.tv_answer ?? entry.answer), visual: structuredClone(entry.visual),
       intervention: {playback: input.playback_choice === 'unspecified' ? 'offer_choice' : 'keep_watching', audio: 'silent'},
       grounding: {content_id: input.content_id, scene_id: context.scene_id, at_seconds: input.at_seconds,
         evidence_ids: [...entry.evidence_ids], graph_ids: []},
-    };
+    }};
   } catch {return null;} // A broken prepared entry cannot disable the live question path.
 }
+
+export const preloadedAnswer = (input, context) => preparedAnswer(input, context)?.moment ?? null;
 
 export function preparedExamples(contentId, at) {
   const story = getStory(contentId);

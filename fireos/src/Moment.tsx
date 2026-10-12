@@ -12,7 +12,7 @@ import {Visual} from './Visual';
 export const plain = (answer: string) => answer.replace(/—/g, ',');
 
 export type Examples = {status: 'loading' | 'ready' | 'error'; items: Example[]; open: boolean; anchorAt: number;
-  onToggle: () => void; onRetry: () => void; onSelect: (example: Example) => void};
+  onToggle: () => void; onRetry: () => void; onSelect: (example: Example, mode?: 'prepared' | 'generate') => void};
 
 export function AskPanel({clarification, request, onChange, onSubmit, onClose, onVoice, voiceHint, voiceBusy, error, examples, quick, turns, label, placeholder = 'Ask about this moment…', accessibility}: {
   clarification?: string; request: string; onChange: (value: string) => void; onSubmit: () => void; onClose: () => void; error?: string;
@@ -34,14 +34,18 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, o
       {/* On Vega, D-pad Down inside a focused field opens the keyboard, so focus starts on the first action unless an answer is needed. */}
       <Field style={styles.grow} preferred={Boolean(clarification)} label={clarification ? 'Your answer' : 'Your question'} value={request} onChange={onChange} onSubmit={onSubmit} onLongPress={onVoice}
         placeholder={clarification ? 'Add the missing detail…' : placeholder} accessibility={accessibility}/>
-      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Ask'} disabled={voiceBusy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
+      <Control variant="ask" primary icon="send" label={clarification ? 'Answer' : 'Generate answer'} disabled={voiceBusy || !request.trim()} onPress={onSubmit} accessibility={accessibility}/>
     </View>
     {onVoice && <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.note, scaled(14, accessibility)]}>{voiceHint ?? 'Hold Select on the question field to record with an app-accessible microphone. Hold again to finish; Back cancels.'}</Text>}
     {!clarification && (quick?.length || examples) ? <Text allowFontScaling={false} style={[styles.label, styles.gap, scaled(12, accessibility)]}>Try asking</Text> : null}
     {!clarification && <View style={styles.inlineRow}>
       {quick?.map((item, i) => <Control key={item.label} variant="ask" preferred={i === 0} disabled={voiceBusy} label={item.label} onPress={item.onPress} accessibility={accessibility}/>)}
-      {examples?.status === 'ready' && examples.items.map(example => <Control key={example.id} variant="ask" disabled={voiceBusy} onPress={() => examples.onSelect(example)} accessibility={accessibility}
-        label={`${example.at_seconds > examples.anchorAt ? `Jump to ${clock(example.at_seconds)} · ` : ''}${example.request}`}/>)}
+      {examples?.status === 'ready' && examples.items.map(example => <React.Fragment key={example.id}>
+        <Control variant="ask" disabled={voiceBusy} onPress={() => examples.onSelect(example, 'prepared')} accessibility={accessibility}
+          label={`Prepared example · ${example.at_seconds > examples.anchorAt ? `Jump to ${clock(example.at_seconds)} · ` : ''}${example.request}`}/>
+        <Control variant="ask" disabled={voiceBusy} onPress={() => examples.onSelect(example, 'generate')} accessibility={accessibility}
+          label={`Generate answer · ${example.request}`}/>
+      </React.Fragment>)}
     </View>}
     {!clarification && examples && examples.status !== 'ready' && <>
       <View style={styles.list}>
@@ -54,14 +58,15 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, o
 }
 
 // .moment.compact: visual (240x135 CSS px) | answer (18px, weight 500) | icon column (close, more).
-export function MomentPanel({moment, audience = moment?.audience, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; audience?: Moment['audience']; text?: string;
+export function MomentPanel({moment, audience = moment?.audience, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, outsideVideo = false, onLayout, onInteract}: {moment: Moment | null; audience?: Moment['audience']; text?: string;
   question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot;
-  corner?: Corner; captions?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
-  return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, styles[corner], captions && styles.captionSafe]}>
+  corner?: Corner; captions?: boolean; outsideVideo?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
+  return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, outsideVideo ? styles.outsideVideo : styles[corner], !outsideVideo && captions && styles.captionSafe]}>
     {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual} width={px(240)} onInteract={onInteract}/>}
     <ScrollView style={styles.answer} onScroll={onInteract}>
       {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>
+      {moment?.provenance ? <Text allowFontScaling={false} style={[styles.small, scaled(12, accessibility)]}>{moment.provenance.kind === 'prepared' ? 'Prepared example · authored' : moment.provenance.kind === 'reused' ? 'Generated answer · reused in this session' : 'Generated answer · model'}</Text> : null}
       {audience ? <Text accessible allowFontScaling={false} style={[styles.audience, scaled(12, accessibility)]}>{`For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`}</Text> : null}
       {notice ? <Text allowFontScaling={false} style={[styles.small, scaled(16, accessibility)]}>{notice}</Text> : null}
       {lines?.map(line => <Text key={line} allowFontScaling={false} style={[styles.small, scaled(14, accessibility)]}>{line}</Text>)}
@@ -102,6 +107,7 @@ const styles = StyleSheet.create({
   'bottom-left': {left: '5%', bottom: '5%'},
   'bottom-right': {right: '5%', bottom: '5%'},
   captionSafe: {maxHeight: '75%'},
+  outsideVideo: {right: '2%', top: '5%', maxWidth: '45%', maxHeight: '90%', flexDirection: 'row', alignItems: 'center'},
   answer: {flex: 1, minWidth: 0},
   answerText: {color: palette.ink, fontWeight: '500'},
   audience: {color: palette.ink, alignSelf: 'flex-start', marginTop: px(6), paddingHorizontal: px(6), paddingVertical: px(2), borderWidth: 1, borderColor: palette.muted, borderRadius: px(6)},
