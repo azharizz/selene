@@ -74,7 +74,7 @@ export function parseVisual(visual: VisualArtifact, animate: boolean) {
   return {viewBox: root.getAttribute('viewBox') ?? '0 0 160 90', children};
 }
 
-// .moment.compact .visual: 160x90 CSS px; the fallback is 14px muted text.
+// MomentPanel requests 240x135 CSS px; the fallback is 14px muted text.
 export function Visual({visual, width = px(160), onInteract}: {visual: VisualArtifact; width?: number; onInteract?: () => void}) {
   const [play, setPlay] = React.useState(0);
   const [still, setStill] = React.useState(false);

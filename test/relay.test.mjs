@@ -2,10 +2,15 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {mkdtemp, rm} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {request} from 'node:http';
 import {Readable} from 'node:stream';
+import {getStory, registerStory} from '../server/context.mjs';
+
+if (!getStory('the-missing-crown'))
+  registerStory(JSON.parse(readFileSync(new URL('../content/the-missing-crown.json', import.meta.url), 'utf8')));
 
 test('real relay routes preserve clarification evidence, reject invalid input and revoke private streams', async t => {
   // Explicit fixture playback samples must not age while concurrent real-browser SVG checks start.
@@ -142,6 +147,8 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal((await post('/api/private/pair', {}, session_id)).status, 503, 'a phone address requires HTTPS');
 
   process.env.SELENE_PRIVATE_URL = 'https://mirror.test.invalid';
+  assert.equal((await post('/api/private/join', {code: '123456'}, null, {Origin: 'https://mirror.test.invalid'})).status, 404,
+    'the configured phone origin remains valid when a tunnel rewrites Host to the relay origin');
   assert.equal((await post('/api/companion/moment', {...input, need: 'Slower answer voice',}, session_id)).status, 200);
   for (const host of ['mirror.test.invalid', 'media.test.invalid']) {
     const headers = {Host: host, 'Content-Type': 'application/json'};
@@ -240,6 +247,30 @@ test('real relay routes preserve clarification evidence, reject invalid input an
   assert.equal(bootstrap.story.id, own.story.id);
   assert.equal(bootstrap.story.facts, undefined);
   assert.match(bootstrap.story.video, /^https:\/\/media\.test\.invalid\//, 'the private phone replay uses HTTPS media');
+
+  const crownSession = await (await post('/api/session', {content_id: 'the-missing-crown'})).json();
+  const crownVersion = crownSession.story.content_version;
+  assert.equal((await post('/api/playback', {content_id: 'the-missing-crown', content_version: crownVersion,
+    sequence: 1, epoch: 0, at_seconds: 63, play_state: 'paused', playback_rate: 1}, crownSession.session_id)).status, 200);
+  const crownPair = await (await post('/api/private/pair', {}, crownSession.session_id)).json();
+  const crownToken = new URL(crownPair.url).searchParams.get('private');
+  const crownPath = `/api/private/${crownToken}`;
+  const preparedQuestion = 'Who is Alisson and why is he missing?';
+  const beforePrepared = modelReads;
+  const preparedRoute = await post(`${crownPath}/assistant`, {request: preparedQuestion}, null, phoneHeaders);
+  assert.equal(preparedRoute.status, 200);
+  assert.equal((await preparedRoute.json()).delegate, true, 'the orchestrator must send an exact prepared question to the diagram answer path');
+  const crownHold = await (await post(`${crownPath}/hold`, {content_version: crownVersion, epoch: 0, sequence: 1, at_seconds: 63})).json();
+  const crownAnswerResponse = await post(`${crownPath}/ask`, {branch_id: crownHold.hold.id, request: preparedQuestion, at_seconds: 63,
+    new_topic: true, clarification: false, need: 'Show visually', language: 'English', recipient: 'everyone'});
+  assert.equal(crownAnswerResponse.status, 200);
+  const crownAnswer = await crownAnswerResponse.json();
+  assert.equal(crownAnswer.moment.visual.status, 'ready');
+  assert.match(crownAnswer.moment.visual.svg, /empty-seat/);
+  assert.equal((await post(`${crownPath}/thread`, {enabled: true, answer_id: crownAnswer.id})).status, 200,
+    'the prepared answer can start Follow thread');
+  assert.equal(modelReads, beforePrepared, 'the prepared phone flow never calls the model router or explainer');
+
   const pause = await post(`${personalPath}/hold`, {content_version: version, epoch: 0, sequence: 1, at_seconds: 35});
   assert.equal(pause.status, 201);
   const held = await pause.json();

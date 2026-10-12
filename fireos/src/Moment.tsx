@@ -53,12 +53,12 @@ export function AskPanel({clarification, request, onChange, onSubmit, onClose, o
   </ScrollView>;
 }
 
-// .moment.compact: visual (160x90) | answer (18px, weight 500) | icon column (close, more).
+// .moment.compact: visual (240x135 CSS px) | answer (18px, weight 500) | icon column (close, more).
 export function MomentPanel({moment, audience = moment?.audience, text, question, notice, lines, waiting, error, onDismiss, dismissLabel = 'Dismiss answer', onMore, accessibility, corner = 'top-right', captions, onLayout, onInteract}: {moment: Moment | null; audience?: Moment['audience']; text?: string;
   question?: string; notice?: string; lines?: string[]; waiting?: boolean; error?: string; onDismiss: () => void; dismissLabel?: string; onMore?: () => void; accessibility?: AccessibilitySnapshot;
   corner?: Corner; captions?: boolean; onLayout?: (event: LayoutChangeEvent) => void; onInteract?: () => void}) {
   return <View accessibilityLabel="Moment Response" onLayout={onLayout} onTouchStart={onInteract} style={[styles.toast, styles[corner], captions && styles.captionSafe]}>
-    {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual} onInteract={onInteract}/>}
+    {moment && moment.visual.status !== 'none' && <Visual visual={moment.visual} width={px(240)} onInteract={onInteract}/>}
     <ScrollView style={styles.answer} onScroll={onInteract}>
       {question ? <Text allowFontScaling={false} numberOfLines={1} style={[styles.turnQuestion, scaled(14, accessibility)]}>{question}</Text> : null}
       <Text allowFontScaling={false} accessibilityLiveRegion="polite" style={[styles.answerText, scaled(18, accessibility, 1.3)]}>{text ?? (moment ? plain(moment.answer) : '')}</Text>

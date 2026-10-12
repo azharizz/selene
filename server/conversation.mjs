@@ -2,6 +2,7 @@ import Ajv from 'ajv';
 import {getStory, sceneContext} from './context.mjs';
 import {playbackSnapshot} from './personal.mjs';
 import {completion} from './agent.mjs';
+import {demoConversation} from './demo-fixtures.mjs';
 
 const roles = ['grandparent', 'parent', 'child', 'adult', 'everyone'];
 const text = maxLength => ({type: 'string', minLength: 1, maxLength});
@@ -68,7 +69,7 @@ export function conversationContext(session, now = Date.now()) {
   }
   if (mirror.bridge?.epoch === playback.epoch && mirror.bridge.content_version === playback.content_version)
     moment('phone_return', mirror.bridge.moment);
-  return {content_id: story.id, title: story.title, duration: story.duration, playback,
+  return {content_id: story.id, title: story.title, duration: story.duration, source: source.source, playback,
     scene: source.scene, transcript: source.transcript, facts: source.facts, movie_graph: source.movie_graph,
     interactions, preferences};
 }
@@ -99,6 +100,17 @@ function validateInvitations(value, context) {
 export async function conversationRound(readContext, {signal, complete = completion, reason = 'initial', recentlyShown = [], earliestShowAt = 0} = {}) {
   const deadline = AbortSignal.timeout(30000);
   const bounded = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  bounded.throwIfAborted();
+  const candidate = readContext(), prepared = demoConversation(candidate);
+  if (prepared) {
+    if (prepared.action === 'show') {
+      const {action, ...invitation} = prepared;
+      try {validateInvitations(invitation, candidate);} catch {return {action: 'quiet'};}
+      return {action, ...invitation, content_id: candidate.content_id, content_version: candidate.playback.content_version,
+        epoch: candidate.playback.epoch, at_seconds: candidate.playback.at_seconds};
+    }
+    return prepared;
+  }
   const messages = [{role: 'system', content: rules}, {role: 'user', content: JSON.stringify({reason, recently_shown: recentlyShown, earliest_show_at_ms: earliestShowAt})}];
   let context, revised = false;
   for (let step = 0; step < 4; step++) {

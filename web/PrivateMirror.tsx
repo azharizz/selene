@@ -7,6 +7,7 @@ import {clock, audienceLabel, personalRequest, type PersonalStory, type Playback
 
 const locale = {English: 'en-US', Indonesian: 'id-ID', Spanish: 'es-ES'};
 const clean = (text: string) => text.replace(/\u2014/g, ',');
+const THREAD_POLL_MS = 5000;
 // The question carries any explicitly volunteered audience or style needs.
 const explanation = {need: 'Show visually', language: 'English', recipient: 'everyone'};
 type State = {
@@ -212,7 +213,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
       const result = await this.post('ask', {branch_id: hold.id, request: request.trim(), requester_id: this.requesterId, at_seconds: at, clarification, new_topic: newTopic, ...explanation}, pending) as PersonalHelp & {hold: PersonalHold; thread: FollowedThread | null};
       this.pending = null; this.requesterId = undefined; this.answerLanguage = 'English'; this.slowerAnswer = false;
       this.held = result.hold ?? {...hold, question_at_seconds: at}; this.questionAt = at; this.newTopic = false; this.queuedThread = null;
-      this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, request: '', busy: '', reply: null});
+      this.setState({moment: result.moment, help: result, hold: this.held, thread: result.thread ?? null, threadNotice: '', bridge: null, mirrorOnly: false, request: '', busy: '', reply: null});
     } catch (error) {this.failed(error, pending);}
   };
   private bringBack = async () => {
@@ -282,7 +283,7 @@ export class PrivateMirror extends React.Component<{token: string}, State> {
     const {thread, playback} = this.state;
     if (!thread || !playback || this.threadPending || !this.threadCanDisplay() || (this.newTopic && !this.state.help) || Date.now() < this.nextThreadCheck
       || playback.at_seconds <= thread.checked_through_seconds) return;
-    const pending = new AbortController(); this.threadPending = pending; this.nextThreadCheck = Date.now() + 15000;
+    const pending = new AbortController(); this.threadPending = pending; this.nextThreadCheck = Date.now() + THREAD_POLL_MS;
     try {
       const result = await personalRequest(this.endpoint('thread-check'), {method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(this.sample(playback)), signal: pending.signal}, 185000) as {thread: FollowedThread | null; updated: boolean};

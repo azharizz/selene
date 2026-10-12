@@ -183,7 +183,7 @@ export class Player extends React.Component<Props, State> {
     this.film?.destroy();
     this.filmFor = story.video;
     this.film = new NativeFilm(this.filmEvent, message => {if (this.mounted) this.setState({error: message, controls: true});});
-    void this.film.load(story.video);
+    void this.film.load(story.video, story.id);
     this.forceUpdate(); // remount the surface for the new player
   }
   private filmEvent = (event: FilmEvent) => {

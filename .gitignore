@@ -26,3 +26,4 @@ evaluation/results*.json
 
 # Local playback sources are supplied separately, not stored in Git.
 /assets/media/**/*.mp4
+/fireos/assets/offline/*.mp4

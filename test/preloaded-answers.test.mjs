@@ -43,7 +43,7 @@ test('prepared imported answers stay source-bound, isolated and available withou
   }
 });
 
-test('each prepared title offers its next source-valid demo before the first boundary without answering early', async t => {
+test('each prepared title offers its next source-valid demo without revealing future evidence', async t => {
   t.mock.method(globalThis, 'fetch', () => {assert.fail('A selected prepared demo must not call a model');});
   for (const contentId of new Set(entries.map(entry => entry.content_id))) {
     const entry = entries.filter(item => item.content_id === contentId).sort((a, b) => a.from_seconds - b.from_seconds)[0];
@@ -52,7 +52,13 @@ test('each prepared title offers its next source-valid demo before the first bou
       assert.equal(example.id, entry.id);
       assert.equal(example.at_seconds, entry.from_seconds);
       const early = request(entry, at, example.request);
-      assert.equal(preloadedAnswer(early.input, early.context), null);
+      const earlyAnswer = preloadedAnswer(early.input, early.context);
+      if (contentId === 'the-missing-crown' && at >= 4.410) {
+        assert.equal(earlyAnswer.visual.status, 'ready');
+        assert.equal(earlyAnswer.grounding.at_seconds, at);
+        assert.ok(earlyAnswer.grounding.evidence_ids.every(id => early.context.transcript.some(cue => cue.id === id && cue.end <= at)));
+        assert.ok(!earlyAnswer.grounding.evidence_ids.includes('caption-33'), 'the empty chair is not exposed before that caption');
+      } else assert.equal(earlyAnswer, null);
       const selected = request(entry, example.at_seconds, example.request);
       const answer = await explain(selected.input, {context: selected.context, memory: createMemory()});
       assert.equal(answer.answer, entry.answer);
@@ -74,6 +80,11 @@ test('Alisson revelations switch only at completed caption boundaries', () => {
     if (i) {
       const before = request(entry, entry.from_seconds - 0.001);
       assert.equal(preloadedAnswer(before.input, before.context).answer, stages[i - 1].answer);
+    } else {
+      const before = request(entry, entry.from_seconds - 0.001);
+      const early = preloadedAnswer(before.input, before.context);
+      assert.match(early.answer, /ordered them to find him/);
+      assert.ok(!early.grounding.evidence_ids.includes('caption-33'));
     }
   }
   assert.deepEqual(preparedExamples('unknown', 10), []);

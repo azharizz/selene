@@ -12,14 +12,14 @@
         "Explain offside to my child.",
         "Offside Rules explain"
       ],
-      "answer": "Offside is judged when a teammate plays/touches the ball. In the opponents’ half, a playable body part must be nearer the goal line than BOTH the ball and second-last opponent; level is onside. Position alone is not an offence: the player must become involved, such as receiving that pass or interfering with an opponent. No offside directly from a goal kick, throw-in or corner. This is an illustration, not a verdict on the film.",
+      "answer": "Think of a snapshot when a teammate plays the ball. In the opponents’ half, a player is in an offside position if their head, body or feet are nearer the goal than both the ball and the second-last opponent. Level is onside; hands and arms do not count. Being ahead alone is not an offence: they must join the play, for example by receiving the pass or interfering with an opponent. There is no offside directly from a goal kick, throw-in or corner. This diagram explains the rule, not a verdict on this match.",
       "evidence_ids": [
         "caption-11"
       ],
       "visual": {
         "status": "ready",
-        "description": "Schematic at a teammate’s touch: level with the second-last opponent is onside; ahead of both opponent and ball is an offside position. Receiving the pass demonstrates involvement. A glove marks the goalkeeper; not a verdict on the film.",
-        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1280 720\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Two diagrams show the opponents’ half at a teammate’s touch. Yellow attackers face a blue second-last opponent and a distinct gloved goalkeeper nearer the goal. The left receiver is level with the second-last opponent; the right receiver is ahead of both that opponent and the ball. Balls land at receiver feet: level is onside, while receiving the pass from the offside position is an offence. Schematic illustration, not a verdict on the film.\"><rect width=\"1280\" height=\"720\" fill=\"#131a23\"/><g transform=\"translate(0 -172)\" font-family=\"Arial, sans-serif\" fill=\"#f4f6fa\"><rect x=\"40\" y=\"200\" width=\"580\" height=\"660\" rx=\"20\" fill=\"#1d2b34\" stroke=\"#3b7867\" stroke-width=\"2\"/><rect x=\"660\" y=\"200\" width=\"580\" height=\"660\" rx=\"20\" fill=\"#30282e\" stroke=\"#875661\" stroke-width=\"2\"/><g transform=\"translate(0 0)\"><rect x=\"70\" y=\"252\" width=\"520\" height=\"500\" fill=\"#173e36\" stroke=\"#6e9b86\" stroke-width=\"2\"/><path d=\"M590 431H545V565H590 M590 460H608V535H590\" fill=\"none\" stroke=\"#9dbba9\" stroke-width=\"2\"/><line x1=\"70\" y1=\"252\" x2=\"70\" y2=\"752\" stroke=\"#e0ede6\" stroke-width=\"4\"/><text x=\"72\" y=\"237\" font-size=\"16\" fill=\"#bfd5ca\">HALFWAY</text><text x=\"240\" y=\"237\" font-size=\"17\" text-anchor=\"middle\" fill=\"#ffffff\">BALL</text><text x=\"421\" y=\"237\" font-size=\"17\" text-anchor=\"middle\" fill=\"#91beff\">2ND-LAST</text><text x=\"562\" y=\"237\" font-size=\"15\" text-anchor=\"middle\" fill=\"#91beff\">KEEPER</text><line x1=\"240\" y1=\"252\" x2=\"240\" y2=\"704\" stroke=\"#ecf1e8\" stroke-width=\"2\" stroke-dasharray=\"5 7\" opacity=\"0.55\"/><line id=\"onside-reference\" x1=\"427\" y1=\"252\" x2=\"427\" y2=\"704\" stroke=\"#8fc0ff\" stroke-width=\"3\" stroke-dasharray=\"7 6\"/><path d=\"M92 277H172 M163 270L173 277L163 284\" fill=\"none\" stroke=\"#bad6c8\" stroke-width=\"3\"/><text x=\"92\" y=\"301\" font-size=\"15\" fill=\"#bad6c8\">ATTACK</text><g transform=\"translate(0 110)\"><text x=\"410\" y=\"282\" font-size=\"15\" text-anchor=\"middle\" fill=\"#ffdc75\">RECEIVER: LEVEL</text><path d=\"M255 434L419 360 M405 360L421 359L412 373\" fill=\"none\" stroke=\"#ffdd77\" stroke-width=\"3\" stroke-dasharray=\"6 7\" opacity=\"0.65\"/><g transform=\"translate(216 414)\" fill=\"#ffcf5a\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"onside-receiver\" transform=\"translate(410 326)\" fill=\"#ffcf5a\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect id=\"onside-receiver-foot\" x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"onside-second-last\" transform=\"translate(410 445)\" fill=\"#91beff\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"onside-last\" transform=\"translate(566 387)\" fill=\"#91beff\" stroke=\"#d9e9ff\" stroke-width=\"2\" stroke-linejoin=\"round\"><path d=\"M-13 13V-1L-17 -7Q-19 -12 -14 -13L-8 -7V-20Q-8 -25 -3 -25L0 -24V-27Q0 -31 5 -31L9 -28L14 -26L17 -22V-6L12 14Z\"/><path d=\"M-12 8H12V21H-12Z\" fill=\"#547bab\"/><path d=\"M0 -23V-9 M8 -25V-9 M15 -21V-8\" fill=\"none\"/></g><g transform=\"translate(240 441)\"><circle id=\"onside-touch\" r=\"16\" fill=\"none\" stroke=\"#ffdc75\" stroke-width=\"3\"/><g id=\"onside-ball\"><circle r=\"7\" fill=\"#ffffff\" stroke=\"#111b22\" stroke-width=\"2\"/><path d=\"M-3 -2L1 -4L4 0L1 4L-3 2Z\" fill=\"#263844\"/></g></g><circle id=\"onside-contact\" cx=\"434\" cy=\"353\" r=\"16\" fill=\"none\" stroke=\"#9aefc6\" stroke-width=\"3\" opacity=\"0.6\"/><text x=\"175\" y=\"480\" font-size=\"15\" fill=\"#ffdc75\">TEAMMATE · TOUCH</text><text x=\"85\" y=\"617\" font-size=\"16\" fill=\"#bfd5ca\">OPPONENTS’ HALF</text></g></g><g transform=\"translate(640 0)\"><rect x=\"70\" y=\"252\" width=\"520\" height=\"500\" fill=\"#173e36\" stroke=\"#6e9b86\" stroke-width=\"2\"/><path d=\"M590 431H545V565H590 M590 460H608V535H590\" fill=\"none\" stroke=\"#9dbba9\" stroke-width=\"2\"/><line x1=\"70\" y1=\"252\" x2=\"70\" y2=\"752\" stroke=\"#e0ede6\" stroke-width=\"4\"/><text x=\"72\" y=\"237\" font-size=\"16\" fill=\"#bfd5ca\">HALFWAY</text><text x=\"240\" y=\"237\" font-size=\"17\" text-anchor=\"middle\" fill=\"#ffffff\">BALL</text><text x=\"421\" y=\"237\" font-size=\"17\" text-anchor=\"middle\" fill=\"#91beff\">2ND-LAST</text><text x=\"562\" y=\"237\" font-size=\"15\" text-anchor=\"middle\" fill=\"#91beff\">KEEPER</text><line x1=\"240\" y1=\"252\" x2=\"240\" y2=\"704\" stroke=\"#ecf1e8\" stroke-width=\"2\" stroke-dasharray=\"5 7\" opacity=\"0.55\"/><line id=\"offside-reference\" x1=\"427\" y1=\"252\" x2=\"427\" y2=\"704\" stroke=\"#8fc0ff\" stroke-width=\"3\" stroke-dasharray=\"7 6\"/><line x1=\"497\" y1=\"415\" x2=\"497\" y2=\"485\" stroke=\"#ff9baa\" stroke-width=\"2\" stroke-dasharray=\"4 5\"/><path d=\"M92 277H172 M163 270L173 277L163 284\" fill=\"none\" stroke=\"#bad6c8\" stroke-width=\"3\"/><text x=\"92\" y=\"301\" font-size=\"15\" fill=\"#bad6c8\">ATTACK</text><g transform=\"translate(0 110)\"><text x=\"480\" y=\"282\" font-size=\"14\" text-anchor=\"middle\" fill=\"#ffdc75\">RECEIVER: AHEAD OF BOTH</text><path d=\"M255 436L488 359 M474 356L490 358L479 371\" fill=\"none\" stroke=\"#ffdd77\" stroke-width=\"3\" stroke-dasharray=\"6 7\" opacity=\"0.65\"/><g transform=\"translate(216 414)\" fill=\"#ffcf5a\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"offside-receiver\" transform=\"translate(480 326)\" fill=\"#ffcf5a\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect id=\"offside-receiver-foot\" x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"offside-second-last\" transform=\"translate(410 445)\" fill=\"#91beff\"><circle cy=\"-25\" r=\"9\"/><path d=\"M-9 -12L-16 2L-11 5L-7 -2V11L-10 25H-3L0 13L3 25H10L7 11V-2L11 5L16 2L9 -12Z\"/><rect x=\"-13\" y=\"23\" width=\"10\" height=\"6\" rx=\"2\"/><rect x=\"3\" y=\"23\" width=\"14\" height=\"6\" rx=\"2\"/></g><g id=\"offside-last\" transform=\"translate(566 387)\" fill=\"#91beff\" stroke=\"#d9e9ff\" stroke-width=\"2\" stroke-linejoin=\"round\"><path d=\"M-13 13V-1L-17 -7Q-19 -12 -14 -13L-8 -7V-20Q-8 -25 -3 -25L0 -24V-27Q0 -31 5 -31L9 -28L14 -26L17 -22V-6L12 14Z\"/><path d=\"M-12 8H12V21H-12Z\" fill=\"#547bab\"/><path d=\"M0 -23V-9 M8 -25V-9 M15 -21V-8\" fill=\"none\"/></g><g transform=\"translate(240 441)\"><circle id=\"offside-touch\" r=\"16\" fill=\"none\" stroke=\"#ffdc75\" stroke-width=\"3\"/><g id=\"offside-ball\"><circle r=\"7\" fill=\"#ffffff\" stroke=\"#111b22\" stroke-width=\"2\"/><path d=\"M-3 -2L1 -4L4 0L1 4L-3 2Z\" fill=\"#263844\"/></g></g><circle id=\"offside-contact\" cx=\"504\" cy=\"353\" r=\"16\" fill=\"none\" stroke=\"#ff9baa\" stroke-width=\"3\" opacity=\"0.6\"/><text x=\"175\" y=\"480\" font-size=\"15\" fill=\"#ffdc75\">TEAMMATE · TOUCH</text><text x=\"85\" y=\"617\" font-size=\"16\" fill=\"#bfd5ca\">OPPONENTS’ HALF</text></g></g><rect id=\"onside-outcome\" x=\"66\" y=\"786\" width=\"528\" height=\"62\" rx=\"12\" fill=\"#245646\" stroke=\"#9aefc6\" stroke-width=\"2\"/><text x=\"330\" y=\"825\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"700\">Receives the pass: play continues</text><rect id=\"offside-outcome\" x=\"686\" y=\"786\" width=\"528\" height=\"62\" rx=\"12\" fill=\"#643542\" stroke=\"#ffacb6\" stroke-width=\"2\"/><text x=\"950\" y=\"825\" text-anchor=\"middle\" font-size=\"22\" font-weight=\"700\">Receives the pass: offside offence</text></g></svg>",
+        "description": "Two passes in the opponents’ half: the top receiver is level with the second-last opponent; the lower receiver is ahead of both opponent and ball. Only the balls move. Ahead becomes an offence on receiving the pass.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Two passes in the opponents’ half: the top receiver is level with the second-last opponent; the lower receiver is ahead of both opponent and ball. Only the balls move. Ahead becomes an offence on receiving the pass.\"><rect width=\"960\" height=\"540\" fill=\"#202228\"/><g font-family=\"Arial, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"48\" y=\"89\" font-size=\"48\" fill=\"#a5ddc5\" text-anchor=\"start\" font-weight=\"600\">Level: onside</text><rect x=\"48\" y=\"124\" width=\"864\" height=\"143\" rx=\"12\" fill=\"#253337\"/><path d=\"M104 124V267 M860 124V267 M860 157H810V235H860 M860 175H884V217H860\" fill=\"none\" stroke=\"#809c95\" stroke-width=\"3\"/><path d=\"M606 124V267\" fill=\"none\" stroke=\"#96c9ee\" stroke-width=\"4\" stroke-dasharray=\"10 10\"/><path d=\"M242 226L566 166\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"4\" stroke-dasharray=\"9 12\"/><circle cx=\"214\" cy=\"226\" r=\"20\" fill=\"#ffad33\"/><circle id=\"onside-receiver\" cx=\"588\" cy=\"166\" r=\"18\" fill=\"#ffad33\"/><rect x=\"570\" y=\"216\" width=\"36\" height=\"36\" rx=\"5\" fill=\"#96c9ee\"/><rect x=\"810\" y=\"193\" width=\"28\" height=\"28\" rx=\"4\" fill=\"#96c9ee\" stroke=\"#f1f1f1\" stroke-width=\"3\"/><g transform=\"translate(564 166)\"><g id=\"onside-ball\"><circle r=\"10\" fill=\"#f1f1f1\" stroke=\"#202228\" stroke-width=\"3\"/><path d=\"M-4 -3L3 -4L5 2L0 5L-5 1Z\" fill=\"#202228\"/></g></g><circle id=\"onside-contact\" cx=\"588\" cy=\"166\" r=\"29\" fill=\"none\" stroke=\"#a5ddc5\" stroke-width=\"4\"/><text x=\"48\" y=\"303\" font-size=\"48\" fill=\"#f2b6b0\" text-anchor=\"start\" font-weight=\"600\">Ahead + receives: offside</text><rect x=\"48\" y=\"338\" width=\"864\" height=\"143\" rx=\"12\" fill=\"#253337\"/><path d=\"M104 338V481 M860 338V481 M860 371H810V449H860 M860 389H884V431H860\" fill=\"none\" stroke=\"#809c95\" stroke-width=\"3\"/><path d=\"M606 338V481\" fill=\"none\" stroke=\"#96c9ee\" stroke-width=\"4\" stroke-dasharray=\"10 10\"/><path d=\"M242 440L680 380\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"4\" stroke-dasharray=\"9 12\"/><circle cx=\"214\" cy=\"440\" r=\"20\" fill=\"#ffad33\"/><circle id=\"offside-receiver\" cx=\"702\" cy=\"380\" r=\"18\" fill=\"#ffad33\"/><rect x=\"570\" y=\"430\" width=\"36\" height=\"36\" rx=\"5\" fill=\"#96c9ee\"/><rect x=\"810\" y=\"407\" width=\"28\" height=\"28\" rx=\"4\" fill=\"#96c9ee\" stroke=\"#f1f1f1\" stroke-width=\"3\"/><g transform=\"translate(678 380)\"><g id=\"offside-ball\"><circle r=\"10\" fill=\"#f1f1f1\" stroke=\"#202228\" stroke-width=\"3\"/><path d=\"M-4 -3L3 -4L5 2L0 5L-5 1Z\" fill=\"#202228\"/></g></g><circle id=\"offside-contact\" cx=\"702\" cy=\"380\" r=\"29\" fill=\"none\" stroke=\"#f2b6b0\" stroke-width=\"4\"/><circle cx=\"68\" cy=\"514\" r=\"12\" fill=\"#ffad33\"/><text x=\"93\" y=\"526\" font-size=\"46\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Attackers</text><rect x=\"343\" y=\"502\" width=\"24\" height=\"24\" rx=\"4\" fill=\"#96c9ee\"/><text x=\"383\" y=\"526\" font-size=\"46\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Opponents</text><path d=\"M696 514H752 M740 503L753 514L740 525\" fill=\"none\" stroke=\"#f1f1f1\" stroke-width=\"4\"/><text x=\"775\" y=\"526\" font-size=\"46\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Goal</text></g></svg>",
         "animations": [
           {
             "target_id": "onside-ball",
@@ -28,43 +28,47 @@
             "keyframes": [
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-350px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-350px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-350px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-233.333px, 40.0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(64.667px, -29.333px)"
+                "transform": "translate(-116.667px, 20.0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(129.333px, -58.667px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(194px, -88px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(194px, -88px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(194px, -88px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(194px, -88px)"
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           },
@@ -75,51 +79,24 @@
             "keyframes": [
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-464px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-464px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-464px, 60px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-309.333px, 40.0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(88px, -29.333px)"
+                "transform": "translate(-154.667px, 20.0px)"
               },
-              {
-                "opacity": 1,
-                "transform": "translate(176px, -58.667px)"
-              },
-              {
-                "opacity": 1,
-                "transform": "translate(264px, -88px)"
-              },
-              {
-                "opacity": 1,
-                "transform": "translate(264px, -88px)"
-              },
-              {
-                "opacity": 1,
-                "transform": "translate(264px, -88px)"
-              },
-              {
-                "opacity": 1,
-                "transform": "translate(264px, -88px)"
-              }
-            ]
-          },
-          {
-            "target_id": "onside-touch",
-            "duration_ms": 5000,
-            "delay_ms": 0,
-            "keyframes": [
               {
                 "opacity": 1,
                 "transform": "none"
@@ -137,74 +114,11 @@
                 "transform": "none"
               },
               {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              }
-            ]
-          },
-          {
-            "target_id": "offside-touch",
-            "duration_ms": 5000,
-            "delay_ms": 0,
-            "keyframes": [
-              {
                 "opacity": 1,
                 "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
                 "transform": "none"
               }
             ]
@@ -236,6 +150,10 @@
               },
               {
                 "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
                 "transform": "none"
               },
               {
@@ -300,96 +218,6 @@
               {
                 "opacity": 1,
                 "transform": "none"
-              }
-            ]
-          },
-          {
-            "target_id": "onside-outcome",
-            "duration_ms": 5000,
-            "delay_ms": 0,
-            "keyframes": [
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              }
-            ]
-          },
-          {
-            "target_id": "offside-outcome",
-            "duration_ms": 5000,
-            "delay_ms": 0,
-            "keyframes": [
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 0.4,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
-              },
-              {
-                "opacity": 1,
-                "transform": "none"
               },
               {
                 "opacity": 1,
@@ -400,13 +228,14 @@
         ]
       },
       "content_version": "05d09220c84a2c3a3877e84ffa5505375ef38484f36a2c757c24f937a11b899f",
-      "evidence_sha256": "20323beec0a97059de9fd61bfd17eb335f2054babb5550e49da7ae9d99ce4cad"
+      "evidence_sha256": "20323beec0a97059de9fd61bfd17eb335f2054babb5550e49da7ae9d99ce4cad",
+      "tv_answer": "At the pass, a player in the opponents’ half is offside-positioned if their head, body or feet are nearer the goal than both the ball and second-last opponent. Level is onside. It’s only an offence if they join play."
     },
     {
       "id": "alisson-empty-chair",
       "from_seconds": 62.678,
       "until_seconds": 83.92,
-      "answer": "Alisson is King Aldric's brother, making him Princess Lyra's uncle through her father. At the council, Aldric calls for him, but his chair is empty. The story has not yet fully explained his absence; the green thread is a clue, not proof of why he is missing.",
+      "answer": "Alisson is King Aldric’s brother, so he is Princess Lyra’s uncle. His council seat is empty when the King calls for him. Voss has shown a green thread from a cloak, but that clue does not explain Alisson’s absence. At this point, we do not know why he is missing.",
       "evidence_ids": [
         "caption-4",
         "caption-5",
@@ -422,29 +251,108 @@
       ],
       "visual": {
         "status": "ready",
-        "description": "Alisson is Aldric's brother and Lyra's paternal uncle. A moving magnifying glass examines his empty council chair; the green thread is a clue, but the reason for his absence remains unknown.",
-        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson is Aldric's brother and Lyra's paternal uncle. A moving magnifying glass examines his empty council chair; the green thread is a clue, but the reason for his absence remains unknown.\"><rect width=\"960\" height=\"540\" fill=\"#141b29\"/><g transform=\"translate(0 -128)\"><rect x=\"28\" y=\"154\" width=\"306\" height=\"486\" rx=\"18\" fill=\"#202d40\"/><rect x=\"354\" y=\"154\" width=\"578\" height=\"486\" rx=\"18\" fill=\"#1b2839\"/><g transform=\"translate(181 159) scale(1.25) translate(-181 -159)\" font-family=\"Arial\" text-anchor=\"middle\"><line id=\"brother-link\" x1=\"128\" y1=\"190\" x2=\"219\" y2=\"190\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><text x=\"174\" y=\"176\" fill=\"#c5d2e2\" font-size=\"17\">brothers</text><circle cx=\"96\" cy=\"190\" r=\"31\" fill=\"#41978b\"/><circle cx=\"250\" cy=\"190\" r=\"31\" fill=\"#657eae\"/><path d=\"M77 207 Q96 181 115 207 M231 207 Q250 181 269 207\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><circle cx=\"96\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><circle cx=\"250\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><text x=\"96\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Alisson</text><text x=\"250\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Aldric</text><text x=\"250\" y=\"265\" fill=\"#bacade\" font-size=\"17\">King</text><line id=\"father-link\" x1=\"250\" y1=\"278\" x2=\"250\" y2=\"317\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><polygon points=\"244,310 256,310 250,320\" fill=\"#c1cfdf\"/><text x=\"207\" y=\"300\" fill=\"#c5d2e2\" font-size=\"17\">father</text><circle cx=\"250\" cy=\"351\" r=\"30\" fill=\"#8e74af\"/><circle cx=\"250\" cy=\"342\" r=\"9\" fill=\"#e4eff7\"/><path d=\"M231 368 Q250 342 269 368\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><text x=\"250\" y=\"406\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Lyra</text><text x=\"181\" y=\"490\" fill=\"#a8eadb\" font-family=\"Arial\" font-size=\"23\" font-weight=\"700\">Lyra's uncle</text></g><g transform=\"translate(643 204) scale(1.1) translate(-643 -204)\" font-family=\"Arial\"><g id=\"empty-chair\" fill=\"#485c78\" stroke=\"#a9bdd4\" stroke-width=\"4\"><rect x=\"642\" y=\"215\" width=\"90\" height=\"107\" rx=\"12\"/><rect x=\"624\" y=\"316\" width=\"126\" height=\"20\" rx=\"5\"/><line x1=\"635\" y1=\"336\" x2=\"635\" y2=\"375\"/><line x1=\"739\" y1=\"336\" x2=\"739\" y2=\"375\"/></g><path id=\"green-thread\" d=\"M427 256 C492 215 437 299 491 264 S529 279 497 302\" fill=\"none\" stroke=\"#77d5ac\" stroke-width=\"9\" stroke-linecap=\"round\"/><text x=\"478\" y=\"350\" text-anchor=\"middle\" fill=\"#a8eadb\" font-size=\"20\">Green thread</text><text x=\"687\" y=\"405\" text-anchor=\"middle\" fill=\"#e6edf6\" font-size=\"20\">Alisson's seat</text><text x=\"812\" y=\"235\" fill=\"#edce87\" font-size=\"45\" font-weight=\"700\">?</text><g transform=\"translate(772 274)\"><g id=\"clue-lens\" fill=\"none\" stroke=\"#edce87\" stroke-width=\"6\" stroke-linecap=\"round\"><circle r=\"29\"/><line x1=\"21\" y1=\"21\" x2=\"47\" y2=\"47\"/></g></g><text x=\"687\" y=\"450\" text-anchor=\"middle\" fill=\"#edce87\" font-size=\"20\">Reason unknown</text></g></g></svg>",
+        "description": "Alisson is Aldric’s brother and Lyra’s uncle. Below, a green thread is highlighted, then the empty council chair. The question mark means his absence is still unexplained.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson is Aldric’s brother and Lyra’s uncle. Below, a green thread is highlighted, then the empty council chair. The question mark means his absence is still unexplained.\"><rect width=\"960\" height=\"540\" fill=\"#202228\"/><g font-family=\"Arial, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"54\" y=\"74\" font-size=\"52\" fill=\"#ffad33\" text-anchor=\"start\" font-weight=\"600\">Alisson</text><text x=\"450\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Aldric</text><text x=\"810\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Lyra</text><path d=\"M245 56H408 M625 56H766\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><text x=\"326\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">brothers</text><text x=\"700\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">father</text><path d=\"M750 44L766 56L750 68\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><path d=\"M48 163H912\" stroke=\"#454a54\" stroke-width=\"2\"/><path d=\"M398 367V251Q398 234 416 234H535Q552 234 552 251V367 M375 336V396H575V336 M398 397V438 M552 397V438 M404 367H547\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"12\"/><path d=\"M149 362C113 327 180 300 190 340S135 394 174 410S224 380 231 420\" fill=\"none\" stroke=\"#a5ddc5\" stroke-width=\"8\"/><circle id=\"thread-clue\" cx=\"174\" cy=\"365\" r=\"66\" fill=\"none\" stroke=\"#a5ddc5\" stroke-width=\"4\" stroke-dasharray=\"8 12\"/><rect id=\"empty-seat\" x=\"424\" y=\"262\" width=\"102\" height=\"82\" rx=\"8\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"4\" stroke-dasharray=\"8 10\"/><text x=\"737\" y=\"408\" font-size=\"166\" fill=\"#ffad33\" text-anchor=\"middle\" font-weight=\"500\">?</text><text x=\"480\" y=\"512\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"600\">His seat is empty</text></g></svg>",
         "animations": [
           {
-            "target_id": "clue-lens",
-            "duration_ms": 4800,
+            "target_id": "thread-clue",
+            "duration_ms": 5000,
             "delay_ms": 0,
             "keyframes": [
               {
-                "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(-133px, -13px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(-133px, -13px)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          },
+          {
+            "target_id": "empty-seat",
+            "duration_ms": 5000,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           }
@@ -458,13 +366,14 @@
         "Why is Alisson missing?"
       ],
       "content_version": "da96ac0c7bcbe6fd0d995ed90d2f61d6d74f08fd8dda69d4bab8d8a1d9fff756",
-      "evidence_sha256": "17baaa263c305fe15851ade51e315146b2cf0627f6ad62ecc5dc58c73454412b"
+      "evidence_sha256": "17baaa263c305fe15851ade51e315146b2cf0627f6ad62ecc5dc58c73454412b",
+      "tv_answer": "Alisson is Aldric’s brother and Lyra’s uncle. His council seat is empty. The green thread is a clue; it does not yet explain where he is or why he is absent."
     },
     {
       "id": "alisson-secret-meeting",
       "from_seconds": 83.92,
       "until_seconds": 101.728,
-      "answer": "Alisson is King Aldric's brother and Princess Lyra's uncle through her father. We now know he was not running away: he secretly met Captain Bren, gave him a note, and pointed at the Chancellor's tower. Those actions are revealed, but they do not establish exactly why his earlier council chair was empty.",
+      "answer": "Alisson is Aldric’s brother and Lyra’s uncle. We now know he was not running away: he met Captain Bren in secret, passed him a note and pointed toward the Chancellor’s tower. That gives us a new lead, but it still does not fully explain his empty council seat.",
       "evidence_ids": [
         "caption-4",
         "caption-5",
@@ -479,52 +388,108 @@
       ],
       "visual": {
         "status": "ready",
-        "description": "Alisson is Aldric's brother and Lyra's paternal uncle. He passes a note to Captain Bren and points toward Voss's tower. This secret meeting does not establish why his earlier council chair was empty.",
-        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson is Aldric's brother and Lyra's paternal uncle. He passes a note to Captain Bren and points toward Voss's tower. This secret meeting does not establish why his earlier council chair was empty.\"><rect width=\"960\" height=\"540\" fill=\"#141b29\"/><g transform=\"translate(0 -128)\"><rect x=\"28\" y=\"154\" width=\"306\" height=\"486\" rx=\"18\" fill=\"#202d40\"/><rect x=\"354\" y=\"154\" width=\"578\" height=\"486\" rx=\"18\" fill=\"#1b2839\"/><g transform=\"translate(181 159) scale(1.25) translate(-181 -159)\" font-family=\"Arial\" text-anchor=\"middle\"><line id=\"brother-link\" x1=\"128\" y1=\"190\" x2=\"219\" y2=\"190\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><text x=\"174\" y=\"176\" fill=\"#c5d2e2\" font-size=\"17\">brothers</text><circle cx=\"96\" cy=\"190\" r=\"31\" fill=\"#41978b\"/><circle cx=\"250\" cy=\"190\" r=\"31\" fill=\"#657eae\"/><path d=\"M77 207 Q96 181 115 207 M231 207 Q250 181 269 207\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><circle cx=\"96\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><circle cx=\"250\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><text x=\"96\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Alisson</text><text x=\"250\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Aldric</text><text x=\"250\" y=\"265\" fill=\"#bacade\" font-size=\"17\">King</text><line id=\"father-link\" x1=\"250\" y1=\"278\" x2=\"250\" y2=\"317\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><polygon points=\"244,310 256,310 250,320\" fill=\"#c1cfdf\"/><text x=\"207\" y=\"300\" fill=\"#c5d2e2\" font-size=\"17\">father</text><circle cx=\"250\" cy=\"351\" r=\"30\" fill=\"#8e74af\"/><circle cx=\"250\" cy=\"342\" r=\"9\" fill=\"#e4eff7\"/><path d=\"M231 368 Q250 342 269 368\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><text x=\"250\" y=\"406\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Lyra</text><text x=\"181\" y=\"490\" fill=\"#a8eadb\" font-family=\"Arial\" font-size=\"23\" font-weight=\"700\">Lyra's uncle</text></g><g transform=\"translate(643 204) scale(1.1) translate(-643 -204)\" font-family=\"Arial\"><path id=\"tower\" d=\"M790 346 L790 219 L807 219 L807 204 L824 204 L824 219 L846 219 L846 204 L863 204 L863 219 L880 219 L880 346 Z\" fill=\"#495779\" stroke=\"#9caac5\" stroke-width=\"3\"/><rect x=\"821\" y=\"249\" width=\"26\" height=\"40\" rx=\"13\" fill=\"#182236\"/><rect x=\"818\" y=\"310\" width=\"32\" height=\"36\" rx=\"15\" fill=\"#182236\"/><text x=\"630\" y=\"215\" text-anchor=\"middle\" fill=\"#dfc38a\" font-size=\"18\">points to</text><line x1=\"514\" y1=\"230\" x2=\"767\" y2=\"230\" stroke=\"#dfc38a\" stroke-width=\"3\" stroke-dasharray=\"7 7\"/><polygon points=\"766,223 778,230 766,237\" fill=\"#dfc38a\"/><circle cx=\"436\" cy=\"238\" r=\"22\" fill=\"#f0cdb6\"/><path d=\"M416 263 L456 263 L469 342 L403 342 Z\" fill=\"#41978b\"/><path d=\"M422 342 L419 363 M451 342 L454 363\" stroke=\"#b4d9d0\" stroke-width=\"9\"/><path d=\"M451 282 L479 276\" fill=\"none\" stroke=\"#f0cdb6\" stroke-width=\"10\" stroke-linecap=\"round\"/><g transform=\"translate(448 274)\"><g id=\"pointing-arm\"><path d=\"M0 0 L62 -38\" fill=\"none\" stroke=\"#92d8c5\" stroke-width=\"10\" stroke-linecap=\"round\"/><circle cx=\"64\" cy=\"-39\" r=\"6\" fill=\"#f0cdb6\"/></g></g><circle cx=\"641\" cy=\"238\" r=\"22\" fill=\"#f0cdb6\"/><path d=\"M620 263 L661 263 L672 342 L608 342 Z\" fill=\"#6f8eb8\"/><path d=\"M626 342 L622 363 M655 342 L659 363 M622 283 L610 276\" fill=\"none\" stroke=\"#b8cee8\" stroke-width=\"9\" stroke-linecap=\"round\"/><line x1=\"482\" y1=\"277\" x2=\"609\" y2=\"277\" stroke=\"#c6d4e6\" stroke-width=\"2\" stroke-dasharray=\"4 6\"/><g transform=\"translate(492 276)\"><g id=\"handoff-note\"><rect x=\"-20\" y=\"-14\" width=\"40\" height=\"28\" rx=\"3\" fill=\"#f6dfab\" stroke=\"#bf9e61\" stroke-width=\"2\"/><path d=\"M-18 -11 L0 2 L18 -11\" fill=\"none\" stroke=\"#9a7743\" stroke-width=\"2\"/></g></g><text x=\"547\" y=\"327\" text-anchor=\"middle\" fill=\"#f1d397\" font-size=\"18\">passes note</text><text x=\"436\" y=\"395\" text-anchor=\"middle\" fill=\"#a8eadb\" font-size=\"21\" font-weight=\"700\">Alisson</text><text x=\"641\" y=\"395\" text-anchor=\"middle\" fill=\"#dbe9fb\" font-size=\"21\" font-weight=\"700\">Captain Bren</text><text x=\"835\" y=\"395\" text-anchor=\"middle\" fill=\"#dbe9fb\" font-size=\"19\">Voss's tower</text></g></g></svg>",
+        "description": "The family link stays above. Below, Alisson’s note moves to Captain Bren; an arrow then highlights the Chancellor’s tower. These actions are known, but his earlier absence is not fully explained.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"The family link stays above. Below, Alisson’s note moves to Captain Bren; an arrow then highlights the Chancellor’s tower. These actions are known, but his earlier absence is not fully explained.\"><rect width=\"960\" height=\"540\" fill=\"#202228\"/><g font-family=\"Arial, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"54\" y=\"74\" font-size=\"52\" fill=\"#ffad33\" text-anchor=\"start\" font-weight=\"600\">Alisson</text><text x=\"450\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Aldric</text><text x=\"810\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Lyra</text><path d=\"M245 56H408 M625 56H766\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><text x=\"326\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">brothers</text><text x=\"700\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">father</text><path d=\"M750 44L766 56L750 68\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><path d=\"M48 163H912\" stroke=\"#454a54\" stroke-width=\"2\"/><text x=\"142\" y=\"240\" font-size=\"48\" fill=\"#ffad33\" text-anchor=\"middle\" font-weight=\"500\">Alisson</text><text x=\"530\" y=\"240\" font-size=\"48\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"500\">Bren</text><circle cx=\"142\" cy=\"320\" r=\"40\" fill=\"#3c3020\" stroke=\"#ffad33\" stroke-width=\"5\"/><circle cx=\"530\" cy=\"320\" r=\"40\" fill=\"#303c45\" stroke=\"#96c9ee\" stroke-width=\"5\"/><path d=\"M197 320H458 M440 307L458 320L440 333\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"3\" stroke-dasharray=\"8 10\"/><g transform=\"translate(459 320)\"><g id=\"handoff-note\"><rect x=\"-27\" y=\"-20\" width=\"54\" height=\"40\" rx=\"4\" fill=\"#f1f1f1\"/><path d=\"M-27 -20L0 0L27 -20\" fill=\"none\" stroke=\"#202228\" stroke-width=\"3\"/></g></g><path d=\"M755 369V261H781V236H810V261H839V236H868V369Z M790 369V321Q811 294 832 321V369 M781 282H793 M831 282H843\" fill=\"#303238\" stroke=\"#bec4cf\" stroke-width=\"5\"/><path id=\"tower-lead\" d=\"M583 327L711 297 M690 286L711 297L699 317\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"7\"/><text x=\"809\" y=\"432\" font-size=\"46\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"500\">Tower</text><text x=\"480\" y=\"512\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"600\">A secret meeting</text></g></svg>",
         "animations": [
           {
             "target_id": "handoff-note",
-            "duration_ms": 4800,
+            "duration_ms": 5000,
             "delay_ms": 0,
             "keyframes": [
               {
                 "opacity": 1,
-                "transform": "translate(0px, 0px)"
+                "transform": "translate(-253px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(100px, 0px)"
+                "transform": "translate(-253px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(100px, 0px)"
+                "transform": "translate(-253px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(100px, 0px)"
+                "transform": "translate(-168.667px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "translate(-84.333px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           },
           {
-            "target_id": "pointing-arm",
-            "duration_ms": 4800,
+            "target_id": "tower-lead",
+            "duration_ms": 5000,
             "delay_ms": 0,
             "keyframes": [
               {
                 "opacity": 0.4,
-                "transform": "rotate(45deg)"
+                "transform": "none"
               },
               {
                 "opacity": 0.4,
-                "transform": "rotate(45deg)"
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "rotate(0deg)"
+                "transform": "none"
               },
               {
                 "opacity": 1,
-                "transform": "rotate(0deg)"
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           }
@@ -538,13 +503,14 @@
         "Why is Alisson missing?"
       ],
       "content_version": "da96ac0c7bcbe6fd0d995ed90d2f61d6d74f08fd8dda69d4bab8d8a1d9fff756",
-      "evidence_sha256": "2ef3e62ef58e8528cbd91c82b395233c20f04dad1989feb10be1ce09091f3c34"
+      "evidence_sha256": "2ef3e62ef58e8528cbd91c82b395233c20f04dad1989feb10be1ce09091f3c34",
+      "tv_answer": "Alisson is Aldric’s brother and Lyra’s uncle. He secretly passes Bren a note and points toward the Chancellor’s tower. His earlier absence is still not fully explained."
     },
     {
       "id": "alisson-crown-return",
       "from_seconds": 101.728,
       "until_seconds": 107.297,
-      "answer": "Alisson is King Aldric's brother, so he is Princess Lyra's uncle through her father. He is no longer missing: he has arrived at the coronation carrying the true crown. His secret meeting with Captain Bren is already known, but the story has not yet confirmed his protective motive.",
+      "answer": "Alisson is Aldric’s brother and Lyra’s uncle. He is no longer missing: he has walked into the coronation carrying the true crown. We have seen his secret meeting with Bren, but the story has not yet confirmed the reason for his actions.",
       "evidence_ids": [
         "caption-4",
         "caption-5",
@@ -560,29 +526,108 @@
       ],
       "visual": {
         "status": "ready",
-        "description": "The family diagram identifies Alisson as Aldric's brother and Lyra's paternal uncle. Alisson carries the true crown through the coronation doorway. He is back; his protective motive is not yet confirmed.",
-        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"The family diagram identifies Alisson as Aldric's brother and Lyra's paternal uncle. Alisson carries the true crown through the coronation doorway. He is back; his protective motive is not yet confirmed.\"><rect width=\"960\" height=\"540\" fill=\"#141b29\"/><g transform=\"translate(0 -128)\"><rect x=\"28\" y=\"154\" width=\"306\" height=\"486\" rx=\"18\" fill=\"#202d40\"/><rect x=\"354\" y=\"154\" width=\"578\" height=\"486\" rx=\"18\" fill=\"#1b2839\"/><g transform=\"translate(181 159) scale(1.25) translate(-181 -159)\" font-family=\"Arial\" text-anchor=\"middle\"><line id=\"brother-link\" x1=\"128\" y1=\"190\" x2=\"219\" y2=\"190\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><text x=\"174\" y=\"176\" fill=\"#c5d2e2\" font-size=\"17\">brothers</text><circle cx=\"96\" cy=\"190\" r=\"31\" fill=\"#41978b\"/><circle cx=\"250\" cy=\"190\" r=\"31\" fill=\"#657eae\"/><path d=\"M77 207 Q96 181 115 207 M231 207 Q250 181 269 207\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><circle cx=\"96\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><circle cx=\"250\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><text x=\"96\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Alisson</text><text x=\"250\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Aldric</text><text x=\"250\" y=\"265\" fill=\"#bacade\" font-size=\"17\">King</text><line id=\"father-link\" x1=\"250\" y1=\"278\" x2=\"250\" y2=\"317\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><polygon points=\"244,310 256,310 250,320\" fill=\"#c1cfdf\"/><text x=\"207\" y=\"300\" fill=\"#c5d2e2\" font-size=\"17\">father</text><circle cx=\"250\" cy=\"351\" r=\"30\" fill=\"#8e74af\"/><circle cx=\"250\" cy=\"342\" r=\"9\" fill=\"#e4eff7\"/><path d=\"M231 368 Q250 342 269 368\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><text x=\"250\" y=\"406\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Lyra</text><text x=\"181\" y=\"490\" fill=\"#a8eadb\" font-family=\"Arial\" font-size=\"23\" font-weight=\"700\">Lyra's uncle</text></g><g transform=\"translate(643 204) scale(1.1) translate(-643 -204)\" font-family=\"Arial\"><path id=\"coronation-door\" d=\"M401 375 L401 248 Q457 174 513 248 L513 375 Z\" fill=\"#111a28\" stroke=\"#788caf\" stroke-width=\"5\"/><path d=\"M401 375 L401 248 L421 259 L421 375 M513 375 L513 248 L493 259 L493 375\" fill=\"#425674\" stroke=\"#788caf\" stroke-width=\"3\"/><line x1=\"386\" y1=\"377\" x2=\"900\" y2=\"377\" stroke=\"#8195b2\" stroke-width=\"3\"/><g transform=\"translate(620 260)\"><g id=\"crown-carrier\"><circle cx=\"0\" cy=\"-27\" r=\"22\" fill=\"#f0cdb6\"/><path d=\"M-21 0 L21 0 L34 78 L-34 78 Z\" fill=\"#41978b\"/><path d=\"M-15 78 L-19 111 M15 78 L20 111\" fill=\"none\" stroke=\"#b4d9d0\" stroke-width=\"10\" stroke-linecap=\"round\"/><path d=\"M-13 22 L23 50 L77 37 M18 15 L42 38 L90 37\" fill=\"none\" stroke=\"#a5e0cc\" stroke-width=\"10\" stroke-linecap=\"round\"/><g id=\"true-crown\"><polygon points=\"47,3 58,16 73,-1 87,16 99,3 94,31 52,31\" fill=\"#edc766\" stroke=\"#fff0b6\" stroke-width=\"3\"/><rect x=\"52\" y=\"28\" width=\"42\" height=\"8\" rx=\"3\" fill=\"#ebaf4e\"/><circle cx=\"73\" cy=\"21\" r=\"5\" fill=\"#58b8b4\"/></g></g></g><text x=\"799\" y=\"280\" text-anchor=\"middle\" fill=\"#f4d386\" font-size=\"21\" font-weight=\"700\">True crown</text><text x=\"799\" y=\"335\" text-anchor=\"middle\" fill=\"#c7d3e2\" font-size=\"18\">Motive unconfirmed</text><text x=\"642\" y=\"411\" text-anchor=\"middle\" fill=\"#a8eadb\" font-size=\"21\" font-weight=\"700\">Alisson returns</text></g></g></svg>",
+        "description": "Alisson’s family link stays above. The true crown moves through the open coronation doorway. Alisson has returned; the reason for his actions is not yet confirmed.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson’s family link stays above. The true crown moves through the open coronation doorway. Alisson has returned; the reason for his actions is not yet confirmed.\"><rect width=\"960\" height=\"540\" fill=\"#202228\"/><g font-family=\"Arial, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"54\" y=\"74\" font-size=\"52\" fill=\"#ffad33\" text-anchor=\"start\" font-weight=\"600\">Alisson</text><text x=\"450\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Aldric</text><text x=\"810\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Lyra</text><path d=\"M245 56H408 M625 56H766\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><text x=\"326\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">brothers</text><text x=\"700\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">father</text><path d=\"M750 44L766 56L750 68\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><path d=\"M48 163H912\" stroke=\"#454a54\" stroke-width=\"2\"/><path d=\"M151 427V244Q151 210 186 210H316Q351 210 351 244V427 M251 210V425 M151 244L108 266V427L151 403 M351 244L394 266V427L351 403\" fill=\"none\" stroke=\"#6d7685\" stroke-width=\"6\"/><path id=\"return-path\" d=\"M396 396H477 M459 382L477 396L459 410\" fill=\"none\" stroke=\"#ffad33\" stroke-width=\"6\"/><g transform=\"translate(637 337)\"><g id=\"returned-crown\"><path d=\"M-110 42L-132 -58L-66 -18L0 -94L66 -18L132 -58L110 42Z\" fill=\"#3c3020\" stroke=\"#ffad33\" stroke-width=\"9\"/><path d=\"M-110 62H110\" stroke=\"#ffad33\" stroke-width=\"14\"/><path d=\"M0 -38L18 -12L0 14L-18 -12Z\" fill=\"#ffad33\"/><circle cx=\"-78\" cy=\"4\" r=\"10\" fill=\"#ffad33\"/><circle cx=\"78\" cy=\"4\" r=\"10\" fill=\"#ffad33\"/></g></g><text x=\"480\" y=\"512\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"600\">Back with the true crown</text></g></svg>",
         "animations": [
           {
-            "target_id": "crown-carrier",
-            "duration_ms": 4800,
+            "target_id": "returned-crown",
+            "duration_ms": 5000,
             "delay_ms": 0,
             "keyframes": [
               {
                 "opacity": 1,
-                "transform": "translate(-150px, 0px)"
+                "transform": "translate(-270px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-270px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-270px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-180.0px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "translate(-90.0px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          },
+          {
+            "target_id": "return-path",
+            "duration_ms": 5000,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           }
@@ -596,13 +641,14 @@
         "Why is Alisson missing?"
       ],
       "content_version": "da96ac0c7bcbe6fd0d995ed90d2f61d6d74f08fd8dda69d4bab8d8a1d9fff756",
-      "evidence_sha256": "54fde8e632a6fce70f3e22daf9755da96be37b03514b02f8aa672581f42342a3"
+      "evidence_sha256": "54fde8e632a6fce70f3e22daf9755da96be37b03514b02f8aa672581f42342a3",
+      "tv_answer": "Alisson, Aldric’s brother and Lyra’s uncle, has returned to the coronation with the true crown. He is no longer missing. His reason is not yet confirmed."
     },
     {
       "id": "alisson-protection-revealed",
       "from_seconds": 107.297,
       "until_seconds": 120.001,
-      "answer": "Alisson is King Aldric's brother, making him Lyra's uncle through her father. He is no longer missing: he returned with the true crown. The story now confirms that he had protected it all along, rather than running away. We also saw him secretly pass Captain Bren a note and point toward the Chancellor's tower.",
+      "answer": "Alisson is Aldric’s brother and Lyra’s uncle. His return with the true crown now makes sense: the story confirms that he had been protecting it all along. He was not running away. His secret note to Bren and his return are parts of that revealed story.",
       "evidence_ids": [
         "caption-4",
         "caption-5",
@@ -618,29 +664,108 @@
       ],
       "visual": {
         "status": "ready",
-        "description": "Alisson, Aldric's brother and Lyra's paternal uncle, returns carrying the true crown. A shield symbolizes the newly confirmed explanation: he protected the crown all along, rather than running away.",
-        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson, Aldric's brother and Lyra's paternal uncle, returns carrying the true crown. A shield symbolizes the newly confirmed explanation: he protected the crown all along, rather than running away.\"><rect width=\"960\" height=\"540\" fill=\"#141b29\"/><g transform=\"translate(0 -128)\"><rect x=\"28\" y=\"154\" width=\"306\" height=\"486\" rx=\"18\" fill=\"#202d40\"/><rect x=\"354\" y=\"154\" width=\"578\" height=\"486\" rx=\"18\" fill=\"#1b2839\"/><g transform=\"translate(181 159) scale(1.25) translate(-181 -159)\" font-family=\"Arial\" text-anchor=\"middle\"><line id=\"brother-link\" x1=\"128\" y1=\"190\" x2=\"219\" y2=\"190\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><text x=\"174\" y=\"176\" fill=\"#c5d2e2\" font-size=\"17\">brothers</text><circle cx=\"96\" cy=\"190\" r=\"31\" fill=\"#41978b\"/><circle cx=\"250\" cy=\"190\" r=\"31\" fill=\"#657eae\"/><path d=\"M77 207 Q96 181 115 207 M231 207 Q250 181 269 207\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><circle cx=\"96\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><circle cx=\"250\" cy=\"181\" r=\"9\" fill=\"#e4eff7\"/><text x=\"96\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Alisson</text><text x=\"250\" y=\"242\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Aldric</text><text x=\"250\" y=\"265\" fill=\"#bacade\" font-size=\"17\">King</text><line id=\"father-link\" x1=\"250\" y1=\"278\" x2=\"250\" y2=\"317\" stroke=\"#c1cfdf\" stroke-width=\"3\"/><polygon points=\"244,310 256,310 250,320\" fill=\"#c1cfdf\"/><text x=\"207\" y=\"300\" fill=\"#c5d2e2\" font-size=\"17\">father</text><circle cx=\"250\" cy=\"351\" r=\"30\" fill=\"#8e74af\"/><circle cx=\"250\" cy=\"342\" r=\"9\" fill=\"#e4eff7\"/><path d=\"M231 368 Q250 342 269 368\" fill=\"none\" stroke=\"#e4eff7\" stroke-width=\"7\"/><text x=\"250\" y=\"406\" fill=\"#ffffff\" font-size=\"23\" font-weight=\"700\">Lyra</text><text x=\"181\" y=\"490\" fill=\"#a8eadb\" font-family=\"Arial\" font-size=\"23\" font-weight=\"700\">Lyra's uncle</text></g><g transform=\"translate(643 204) scale(1.1) translate(-643 -204)\" font-family=\"Arial\"><path id=\"coronation-door\" d=\"M401 375 L401 248 Q457 174 513 248 L513 375 Z\" fill=\"#111a28\" stroke=\"#788caf\" stroke-width=\"5\"/><path d=\"M401 375 L401 248 L421 259 L421 375 M513 375 L513 248 L493 259 L493 375\" fill=\"#425674\" stroke=\"#788caf\" stroke-width=\"3\"/><path id=\"protection-shield\" d=\"M690 206 L777 231 L766 310 Q748 350 690 366 Q632 350 614 310 L603 231 Z\" fill=\"#224239\" stroke=\"#68cbb0\" stroke-width=\"4\"/><line x1=\"386\" y1=\"377\" x2=\"900\" y2=\"377\" stroke=\"#8195b2\" stroke-width=\"3\"/><g transform=\"translate(620 260)\"><g id=\"crown-carrier\"><circle cx=\"0\" cy=\"-27\" r=\"22\" fill=\"#f0cdb6\"/><path d=\"M-21 0 L21 0 L34 78 L-34 78 Z\" fill=\"#41978b\"/><path d=\"M-15 78 L-19 111 M15 78 L20 111\" fill=\"none\" stroke=\"#b4d9d0\" stroke-width=\"10\" stroke-linecap=\"round\"/><path d=\"M-13 22 L23 50 L77 37 M18 15 L42 38 L90 37\" fill=\"none\" stroke=\"#a5e0cc\" stroke-width=\"10\" stroke-linecap=\"round\"/><g id=\"true-crown\"><polygon points=\"47,3 58,16 73,-1 87,16 99,3 94,31 52,31\" fill=\"#edc766\" stroke=\"#fff0b6\" stroke-width=\"3\"/><rect x=\"52\" y=\"28\" width=\"42\" height=\"8\" rx=\"3\" fill=\"#ebaf4e\"/><circle cx=\"73\" cy=\"21\" r=\"5\" fill=\"#58b8b4\"/></g></g></g><text x=\"842\" y=\"269\" text-anchor=\"middle\" fill=\"#a8eadb\" font-size=\"20\" font-weight=\"700\">Protected</text><text x=\"842\" y=\"296\" text-anchor=\"middle\" fill=\"#d3e8df\" font-size=\"18\">all along</text><text x=\"642\" y=\"411\" text-anchor=\"middle\" fill=\"#a8eadb\" font-size=\"21\" font-weight=\"700\">Alisson returns with the true crown</text></g></g></svg>",
+        "description": "Alisson’s family link stays above. The true crown arrives inside a shield, which is a symbol of the newly confirmed explanation: he protected the crown all along, rather than running away.",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 540\" width=\"100%\" height=\"100%\" role=\"img\" aria-label=\"Alisson’s family link stays above. The true crown arrives inside a shield, which is a symbol of the newly confirmed explanation: he protected the crown all along, rather than running away.\"><rect width=\"960\" height=\"540\" fill=\"#202228\"/><g font-family=\"Arial, sans-serif\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><text x=\"54\" y=\"74\" font-size=\"52\" fill=\"#ffad33\" text-anchor=\"start\" font-weight=\"600\">Alisson</text><text x=\"450\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Aldric</text><text x=\"810\" y=\"74\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"start\" font-weight=\"500\">Lyra</text><path d=\"M245 56H408 M625 56H766\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><text x=\"326\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">brothers</text><text x=\"700\" y=\"124\" font-size=\"46\" fill=\"#bec4cf\" text-anchor=\"middle\" font-weight=\"500\">father</text><path d=\"M750 44L766 56L750 68\" fill=\"none\" stroke=\"#bec4cf\" stroke-width=\"4\"/><path d=\"M48 163H912\" stroke=\"#454a54\" stroke-width=\"2\"/><path id=\"crown-shield\" d=\"M480 214L650 269V349Q650 408 480 458Q310 408 310 349V269Z\" fill=\"#2a3935\" stroke=\"#a5ddc5\" stroke-width=\"7\"/><g transform=\"translate(480 324)\"><g id=\"protected-crown\"><path d=\"M-110 42L-132 -58L-66 -18L0 -94L66 -18L132 -58L110 42Z\" fill=\"#3c3020\" stroke=\"#ffad33\" stroke-width=\"9\"/><path d=\"M-110 62H110\" stroke=\"#ffad33\" stroke-width=\"14\"/><path d=\"M0 -38L18 -12L0 14L-18 -12Z\" fill=\"#ffad33\"/><circle cx=\"-78\" cy=\"4\" r=\"10\" fill=\"#ffad33\"/><circle cx=\"78\" cy=\"4\" r=\"10\" fill=\"#ffad33\"/></g></g><text x=\"480\" y=\"512\" font-size=\"52\" fill=\"#f1f1f1\" text-anchor=\"middle\" font-weight=\"600\">He protected it all along</text></g></svg>",
         "animations": [
           {
-            "target_id": "crown-carrier",
-            "duration_ms": 4800,
+            "target_id": "protected-crown",
+            "duration_ms": 5000,
             "delay_ms": 0,
             "keyframes": [
               {
                 "opacity": 1,
-                "transform": "translate(-150px, 0px)"
+                "transform": "translate(-170px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-170px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-170px, 0px)"
               },
               {
                 "opacity": 1,
-                "transform": "translate(20px, 0px)"
+                "transform": "translate(-113.333px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "translate(-56.667px, 0.0px)"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              }
+            ]
+          },
+          {
+            "target_id": "crown-shield",
+            "duration_ms": 5000,
+            "delay_ms": 0,
+            "keyframes": [
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 0.4,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
+              },
+              {
+                "opacity": 1,
+                "transform": "none"
               }
             ]
           }
@@ -654,7 +779,8 @@
         "Why is Alisson missing?"
       ],
       "content_version": "da96ac0c7bcbe6fd0d995ed90d2f61d6d74f08fd8dda69d4bab8d8a1d9fff756",
-      "evidence_sha256": "ddc33cca459165bcd7a362d6ec56ef895b202bc514f5d3213e8ef07051bf2600"
+      "evidence_sha256": "ddc33cca459165bcd7a362d6ec56ef895b202bc514f5d3213e8ef07051bf2600",
+      "tv_answer": "Alisson is Aldric’s brother and Lyra’s uncle. He returned with the true crown. The story now confirms that he had protected it all along, rather than running away."
     }
   ]
 }

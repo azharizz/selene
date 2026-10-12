@@ -5,6 +5,11 @@ import {createVideoPlayer} from 'expo-video';
 import type {VideoPlayer} from 'expo-video';
 import {mediaUrl} from './api';
 
+const offlineDemos: Record<string, number> = {
+  'football-match': require('../assets/offline/football-match.mp4'),
+  'the-missing-crown': require('../assets/offline/the-missing-crown.mp4'),
+};
+
 export type FilmEvent = 'loadedmetadata' | 'play' | 'pause' | 'playing' | 'waiting' | 'seeking' | 'seeked' | 'ended' | 'timeupdate' | 'error';
 
 export class NativeFilm {
@@ -42,9 +47,9 @@ export class NativeFilm {
   get duration() {return this.player.duration;}
   get errorCode() {return this.player.status === 'error' ? 1 : 0;}
 
-  load(video: string) {
+  load(video: string, contentId: string) {
     this.loaded = false; this.finished = false;
-    this.player.replace({uri: mediaUrl(video)}, true);
+    this.player.replace(offlineDemos[contentId] ?? {uri: mediaUrl(video)}, true);
   }
 
   // Resolves once ExoPlayer reports playing (callers check `paused` right after), or after 3s.

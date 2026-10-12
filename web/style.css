@@ -113,7 +113,7 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
 .moment.compact .answer {flex: 1; min-width: 0}
 .moment.compact .answer h2 {font-size: calc(18px * var(--selene-text-scale)); line-height: 1.3; font-weight: 500}
 .moment.compact .answer .small {font-size: calc(16px * var(--selene-text-scale)); margin-top: 6px}
-.moment.compact .visual {order: -1; flex: 0 0 160px; width: 160px; height: 90px; max-height: none; aspect-ratio: 16 / 9}
+.moment.compact .visual {order: -1; flex: 0 0 240px; width: 240px; height: 135px; max-height: none; aspect-ratio: 16 / 9}
 .moment.compact .visual-fallback {font-size: 14px; padding: 0; gap: 4px; border: 0; overflow: auto}
 .moment.compact footer {margin: 0; display: flex; flex-direction: column; gap: 0; flex: 0 0 32px}
 .moment.compact button:not(.animated-visual) {min-height: 32px; width: 32px; padding: 5px; font-size: 16px; background: transparent; border-radius: 8px}
@@ -157,7 +157,7 @@ video {width: 100%; height: 100%; object-fit: contain; display: block}
   .sheet-head {align-items: flex-start}
   .moment-content {grid-template-columns: 1fr}
   .moment.compact {width: 90%}
-  .moment.compact .visual {flex-basis: 120px; width: 120px; height: 68px}
+  .moment.compact .visual {flex-basis: 160px; width: 160px; height: 90px}
   .moment .visual {max-height: 32vh}
   .companion-heading {flex-wrap: wrap; gap: 18px}
   .playback-status {display: none}

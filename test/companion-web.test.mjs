@@ -46,13 +46,13 @@ test('rendered answer DOM shows only host-declared audience across web surfaces'
     return Array.from(dom.getElementsByTagName('span')).filter(node => node.getAttribute('class') === 'audience-badge');
   };
   for (const audience of [undefined, {recipient: 'child', source: 'declaration'}, {recipient: 'grandparent', source: 'declaration'},
-    {recipient: 'child', source: 'profile'}, {recipient: 'everyone', source: 'request'}]) {
+    {recipient: 'child', source: 'profile'}, {recipient: 'everyone', source: 'request'}, {recipient: 'child', source: 'fixture'}]) {
     const answer = {...moment, answer: 'I am a grandparent. This text must not identify the audience.', ...(audience ? {audience} : {})};
     const bridge = {status: 'ready', from_seconds: 1, through_seconds: 2, moment: answer, evidence: []};
     companion.state.screen = 'moment'; companion.state.moment = answer;
     own.state.screen = 'moment'; own.state.moment = answer;
     phone.state.moment = answer; phone.state.bridge = null;
-    const expected = audience ? `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}` : null;
+    const expected = audience ? `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected', fixture: 'demo'}[audience.source]}` : null;
     for (const surface of [companion, own, phone]) {
       const nodes = badges(surface);
       assert.equal(nodes.length, expected ? 1 : 0);
@@ -702,6 +702,37 @@ test('phone Send and catch-up retain captured samples across delayed requests an
   phone.componentWillUnmount();
 });
 
+test('a prepared phone answer replaces TV-only state and exposes its SVG and Follow thread action', async () => {
+  const {context} = instance();
+  const phone = new context.module.exports.PrivateMirror({token: 'test'});
+  const story = {id: 'the-missing-crown', title: 'The Missing Crown', transcript: [], scenes: []};
+  const playback = {content_id: story.id, content_version: 'a'.repeat(64), epoch: 0, sequence: 1,
+    at_seconds: 63, age_ms: 0, fresh: true, play_state: 'paused', playback_rate: 1};
+  const question = 'Who is Alisson and why is he missing?';
+  const prepared = {...moment, answer: 'Alisson is Aldric’s brother. His chair is empty; why he is missing is not yet known.',
+    visual: {status: 'ready', svg: '<svg viewBox="0 0 960 540"><rect id="empty-seat" x="400" y="200" width="100" height="100"/></svg>',
+      description: 'Alisson’s empty seat.', animations: [{target_id: 'empty-seat', duration_ms: 1600, delay_ms: 0,
+        keyframes: [{opacity: 0.4, transform: 'none'}, {opacity: 1, transform: 'none'}]}]},
+    grounding: {content_id: story.id, scene_id: 'council', at_seconds: 63, evidence_ids: ['caption-33']}};
+  const held = {id: 'branch', from_seconds: 63, content_version: playback.content_version, epoch: 0, question_at_seconds: 63};
+  context.fetch = async (url, options) => {
+    const input = JSON.parse(options.body);
+    if (url.endsWith('/assistant')) return {ok: true, json: async () => ({tool: 'explain_moment', delegate: true, text: ''})};
+    if (url.endsWith('/hold')) return {ok: true, json: async () => ({hold: held, playback})};
+    if (url.endsWith('/ask')) return {ok: true, json: async () => ({id: 'help', request: input.request, at_seconds: 63,
+      moment: prepared, evidence: [], quote: null, hold: held, thread: null})};
+    assert.fail(`Unexpected phone request ${url}`);
+  };
+  phone.mounted = true;
+  phone.state = {...phone.state, story, playback, connection: 'connected', mirrorOnly: true, receivedAt: Date.now(), request: question};
+  await phone.ask();
+  assert.equal(phone.state.mirrorOnly, false);
+  const walk = node => !node || typeof node !== 'object' ? [] : [node, ...[node.props?.children].flat(Infinity).flatMap(walk)];
+  const rendered = walk(phone.render());
+  assert.ok(rendered.some(node => node.type === context.module.exports.Visual && node.props.visual.svg === prepared.visual.svg));
+  assert.ok(rendered.some(node => node.type === 'button' && node.props['aria-label'] === 'Follow this thread'));
+});
+
 test('thread updates wait through typing and read-aloud, keep the marker, and can continue after a first update', async () => {
   const {context, streams} = instance();
   const phone = new context.module.exports.PrivateMirror({token: 'test'}); phone.componentDidMount();
@@ -715,6 +746,7 @@ test('thread updates wait through typing and read-aloud, keep the marker, and ca
   let finish, calls = 0;
   context.fetch = async () => {calls++; return new Promise(resolve => {finish = resolve;});};
   const checking = phone.checkThread(); phone.editing = true; phone.state.request = 'My draft';
+  assert.ok(phone.nextThreadCheck - Date.now() < 6000, 'thread polling must fit inside the live playback freshness window');
   const updated = {...thread, revision: 1, checked_through_seconds: 45,
     help: {...help, at_seconds: 45, moment: {...help.moment, answer: 'A new supported development.', grounding: {...help.moment.grounding, at_seconds: 45},
       visual: {status: 'ready', description: 'A figure is revealed.', svg: '<svg viewBox="0 0 960 540"><g id="figure"><circle cx="480" cy="270" r="60" fill="#ffad33"/></g></svg>',

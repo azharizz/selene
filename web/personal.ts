@@ -12,8 +12,8 @@ export type ConversationOptions = {id: string; content_id: string; content_versi
   opportunity: 'ending' | 'break' | 'reflection'; boundary_id: string;
   options: {id: string; angle: string; question: string; recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; evidence_ids: string[]}[]};
 export type PersonalHold = {id: string; from_seconds: number; content_version: string; epoch: number; question_at_seconds: number | null};
-export type Audience = {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request'};
-export const audienceLabel = (audience: Audience) => `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected'}[audience.source]}`;
+export type Audience = {recipient: 'grandparent' | 'parent' | 'child' | 'adult' | 'everyone'; source: 'declaration' | 'profile' | 'request' | 'fixture'};
+export const audienceLabel = (audience: Audience) => `For ${audience.recipient} · ${{declaration: 'stated', profile: 'profile', request: 'selected', fixture: 'demo'}[audience.source]}`;
 export type PersonalMoment = {state: 'quiet' | 'response' | 'clarification'; answer: string; visual: VisualArtifact;
   audience?: Audience;
   intervention: {playback: 'keep_watching' | 'offer_choice' | 'request_pause'; audio: 'silent'};

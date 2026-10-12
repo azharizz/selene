@@ -11,6 +11,7 @@ import {story, stories, getStory, registerStory, createMemory, companionContext,
 import {enrichCompanionContext} from './external-context.mjs';
 import {playerStory, conflict, recordPlayback, playbackSnapshot, requirePlayback, guidedReturn, captionsVtt} from './personal.mjs';
 import {privateAction, privateState, publicThread, validatePrivateAction} from './private-actions.mjs';
+import {isDemoPreparedQuestion} from './demo-fixtures.mjs';
 import {mcpRequest, mcpAccess} from './mcp.mjs';
 import {skillsRequest, skillTools, runSkill} from './skills.mjs';
 import {assist} from './assistant.mjs';
@@ -161,7 +162,7 @@ export const server = createServer(async (req, res) => {
     }
     if (url.pathname.startsWith('/api/') && req.method === 'POST') {
       const origin = req.headers.origin;
-      if (origin && origin !== `http://${host}` && origin !== `https://${host}`) return send(res, 403, {error: 'Cross-origin request rejected'});
+      if (origin && origin !== `http://${host}` && origin !== `https://${host}` && (!phoneHost || origin !== `https://${phoneHost}`)) return send(res, 403, {error: 'Cross-origin request rejected'});
       if (req.headers['content-type']?.split(';')[0] !== 'application/json') return send(res, 415, {error: 'JSON required'});
       let size = 0; const chunks = [];
       const phoneVoice = /^\/api\/private\/([0-9a-f-]{36})\/voice$/.exec(url.pathname);
@@ -357,6 +358,8 @@ export const server = createServer(async (req, res) => {
           || Object.keys(input).some(key => !['request', 'requester_id'].includes(key))) return send(res, 400, {error: 'Invalid assistant request'});
         const playback = playbackSnapshot(session);
         if (!session.contentId || !playback?.fresh) return send(res, 409, {error: 'The TV position is unavailable. Keep Selene open on the TV and try again.'});
+        if (isDemoPreparedQuestion({...input, at_seconds: playback.at_seconds}, sceneContext(playback.at_seconds, getStory(session.contentId))))
+          return send(res, 200, {tool: 'explain_moment', delegate: true, text: ''});
         const mirror = session.mirror, controller = startRequest(mirror, res);
         try {
           // Phone routing, recap memory and communication preferences never mutate the TV's own help.
