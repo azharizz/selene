@@ -1,0 +1,210 @@
+<!doctype html>
+<!-- README art for SELENE. One page, four scenes: ?s=banner | loop | arch | evidence.
+     Every frame is a pure function of t (window.seek), so generate-readme-assets.py can render exact GIF loops. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Inter;src:url(fonts/Inter.ttf);font-weight:100 900}
+@font-face{font-family:Fraunces;src:url(fonts/Fraunces-Italic.ttf);font-style:italic;font-weight:100 900}
+@font-face{font-family:JBM;src:url(fonts/JetBrainsMono.ttf);font-weight:100 800}
+:root{--ink:#07080d;--gold:#ffc56b;--orange:#ff9900;--silver:#e8ecf6;--muted:#8b91a7;--cyan:#3bd3ff;--mint:#7fe0b0;--red:#ff6b5b;--line:rgba(232,236,246,.14)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--ink);overflow:hidden}
+body{font-family:Inter,sans-serif;color:var(--silver);-webkit-font-smoothing:antialiased}
+#stage{position:relative;overflow:hidden;background:radial-gradient(1400px 800px at 70% 10%,#1c2457 0%,#0f1330 45%,#07080d 100%)}
+.a{position:absolute}
+.label{font-size:15px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.serif{font-family:Fraunces,serif;font-style:italic}
+.mono{font-family:JBM,monospace}
+.card{background:linear-gradient(180deg,rgba(26,31,63,.94),rgba(13,16,38,.94));border:1px solid var(--line);border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:8px 18px;border-radius:999px;border:1px solid rgba(232,236,246,.22);background:rgba(20,23,48,.8);font-weight:600;white-space:nowrap}
+.k{color:var(--orange);font-weight:700}
+canvas.sky{position:absolute;inset:0}
+</style></head><body><div id="stage"></div>
+<script>
+'use strict';
+// the real Selene mark (selene/assets/selene-mark.svg), viewBox 0 0 48 48
+const MARK = 'M36 36A20 20 0 1 1 36 8 17 17 0 1 0 36 36Z';
+const logo = (s, c = '#ff9900') => `<svg width="${s}" height="${s}" viewBox="0 0 48 48"><path d="${MARK}" fill="${c}"/></svg>`;
+const S = new URLSearchParams(location.search).get('s') || 'banner';
+const st = document.getElementById('stage');
+const h = (html, p = st) => { const t = document.createElement('template'); t.innerHTML = html.trim(); const e = t.content.firstChild; p.appendChild(e); return e; };
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const io = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const hash = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+// star field; tw = twinkle phase in radians (callers pass whole cycles per loop)
+function sky(w, hh, n, seed = 1) {
+  const c = h(`<canvas class="sky" width="${w}" height="${hh}"></canvas>`); const g = c.getContext('2d');
+  const stars = Array.from({ length: n }, (_, i) => [hash(i + seed) * w, hash(i * 3 + seed) * hh, .4 + hash(i * 7 + seed) * 1.4, hash(i * 11 + seed) * 6.28]);
+  return tw => { g.clearRect(0, 0, w, hh); stars.forEach(([x, y, r, ph]) => { g.globalAlpha = .25 + .55 * (.5 + .5 * Math.sin(tw + ph)); g.fillStyle = r > 1.4 ? '#ffe3a6' : '#e8ecf6'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }); };
+}
+const SCENES = {};
+let RENDER = () => {};
+
+// ------------------------------------------------------------------ banner 2400x760
+SCENES.banner = () => {
+  st.style.cssText = 'width:2400px;height:760px';
+  sky(2400, 760, 420, 3)(1.3);
+  h(`<svg class="a" width="2400" height="760" style="left:0;top:0"><path d="M-40 640 Q900 60 2440 260" fill="none" stroke="rgba(255,197,107,.22)" stroke-width="2" stroke-dasharray="2 10"/></svg>`);
+  h(`<div class="a" style="left:-80px;top:-60px;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(255,153,0,.20),rgba(255,153,0,.04) 45%,transparent 68%)"></div>`);
+  h(`<div class="a" style="left:150px;top:150px;display:flex;align-items:center;gap:40px">${logo(230)}
+      <div style="font-size:230px;font-weight:600;letter-spacing:-.03em;line-height:1">selene</div></div>`);
+  h(`<div class="a" style="left:162px;top:420px;font-size:44px;letter-spacing:-.01em;color:#c9cee0"><span class="k">S</span>ee &amp; <span class="k">LE</span>arn through <span class="k">N</span>arrative <span class="k">E</span>xplanation</div>`);
+  h(`<div class="a serif" style="left:162px;top:494px;font-size:50px;color:var(--gold);font-weight:350">Ask about the moment. Selene explains it, then steps aside.</div>`);
+  h(`<div class="a" style="left:162px;top:604px;display:flex;gap:16px;font-size:26px">
+      <span class="chip"><span style="width:10px;height:10px;border-radius:50%;background:var(--orange)"></span>Vega OS</span>
+      <span class="chip"><span style="width:10px;height:10px;border-radius:50%;background:var(--orange)"></span>Fire OS</span>
+      <span class="chip"><span style="width:12px;height:12px;border-radius:50%;border:2.5px solid var(--cyan)"></span>Alexa+ ready · MCP</span>
+      <span class="chip">SVG ⇄ AVG</span></div>`);
+  h(`<div class="a" style="left:1500px;top:110px;width:780px;height:439px;border-radius:18px;padding:10px;background:#0b0c12;box-shadow:0 0 0 1.5px rgba(232,236,246,.14),0 50px 120px rgba(0,0,0,.6)">
+      <img src="tv-answer.jpg" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block"></div>`);
+  h(`<div class="a" style="left:1830px;top:549px;width:120px;height:40px;background:linear-gradient(#15161d,#0b0c12);clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)"></div>`);
+  h(`<div class="a" style="left:2140px;top:300px;width:200px;height:400px;border-radius:30px;padding:9px;background:#0b0c12;box-shadow:0 0 0 1.5px rgba(232,236,246,.18),0 40px 90px rgba(0,0,0,.65)">
+      <img src="phone-offside.jpg" style="width:100%;height:100%;object-fit:cover;object-position:top;border-radius:22px;display:block"></div>`);
+};
+
+// ------------------------------------------------------------------ the moment loop 1600x760, 6 s
+SCENES.loop = () => {
+  st.style.cssText = 'width:1600px;height:760px';
+  const sk = sky(1600, 760, 220, 9);
+  h(`<div class="a" style="left:80px;top:56px;display:flex;align-items:center;gap:14px">${logo(30)}<span class="label">The Selene moment</span></div>`);
+  h(`<div class="a" style="left:80px;top:96px;font-size:46px;font-weight:700;letter-spacing:-.03em">Ask. Read the moment. Draw it. <span class="serif" style="color:var(--gold);font-weight:400">Step aside.</span></div>`);
+  const X = [80, 460, 840, 1220], Y = 200, W = 300, HH = 400;
+  const T = [['01', 'Ask', 'Voice, D-pad, or the paired phone. One question, no chat thread.'],
+    ['02', 'Read the moment', 'Completed captions up to now, frames t−10…+10 s, the film’s own graph.'],
+    ['03', 'Draw it', 'One Moment Response, rendered as animated SVG or as AVG for Alexa.'],
+    ['04', 'Step aside', 'Placed away from the action; playback never stops unless you ask.']];
+  const cards = T.map(([n, a, b], i) => h(`<div class="a card" style="left:${X[i]}px;top:${Y}px;width:${W}px;height:${HH}px;padding:26px">
+      <div class="serif" style="font-size:30px;color:var(--gold)">${n}</div>
+      <div style="font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:2px">${a}</div>
+      <div style="font-size:18px;line-height:1.45;color:#b7bcd0;margin-top:10px">${b}</div>
+      <svg class="viz" width="248" height="150" viewBox="0 0 248 150" style="position:absolute;left:26px;bottom:24px"></svg></div>`));
+  const viz = cards.map(c => c.querySelector('.viz'));
+  viz[0].innerHTML = `${Array.from({ length: 20 }, (_, i) => `<rect class="b" x="${18 + i * 11}" y="40" width="6" height="10" rx="3" fill="#ff9900"/>`).join('')}
+    <rect x="18" y="98" width="212" height="40" rx="20" fill="#1e2342" stroke="rgba(232,236,246,.25)"/><text x="124" y="124" text-anchor="middle" font-family="Fraunces" font-style="italic" font-size="20" fill="#e8ecf6">“What is offside?”</text>`;
+  viz[1].innerHTML = `<line x1="10" y1="70" x2="238" y2="70" stroke="rgba(232,236,246,.25)" stroke-width="2"/>
+    ${[-10, -8, -6, -4, -2, 2, 4, 6, 8, 10].map(d => `<rect class="fr" x="${124 + d * 11 - 8}" y="34" width="16" height="22" rx="3" fill="#7fe0b0"/>`).join('')}
+    <line x1="124" y1="22" x2="124" y2="118" stroke="#ff9900" stroke-width="3"/><text x="124" y="16" text-anchor="middle" font-family="JBM" font-size="12" fill="#ff9900">now</text>
+    ${[0, 1, 2, 3].map(i => `<rect class="cp" x="${14 + i * 27}" y="86" width="22" height="10" rx="5" fill="#ffc56b"/>`).join('')}
+    ${[0, 1, 2, 3].map(i => `<rect x="${132 + i * 27}" y="86" width="22" height="10" rx="5" fill="rgba(232,236,246,.12)"/>`).join('')}
+    <text x="14" y="138" font-family="Inter" font-size="13" fill="#8b91a7">captions ≤ now · no spoilers</text>`;
+  viz[2].innerHTML = `<rect x="6" y="40" width="236" height="96" rx="10" fill="rgba(70,160,100,.14)" stroke="rgba(127,224,176,.5)" stroke-width="2"/>
+    <line x1="156" y1="46" x2="156" y2="130" stroke="#e8ecf6" stroke-width="2" stroke-dasharray="5 5"/>
+    <circle cx="40" cy="104" r="8" fill="#ffc56b"/><rect x="150" y="104" width="13" height="13" rx="3" fill="#8fb3ff"/>
+    <path class="ps" d="M40 104 L156 70" stroke="#ffc56b" stroke-width="3" fill="none" pathLength="1" stroke-dasharray="1 1"/><circle cx="156" cy="70" r="8" fill="#ffc56b" stroke="#fff" stroke-width="2"/>
+    <rect x="54" y="2" width="140" height="28" rx="14" fill="#1e2342"/><rect class="kn" y="5" width="60" height="22" rx="11"/><text class="ts" x="86" y="21" text-anchor="middle" font-family="Inter" font-weight="800" font-size="13">SVG</text>
+    <text class="ta" x="162" y="21" text-anchor="middle" font-family="Inter" font-weight="800" font-size="13">AVG</text>`;
+  viz[3].innerHTML = `<rect x="4" y="4" width="240" height="135" rx="10" fill="#14361f" stroke="rgba(232,236,246,.25)" stroke-width="2"/>
+    <rect x="182" y="46" width="56" height="54" rx="6" fill="none" stroke="#ff6b5b" stroke-width="2.5"/><text x="210" y="116" text-anchor="middle" font-family="Inter" font-weight="700" font-size="11" fill="#ff6b5b">goal</text>
+    <rect class="pn" y="14" width="96" height="44" rx="7" fill="rgba(13,16,38,.92)" stroke="#ff9900" stroke-width="2"/>
+    <g class="cr"><path d="${MARK}" fill="#ff9900" transform="translate(14,96) scale(.6)"/></g>`;
+  const edges = h(`<svg class="a" width="1600" height="760" style="left:0;top:0">${[0, 1, 2].map(i => `<path class="e" d="M${X[i] + W + 6} ${Y + 200} L${X[i + 1] - 6} ${Y + 200}" stroke="#ff9900" stroke-width="3" stroke-dasharray="4 10" stroke-linecap="round"/>`).join('')}
+    <path class="e" d="M${X[3] + W / 2} ${Y + HH + 8} C${X[3] + W / 2} ${Y + HH + 70} ${X[0] + W / 2} ${Y + HH + 70} ${X[0] + W / 2} ${Y + HH + 8}" fill="none" stroke="rgba(232,236,246,.3)" stroke-width="2" stroke-dasharray="4 10"/></svg>`);
+  h(`<div class="a" style="left:0;top:${Y + HH + 50}px;width:1600px;text-align:center;font-size:19px;color:var(--muted)">Playback keeps playing &nbsp;·&nbsp; nothing past the sampled moment &nbsp;·&nbsp; silent by default &nbsp;·&nbsp; the next question starts fresh</div>`);
+  const L = 6, w = 2 * Math.PI / L;  // every periodic term completes whole cycles in L, so the GIF loops seamlessly
+  RENDER = t => {
+    sk(t * w * 2);
+    const act = Math.floor((t % L) / 1.5);
+    cards.forEach((c, i) => { const on = i === act; c.style.boxShadow = on ? '0 0 0 2px #ff9900,0 0 60px rgba(255,153,0,.28),0 30px 80px rgba(0,0,0,.45)' : ''; c.style.transform = `translateY(${on ? -8 : 0}px)`; });
+    edges.querySelectorAll('.e').forEach(e => e.style.strokeDashoffset = (-t * 28).toFixed(1));
+    viz[0].querySelectorAll('.b').forEach((b, i) => { const v = .15 + .85 * Math.abs(Math.sin(t * w * 4 + i * .7)); b.setAttribute('height', (6 + v * 44).toFixed(1)); b.setAttribute('y', (72 - (6 + v * 44) / 2).toFixed(1)); });
+    const ph = (t % L) / L;
+    viz[1].querySelectorAll('.fr').forEach((f, i) => f.style.opacity = P(ph, .05 + i * .05, .1 + i * .05) * (1 - P(ph, .92, 1)));
+    viz[1].querySelectorAll('.cp').forEach((f, i) => f.style.opacity = P(ph, .2 + i * .06, .26 + i * .06) * (1 - P(ph, .92, 1)));
+    viz[2].querySelector('.ps').style.strokeDashoffset = (1 - io(P(ph, .1, .4)) * (1 - P(ph, .9, 1))).toFixed(3);
+    const avg = ph > .5 && ph < .95, kn = viz[2].querySelector('.kn');
+    kn.setAttribute('x', avg ? 132 : 56); kn.setAttribute('fill', avg ? 'rgba(59,211,255,.25)' : 'rgba(255,153,0,.25)');
+    viz[2].querySelector('.ts').setAttribute('fill', avg ? '#8b91a7' : '#ff9900'); viz[2].querySelector('.ta').setAttribute('fill', avg ? '#3bd3ff' : '#8b91a7');
+    const pn = viz[3].querySelector('.pn');
+    const mv = io(P(ph, .25, .4)) - io(P(ph, .9, 1)), hide = io(P(ph, .5, .6)) - io(P(ph, .8, .9));
+    pn.setAttribute('x', (138 - 124 * clamp(mv)).toFixed(1)); pn.style.opacity = (1 - hide).toFixed(2);
+    viz[3].querySelector('.cr').style.opacity = hide.toFixed(2);
+  };
+};
+
+// ------------------------------------------------------------------ architecture 1600x940, 2 s marching loop
+SCENES.arch = () => {
+  st.style.cssText = 'width:1600px;height:940px';
+  const sk = sky(1600, 940, 200, 5);
+  h(`<div class="a" style="left:60px;top:44px;display:flex;align-items:center;gap:14px">${logo(30)}<span class="label">How Selene is built</span></div>`);
+  const box = (x, y, w, hh, title, sub, col = 'rgba(232,236,246,.16)', dash = false) => h(`<div class="a card" style="left:${x}px;top:${y}px;width:${w}px;height:${hh}px;padding:20px 22px;border:${dash ? '2px dashed' : '1.5px solid'} ${col}">
+      <div style="font-size:23px;font-weight:700;letter-spacing:-.01em">${title}</div><div style="font-size:15.5px;line-height:1.45;color:#aab0c6;margin-top:6px">${sub}</div></div>`);
+  box(60, 120, 330, 150, 'Vega OS TV app', 'React Native for Vega · Media Controls sessions · WebView answer surface');
+  box(60, 300, 330, 150, 'Fire OS app', 'Android TV build · same relay contract · Select-hold voice');
+  box(60, 480, 330, 150, 'Paired phone', 'Private SVG explainer · type or speak · 6-digit, single-use code');
+  box(60, 660, 330, 150, 'Alexa+ <span style="font-weight:500;color:var(--cyan)">when access opens</span>', 'Same MCP skills a real add-on uses · simulated in-app today', 'rgba(59,211,255,.7)', true);
+  const R = h(`<div class="a card" style="left:520px;top:120px;width:580px;height:690px;padding:26px;border:1.5px solid rgba(255,153,0,.55);box-shadow:0 0 70px rgba(255,153,0,.14),0 30px 80px rgba(0,0,0,.45)">
+      <div style="display:flex;align-items:center;gap:14px">${logo(44)}<div><div style="font-size:30px;font-weight:700;letter-spacing:-.02em">Selene relay</div><div style="font-size:16px;color:var(--muted)">Node.js · credentials never reach the TV</div></div></div>
+      <div class="mods" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px"></div>
+      <div style="position:absolute;left:26px;right:26px;bottom:20px;font-size:15px;color:var(--muted);line-height:1.6"><div>Deployed on AWS Lightsail · us-east-1</div><div class="mono" style="font-size:13.5px">/api/moment · /api/placement · /api/skills/mcp · /api/assistant</div></div></div>`);
+  const MODS = [['Moment agent', 'answer + animated SVG / WAAPI'], ['Rendered feedback', 'headless Chromium, ≤ 2 revisions'], ['Smart placement', 'YOLOX-Nano, local, 2 s deadline'],
+    ['SVG → AVG 1.2', 'same answer for Alexa / APL'], ['Skills MCP server', 'explain · catch up · trivia · playback'], ['Simulated Alexa+', 'MCP client + tool-choice routing'],
+    ['Thread + Catch me up', 'reviewed, spoiler-bounded updates'], ['Conversation agent', 'schedules “something to talk about”'], ['Voice personalization', 'consented, local ECAPA match'],
+    ['Pairing + private routes', 'token-scoped phone access']];
+  const mods = MODS.map(([a, b]) => h(`<div style="padding:12px 14px;border-radius:14px;background:rgba(7,8,13,.45);border:1px solid var(--line)"><div style="font-size:17px;font-weight:700">${a}</div><div style="font-size:13.5px;color:#9aa0b8;margin-top:3px">${b}</div></div>`, R.querySelector('.mods')));
+  box(1230, 120, 310, 170, 'Model provider', '<span class="mono" style="font-size:13.5px">AGENT_PROVIDER_MODEL</span><br>HTTPS · strict structured outputs · function calls', 'rgba(255,197,107,.6)');
+  box(1230, 330, 310, 190, 'Film evidence', 'Completed captions up to the sampled time · per-film caption graph · source frames t−10…+10 s · prepared examples');
+  box(1230, 560, 310, 170, 'Local models', 'YOLOX-Nano ONNX placement · ECAPA speaker match · APL viewhost (WASM) preview');
+  const E = h(`<svg class="a" width="1600" height="940" style="left:0;top:0">
+      ${[195, 375, 555].map(y => `<path class="m" d="M390 ${y} L520 ${y}" stroke="#ff9900" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>`).join('')}
+      <path class="m" d="M390 735 C460 735 450 700 520 700" stroke="#3bd3ff" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
+      <path class="m" d="M1100 205 L1230 205" stroke="#ffc56b" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
+      <path class="m" d="M1100 425 L1230 425" stroke="rgba(232,236,246,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
+      <path class="m" d="M1100 645 L1230 645" stroke="rgba(232,236,246,.55)" stroke-width="3" fill="none" stroke-dasharray="6 10" stroke-linecap="round"/>
+    </svg>`);
+  h(`<div class="a" style="left:60px;top:850px;width:1480px;display:flex;gap:30px;font-size:16px;color:var(--muted);white-space:nowrap">
+      <span><b style="color:var(--orange)">━</b> viewer requests</span><span><b style="color:var(--cyan)">━</b> Alexa+ / MCP</span><span><b style="color:var(--gold)">━</b> model calls</span><span><b style="color:#c9cee0">━</b> evidence + local inference</span>
+      <span style="margin-left:auto">The model interprets · host code enforces playback, consent and safety</span></div>`);
+  const L = 2;
+  RENDER = t => { sk(t * Math.PI); E.querySelectorAll('.m').forEach(e => e.style.strokeDashoffset = (-t * 32).toFixed(1)); const k = Math.floor((t % L) / L * MODS.length); mods.forEach((m, i) => m.style.borderColor = k === i ? 'rgba(255,153,0,.7)' : ''); };
+};
+
+// ------------------------------------------------------------------ evidence window 1600x760, 6 s
+SCENES.evidence = () => {
+  st.style.cssText = 'width:1600px;height:760px';
+  const sk = sky(1600, 760, 180, 13);
+  h(`<div class="a" style="left:70px;top:50px;display:flex;align-items:center;gap:14px">${logo(30)}<span class="label">What the agent sees · Football Match · question at 0:17</span></div>`);
+  h(`<div class="a" style="left:70px;top:90px;font-size:44px;font-weight:700;letter-spacing:-.03em">Only this moment. <span class="serif" style="color:var(--gold);font-weight:400">Nothing said after it.</span></div>`);
+  const X0 = 90, X1 = 1130, CX = (X0 + X1) / 2, sx = d => CX + d * (X1 - X0) / 22;
+  h(`<div class="a" style="left:${X0}px;top:400px;width:${X1 - X0}px;height:3px;background:rgba(232,236,246,.2)"></div>`);
+  h(`<div class="a" style="left:${CX - 1.5}px;top:190px;width:3px;height:360px;background:var(--orange);box-shadow:0 0 18px var(--orange)"></div>`);
+  h(`<div class="a mono" style="left:${CX - 80}px;top:556px;width:160px;text-align:center;font-size:15px;color:var(--orange)">now · 0:17</div>`);
+  const D = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10], TT = [7, 9, 11, 13, 15, 19, 21, 23, 25, 27];
+  const thumbs = D.map((d, i) => h(`<div class="a" style="left:${sx(d) - 46}px;top:${i % 2 ? 300 : 222}px;width:92px;text-align:center">
+      <img src="frames/t${TT[i]}.jpg" style="width:92px;height:52px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1.5px rgba(127,224,176,.55)">
+      <div class="mono" style="font-size:12px;color:var(--mint);margin-top:3px">${d > 0 ? '+' : '−'}${Math.abs(d)} s</div></div>`));
+  const CAPS = [[9.9, 11.2, 'Lovely ball over the top!'], [11.4, 13.4, 'He’s in behind…'], [13.45, 14.7, 'but the flag is up!'], [15, 15.5, 'Offside!'], [15.5, 17.0, 'The striker can’t believe it.'],
+    [18.3, 19.4, 'Let’s see it again.'], [19.5, 21.5, 'As the ball is played…'], [21.6, 23.4, '…beyond the last defender.']];
+  const colL = h(`<div class="a" style="left:${X0}px;top:428px;width:${CX - X0 - 24}px;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end"></div>`);
+  const colR = h(`<div class="a" style="left:${CX + 24}px;top:428px;width:${X1 - CX - 24}px;display:flex;flex-wrap:wrap;gap:8px"></div>`);
+  const caps = CAPS.map(([a, b, s]) => { const past = b <= 17.4;
+    return h(`<div style="height:36px;border-radius:10px;padding:0 12px;display:flex;align-items:center;font-size:15px;white-space:nowrap;
+      ${past ? 'background:rgba(255,197,107,.16);border:1.5px solid rgba(255,197,107,.6);color:#ffe3a6' : 'background:rgba(232,236,246,.05);border:1.5px dashed rgba(232,236,246,.2);color:rgba(232,236,246,.4)'}">${past ? s : 'not sent'}</div>`, past ? colL : colR); });
+  h(`<div class="a" style="left:${X0}px;top:590px;display:flex;gap:26px;font-size:16px;color:var(--muted)"><span><b style="color:var(--mint)">■</b> source frames t−10…+10 s (pixels only)</span><span><b style="color:var(--gold)">■</b> completed captions ≤ now</span><span>┄ future dialogue is never sent</span></div>`);
+  const graph = h(`<div class="a chip" style="left:${X0}px;top:650px;font-size:16px">Film graph: <b>striker</b> · <b>last defender</b> · <b>assistant</b> · <b>number ten</b></div>`);
+  const out = h(`<div class="a card" style="left:1200px;top:200px;width:330px;height:470px;padding:24px">
+      <div style="display:flex;align-items:center;gap:10px">${logo(22)}<span class="label" style="font-size:13px">Moment Response</span></div>
+      ${['Answer · plain words', 'Visual · SVG ⇄ AVG', 'Playback · keeps playing', 'Follow-up · thread'].map(s => `<div class="row" style="display:flex;align-items:center;gap:12px;font-size:19px;margin-top:20px"><span style="width:24px;height:24px;border-radius:50%;background:var(--mint);display:inline-flex;align-items:center;justify-content:center;color:#07080d;font-weight:900;font-size:14px">✓</span>${s}</div>`).join('')}
+      <svg width="282" height="140" viewBox="0 0 282 140" style="margin-top:26px"><rect x="4" y="20" width="274" height="110" rx="12" fill="rgba(70,160,100,.14)" stroke="rgba(127,224,176,.5)" stroke-width="2"/>
+        <line x1="180" y1="28" x2="180" y2="122" stroke="#e8ecf6" stroke-width="2" stroke-dasharray="5 5"/><circle cx="46" cy="96" r="9" fill="#ffc56b"/><rect x="173" y="96" width="14" height="14" rx="3" fill="#8fb3ff"/>
+        <path class="mp" d="M46 96 L180 62" stroke="#ffc56b" stroke-width="3.5" fill="none" pathLength="1" stroke-dasharray="1 1"/><circle cx="180" cy="62" r="9" fill="#ffc56b" stroke="#fff" stroke-width="2"/>
+        <text x="10" y="13" font-family="Inter" font-weight="700" font-size="13" fill="#7fe0b0">Level: onside</text></svg></div>`);
+  const pulse = h(`<div class="a" style="width:18px;height:18px;border-radius:50%;background:#ffe3a6;box-shadow:0 0 18px #ffc56b,0 0 40px #ff9900"></div>`);
+  const rows = [...out.querySelectorAll('.row')], mp = out.querySelector('.mp');
+  const L = 6;
+  RENDER = t => {
+    sk(t * 2 * Math.PI / L * 2); const p = t % L, fo = 1 - P(p, 5.6, 6);
+    thumbs.forEach((e, i) => { const a = P(p, .2 + i * .14, .4 + i * .14); e.style.opacity = a * fo; e.style.transform = `translateY(${(1 - a) * 14}px)`; });
+    caps.forEach((e, i) => e.style.opacity = P(p, 1.7 + i * .1, 1.9 + i * .1) * fo);
+    graph.style.opacity = P(p, 2.6, 2.9) * fo;
+    const u = io(P(p, 3.0, 3.8)); pulse.style.left = (CX - 9 + (1190 - CX) * u) + 'px'; pulse.style.top = (400 - 9 - Math.sin(Math.PI * u) * 120) + 'px'; pulse.style.opacity = p > 3 && p < 3.8 ? 1 : 0;
+    out.style.opacity = (.35 + .65 * P(p, 3.6, 3.9)) * (.35 + .65 * fo); out.style.boxShadow = p > 3.8 && p < 5.6 ? '0 0 0 2px #ff9900,0 30px 80px rgba(0,0,0,.45)' : '';
+    rows.forEach((r, i) => r.style.opacity = P(p, 3.9 + i * .2, 4.1 + i * .2) * fo);
+    mp.style.strokeDashoffset = (1 - io(P(p, 4.6, 5.3)) * fo).toFixed(3);
+  };
+};
+
+SCENES[S]();
+window.seek = t => { RENDER(t); return document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => {})))); };
+window.READY = window.seek(0);
+</script></body></html>
