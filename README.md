@@ -135,8 +135,8 @@ Every screenshot below is a frame from a screen recording of the real app: the V
 
 | | Capability | What the viewer gets | How it is built |
 | --- | --- | --- | --- |
-| 🎨 | **Explanations drawn live** | A free-form animated diagram drawn for this moment, never a template. | Model-generated SVG + WAAPI, validated, rendered in headless Chromium, revised from real pixels (≤ 2 turns). |
-| 🔁 | **SVG and AVG** | The same answer on Fire TV and on Alexa surfaces. | `server/visual-avg.mjs` converts geometry, labels and animation to AVG 1.2 / APL 2024.3; the official APL viewhost runs locally. |
+| 🎨 | **Explanations drawn live** | A free-form animated diagram drawn for this moment, never a template. | Model-generated SVG animated with the native Web Animations API (WAAPI, no animation library), validated, rendered in headless Chromium, revised from real pixels (≤ 2 turns). |
+| 🔁 | **SVG and AVG** | The same answer on Fire TV and on Alexa surfaces. | `server/visual-avg.mjs` converts geometry, labels and animation to AVG 1.2 / APL 2024.3, animated natively with APL `AnimateItem`; the official APL viewhost runs locally. |
 | 🎯 | **Smart placement** | Answers never cover the ball, the goal mouth, faces, captions or the score. | Local YOLOX-Nano ONNX + edge/contrast/motion scoring, sampled now and every 2 s for 10 s; uncertain → outside the video. |
 | 📱 | **Second screen** | Rather keep the TV clear? Send every answer to your phone. | Six-digit single-use pairing, token-scoped private routes, a private SVG explainer on the phone. |
 | 🗣️ | **Personal by voice and text** | “I’m grandma, explain simply” changes the words, not the facts. | Stated role or consented local ECAPA voice match → communication preferences; never an inferred age. |
@@ -146,7 +146,7 @@ Every screenshot below is a frame from a screen recording of the real app: the V
 
 <table>
   <tr>
-    <td width="50%"><img src="submission/assets/film-svg-avg.gif" alt="Launch film: the offside diagram drawn by SVG and by AVG, with a renderer switch"><br><sub><strong>I · Drawn live, in SVG or AVG.</strong> Each row is tagged with the renderer that drew it.</sub></td>
+    <td width="50%"><img src="submission/assets/film-svg-avg.gif" alt="Launch film: the offside diagram drawn by SVG and by AVG, with a renderer switch"><br><sub><strong>I · Drawn live, in SVG or AVG.</strong> Native motion on both: WAAPI on Fire TV, APL AnimateItem on Alexa. Each row is tagged with the renderer that drew it.</sub></td>
     <td width="50%"><img src="submission/assets/film-placement.gif" alt="Launch film: the answer panel dodges the goal mouth in slow motion"><br><sub><strong>II · Never in the way.</strong> The real recording at 0.5× while the panel is re-placed.</sub></td>
   </tr>
   <tr>
@@ -178,6 +178,8 @@ Every screenshot below is a frame from a screen recording of the real app: the V
 ## One answer, two renderers: SVG and AVG
 
 Selene treats a Moment Response as data, not a picture. The same validated answer renders as **animated SVG** on the Vega and Fire OS apps and the phone, and as **Alexa Vector Graphics** for Alexa surfaces. Switching renderer never generates a second answer.
+
+Motion is native on both sides, with no animation library and no video: the browser's **Web Animations API (WAAPI)** animates the SVG, and the same keyframes become AVG parameters driven by the APL **`AnimateItem`** command. Reduced motion turns both off.
 
 <table>
   <tr>
@@ -216,6 +218,7 @@ pass.animate({ strokeDashoffset: [1, 0] },
   </tr>
 </table>
 
+- Each WAAPI animation maps to one AVG parameter and one `AnimateItem` command; transform and opacity keyframes become AVG expressions.
 - Unsupported SVG semantics report an error instead of silently dropping content.
 - The official `apl-viewhost-web@2024.3.0` WASM runtime runs locally in an opaque-origin, script-only iframe with network access blocked; its bytes are pinned by SHA-256 at build time.
 - Diagrams are free-form: the same canvas that draws an offside line also draws a family tree with an empty chair.

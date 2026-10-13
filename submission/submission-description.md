@@ -33,7 +33,7 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 | Selene capability | What it does | Why it matters |
 | --- | --- | --- |
 | **Explanations drawn live** | Every answer arrives with a free-form animated diagram drawn for this moment: an offside line, a family tree, an empty chair. | Showing beats telling at a glance from the sofa. Nothing is a template. |
-| **SVG or AVG** | The same Moment Response renders as animated SVG on Vega and Fire OS, or as Alexa Vector Graphics (AVG 1.2 / APL 2024.3) for Alexa surfaces. | One answer, two renderers. Switching never regenerates the answer. |
+| **SVG or AVG** | The same Moment Response renders as SVG animated with the native Web Animations API (WAAPI) on Vega and Fire OS, or as Alexa Vector Graphics (AVG 1.2 / APL 2024.3) animated natively with APL `AnimateItem` for Alexa surfaces. | One answer, two renderers, native motion on both. No animation library, no video. Switching never regenerates the answer. |
 | **Smart placement** | Local object detection finds the goal mouth, the ball, faces, captions and the score, then places the answer in the quiet corner, or steps aside to a small crescent for the critical moment. | The answer never covers what the room is watching. |
 | **Second screen** | Pair a phone with a six-digit code. Rather keep the TV clear? Send every answer to the phone instead. | Private help without interrupting anyone. |
 | **Personal by voice and text** | “Explain it for my grandpa” or “I’m a kid” changes the wording and the visual, not the facts. | Same question, the right answer for each person. |
@@ -49,7 +49,7 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 
 <table>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-svg-avg.gif" alt="SVG and AVG renderers drawing the same offside answer"><br><sub><strong>I · Drawn live, in SVG or AVG.</strong> The switch lights whichever renderer is drawing.</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-svg-avg.gif" alt="SVG and AVG renderers drawing the same offside answer"><br><sub><strong>I · Drawn live, in SVG or AVG.</strong> Native motion on both: WAAPI on Fire TV, APL AnimateItem on Alexa. The switch lights whichever renderer is drawing.</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/film-placement.gif" alt="Answer panel dodging the goal mouth in slow motion"><br><sub><strong>II · Never in the way.</strong> The real Vega recording at 0.5×: the goal mouth enters, the panel moves, then steps aside for the shot.</sub></td>
   </tr>
   <tr>
@@ -78,7 +78,7 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 
 1. A viewer asks a question. The relay freezes the sampled playback time.
 2. It gathers only that moment: every caption completed by the question time, source frames from t−10 s (plus up to t+10 s when the video already contains them; a live stream has no future frames, so only the ten seconds before), and the film’s own caption-backed graph.
-3. The agent returns one **Moment Response**: a short answer, an animated SVG with Web Animations, a playback policy, and a follow-up.
+3. The agent returns one **Moment Response**: a short answer, an SVG animated with the native Web Animations API (WAAPI, also convertible to AVG), a playback policy, and a follow-up.
 4. The host validates it, renders it in headless Chromium, and sends the real pixels and measured motion back. The model may revise up to twice.
 5. Local YOLOX-Nano and an edge/contrast/motion scorer choose where the answer can sit; uncertain analysis keeps it outside the video.
 6. The answer appears on the TV, or on the paired phone, in the viewer’s communication style. Playback keeps going.
@@ -107,8 +107,8 @@ Inside the app, an **Alexa+ look-alike** built on our own AI agent simulates the
 | **Vega OS** · React Native for Vega 0.83, React 19.2, TypeScript 5.8 | The TV app: Media Controls session discovery, own player, D-pad and voice, native SVG motion. |
 | **Fire OS** (Android TV) | The same experience on Fire OS, with Select-hold voice capture. |
 | **Node.js relay** | Moment agent, rendered-pixel feedback, placement, pairing, skills MCP server, simulated Alexa+, conversation scheduler. |
-| **SVG + Web Animations** | Free-form, validated, animated explanation diagrams. |
-| **AVG 1.2 / APL 2024.3** | `visual-avg.mjs` converts the same answer; the official APL viewhost (WASM) previews it locally. |
+| **SVG + Web Animations API (WAAPI)** | Free-form, validated explanation diagrams, animated natively in the browser with no animation library. |
+| **AVG 1.2 / APL 2024.3** | `visual-avg.mjs` converts the same answer, turning each WAAPI animation into native APL `AnimateItem` motion; the official APL viewhost (WASM) previews it locally. |
 | **Model Context Protocol** | Skills server and in-app MCP client for the simulated Alexa+ experience. |
 | **YOLOX-Nano (ONNX Runtime)** | Local, free, two-second placement analysis; no remote inference. |
 | **Headless Chromium** | Renders each diagram so the model can review real pixels. |
