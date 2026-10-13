@@ -68,7 +68,7 @@
 <table>
   <tr>
     <td width="25%" align="center"><strong>01 / ASK</strong><br><br>Voice, D-pad, or the paired phone. “What is offside?” “Who is Alisson?” “What did I miss?”</td>
-    <td width="25%" align="center"><strong>02 / READ</strong><br><br>Only the sampled moment: completed captions, frames t−10…+10 s, the film’s own graph.</td>
+    <td width="25%" align="center"><strong>02 / READ</strong><br><br>Only the sampled moment: completed captions, frames around it, the film’s own graph.</td>
     <td width="25%" align="center"><strong>03 / DRAW</strong><br><br>One Moment Response with a free-form animated diagram: SVG on Fire TV, AVG for Alexa.</td>
     <td width="25%" align="center"><strong>04 / STEP ASIDE</strong><br><br>Placed where nothing important is happening, or sent to your phone. The film never stops.</td>
   </tr>
@@ -95,7 +95,7 @@ Selene asks a narrower question:
 | Stage | What happens | What cannot happen silently |
 | --- | --- | --- |
 | **Ask** | A viewer asks by voice, D-pad, or the paired phone. Dialogue or scene detail can ride along in the same question. | No persistent chat thread; the next question starts fresh. |
-| **Read the moment** | The relay freezes the sampled time and gathers completed captions, source frames t−10…+10 s, and the film’s caption-backed graph. | Future dialogue is never sent; provider metadata alone is not scene evidence. |
+| **Read the moment** | The relay freezes the sampled time and gathers completed captions, source frames from t−10 s (and up to t+10 s when the video already has them), and the film’s caption-backed graph. | Future dialogue is never sent; provider metadata alone is not scene evidence. |
 | **Draw it** | The agent returns one Moment Response: a short answer, an animated diagram, a playback policy, and a follow-up. Headless Chromium renders it and the model may revise it up to twice. | An invalid or unsafe SVG is rejected and falls back to words. |
 | **Step aside** | Local YOLOX-Nano finds the quiet corner; uncertain analysis keeps the answer outside the video. Or the answer goes to the phone instead. | Playback keeps going unless the viewer confirms otherwise. |
 
@@ -162,7 +162,7 @@ Every screenshot below is a frame from a screen recording of the real app: the V
 ## What the agent sees
 
 <p align="center">
-  <img src="submission/assets/selene-evidence-window.gif" alt="Animated evidence window for a question at 0:17 in Football Match: ten real source frames from −10 to +10 seconds, completed captions up to now, locked future captions, and the resulting Moment Response" width="100%">
+  <img src="submission/assets/selene-evidence-window.gif" alt="Animated evidence window for a question at 0:17 in Football Match: ten real source frames from −10 to +10 seconds (the +2…+10 s frames exist only for recorded video, never for a live stream), completed captions up to now, locked future captions, and the resulting Moment Response" width="100%">
 </p>
 
 <p align="center"><sub>Real frames and captions from Football Match. The question is asked at 0:17; the caption “Let’s see it again.” at 0:18 is never sent.</sub></p>
@@ -170,7 +170,7 @@ Every screenshot below is a frame from a screen recording of the real app: the V
 | Evidence | Sent to the model | Why |
 | --- | --- | --- |
 | Completed captions | Every cue finished by the frozen question time | Grounds who said what without leaking later dialogue. |
-| Source frames | JPEGs at t −10, −8, −6, −4, −2, +2, +4, +6, +8, +10 s | Ten seconds of visual lookahead lets the agent see the action resolve, never future plot. |
+| Source frames | JPEGs at t −10, −8, −6, −4, −2 s, plus +2, +4, +6, +8, +10 s **only when the video already contains those ten seconds** (recorded or imported titles). A live stream has no future frames, so only t −10…−2 s are used. | The lookahead lets the agent see the action resolve on recorded video, never future plot. |
 | Film graph | Caption-backed nodes and edges for this film only | “striker”, “last defender”, “Alisson → brother of → Aldric”. No cross-title memory. |
 | Viewer request | The question, optional scene detail, explicit communication needs | “I’m a kid” shapes the words; it is never an identity claim. |
 | Not sent | Raw image bytes in logs, family conversation, profile IDs, embeddings, ages | Questions and conversations are not persisted to disk. |
@@ -238,7 +238,7 @@ Inside the app, an **Alexa+ look-alike** built on Selene's own AI agent simulate
 ## How the system is built
 
 <p align="center">
-  <img src="submission/assets/selene-architecture.gif" alt="Animated Selene architecture with official AWS icons: Fire TV Vega OS and Fire OS apps, the paired phone and the Alexa+ look-alike send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and returns the answer; EventBridge Scheduler and Lambda run a scheduled health check" width="100%">
+  <img src="submission/assets/selene-architecture.gif" alt="Animated Selene architecture with official AWS icons: Fire TV Vega OS and Fire OS apps, the paired phone and the Alexa+ look-alike send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and returns the answer; EventBridge Scheduler and Lambda wake the relay for due Follow thread and conversation checks" width="100%">
 </p>
 
 | Layer | Responsibility |
@@ -249,10 +249,11 @@ Inside the app, an **Alexa+ look-alike** built on Selene's own AI agent simulate
 | [`server/`](server/) | Node relay: moment agent, placement, SVG→AVG, skills MCP server, Alexa+ look-alike orchestrator, conversation scheduler, voice, pairing. |
 | [`content/`](content/) | Catalog packages: captions, facts, per-film caption graph, prepared-example bindings. |
 | [`shared/`](shared/) | Visual transform math shared by native and web renderers. |
+| [`infra/aws/`](infra/aws/) | CloudFormation for the EventBridge Scheduler → Lambda wake-up that calls `POST /api/wake`. |
 | [`scripts/`](scripts/) | Build, ingest, Vega VVD launch, automation, live checks, phone-contract check. |
 | [`test/`](test/) | Node and native test suites, fixture catalog, live-model checks. |
 
-The relay reads `AGENT_PROVIDER_URL`, `AGENT_PROVIDER_MODEL` and `AGENT_PROVIDER_API_KEY` from `../.env` and calls the provider over HTTPS with strict structured outputs and function calls. Credentials never enter the TV bundle or the Chromium process. The relay runs as the Amazon Lightsail container service `selene-phone-demo-v2` in `us-east-1`. An Amazon EventBridge Scheduler schedule invokes an AWS Lambda function that calls the relay's `/api/health` endpoint, so the deployment is checked on a schedule from outside the container.
+The relay reads `AGENT_PROVIDER_URL`, `AGENT_PROVIDER_MODEL` and `AGENT_PROVIDER_API_KEY` from `../.env` and calls the provider over HTTPS with strict structured outputs and function calls. Credentials never enter the TV bundle or the Chromium process. The relay runs as the Amazon Lightsail container service `selene-phone-demo-v2` in `us-east-1`. Follow thread and the “Something to talk about” agent also need to act later without a tap. Amazon EventBridge Scheduler invokes the `selene-wake` AWS Lambda function, which calls the relay’s token-protected `POST /api/wake`; the relay re-runs any due thread or conversation check through the same logic, so updates still arrive when the phone browser is asleep or a container restart dropped an in-process timer. The stack is defined in [`infra/aws/`](infra/aws/) and is ready to deploy.
 
 ## Try the demo
 
@@ -308,7 +309,7 @@ The latest local record lists 193 Node tests and 25 native Jest tests passing, w
 
 - **Alexa+ is a look-alike.** We simulate the Alexa+ experience with Selene's own AI agent; the in-app orchestrator uses real MCP calls to Selene's own skills. No live Alexa+, wake word, Alexa voice or Amazon branding is used.
 - **Overlay on other apps is an SDK limit, not a design choice.** We designed Selene to be a true overlay that floats over whatever is playing. Today the Vega SDK and Fire OS documentation expose no API, permission or capability that lets a third-party app draw over another provider's player (such as Prime Video), and we found no supported overlay privilege to request. So Selene overlays its own player only, and for other apps it works as a companion: Media Controls session discovery on the TV and the paired phone as a second screen. If an overlay capability opens, the same placement engine is ready to use it. Without an authorized scene-context feed, the companion works from session metadata plus what the viewer types.
-- **Only the sampled moment.** Captions stop at the question time. Frames after it give ten seconds of visual lookahead, never future dialogue or plot.
+- **Only the sampled moment.** Captions stop at the question time. On recorded video, frames after it give up to ten seconds of visual lookahead; a live stream has no future frames, so Selene uses the ten seconds before the question only. Never future dialogue or plot.
 - **Personalization is stated, not guessed.** Roles come from the viewer's words, an explicit preference, or a consented local voice match. Age or family role never implies disability or low literacy.
 - **Placement can be wrong.** Sparse samples and a general object detector can miss subjects; uncertain or slow analysis keeps the answer outside the video.
 - **Device coverage.** Builds, VDA runs and emulator runs are recorded in the technical notes. Physical Fire TV and physical Vega hardware remain unverified for several paths.

@@ -73,11 +73,11 @@ Chat assistants did not fix it. They answer in paragraphs, they know nothing abo
 ## How the agent works
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-evidence-window.gif" alt="What the agent sees for a question at 0:17: real frames from −10 to +10 seconds, completed captions only, and the resulting Moment Response" width="100%">
+  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-evidence-window.gif" alt="What the agent sees for a question at 0:17: real frames from −10 to +10 seconds (future frames exist only for recorded video, not live streams), completed captions only, and the resulting Moment Response" width="100%">
 </p>
 
 1. A viewer asks a question. The relay freezes the sampled playback time.
-2. It gathers only that moment: every caption completed by the question time, source frames at t−10…+10 s, and the film’s own caption-backed graph.
+2. It gathers only that moment: every caption completed by the question time, source frames from t−10 s (plus up to t+10 s when the video already contains them; a live stream has no future frames, so only the ten seconds before), and the film’s own caption-backed graph.
 3. The agent returns one **Moment Response**: a short answer, an animated SVG with Web Animations, a playback policy, and a follow-up.
 4. The host validates it, renders it in headless Chromium, and sends the real pixels and measured motion back. The model may revise up to twice.
 5. Local YOLOX-Nano and an edge/contrast/motion scorer choose where the answer can sit; uncertain analysis keeps it outside the video.
@@ -99,7 +99,7 @@ Inside the app, an **Alexa+ look-alike** built on our own AI agent simulates the
 ## How we built it
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-architecture.gif" alt="Selene architecture with official AWS icons: viewers send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and answers; EventBridge Scheduler and Lambda run a scheduled health check" width="100%">
+  <img src="https://raw.githubusercontent.com/azharizz/selene/main/submission/assets/selene-architecture.gif" alt="Selene architecture with official AWS icons: viewers send a question to the Selene relay on Amazon Lightsail, which reads film evidence, calls the model provider and answers; EventBridge Scheduler and Lambda wake the relay for due Follow thread and conversation checks" width="100%">
 </p>
 
 | Technology | Role in Selene |
@@ -115,12 +115,12 @@ Inside the app, an **Alexa+ look-alike** built on our own AI agent simulates the
 | **SpeechBrain ECAPA** | Optional, consented, local speaker match for household preferences. |
 | **Alexa+ (look-alike)** | We simulate the Alexa+ experience with our own AI agent: an in-app orchestrator that routes requests to Selene’s MCP skills and renders answers as AVG, ready for real Alexa+ add-on access. |
 | **Amazon Lightsail** | The container service that runs the relay used for TV and phone pairing. |
-| **Amazon EventBridge Scheduler + AWS Lambda** | A recurring schedule invokes a Lambda function that calls the relay’s `/api/health`, checking the deployment from outside the container. |
+| **Amazon EventBridge Scheduler + AWS Lambda** | Wakes the relay for Follow thread and “Something to talk about”: a schedule invokes the `selene-wake` Lambda, which calls the relay’s token-protected `POST /api/wake` so due checks run even when the phone is asleep. Defined in `infra/aws/`, ready to deploy. |
 
 ## Challenges we ran into
 
 - **Not covering the moment.** A panel that dodges at the wrong time is worse than no panel. We moved from heuristics to local object detection with a strict two-second deadline, and made uncertainty fall back to a layout outside the video instead of guessing.
-- **Spoilers hide in context.** Captions are the easiest way to leak the plot. The evidence window sends only completed cues up to the frozen time; frames after it allow visual lookahead without future dialogue.
+- **Spoilers hide in context.** Captions are the easiest way to leak the plot. The evidence window sends only completed cues up to the frozen time; on recorded video, frames after it allow visual lookahead without future dialogue, and a live stream gets no future frames at all.
 - **Diagrams that actually teach.** Schema-valid SVG can still be confusing. Rendering it and feeding the real pixels back to the model fixed many layouts, though we still treat teaching quality as something to review by eye.
 - **One answer, two renderers.** SVG and AVG disagree on transforms, text and animation. The converter reports unsupported semantics instead of silently dropping them.
 - **Honest Alexa+.** Without add-on access, we built the integration surface for real (MCP) and labelled the experience as simulated.

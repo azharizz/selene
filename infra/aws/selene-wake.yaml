@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Selene scheduled wake-up. Amazon EventBridge Scheduler invokes an AWS Lambda function that calls the
+  relay's POST /api/wake, which re-runs due Follow thread and "Something to talk about" checks.
+
+Parameters:
+  RelayUrl:
+    Type: String
+    Description: HTTPS origin of the Selene relay (the Lightsail container service URL), no trailing slash.
+    AllowedPattern: '^https://[^/]+$'
+  WakeToken:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Shared secret; set the same value as SELENE_WAKE_TOKEN on the relay.
+  ScheduleExpression:
+    Type: String
+    Default: rate(1 minute)
+    Description: How often to sweep. The relay ignores sessions with nothing due.
+
+Resources:
+  WakeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  WakeFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: selene-wake
+      Description: Calls the Selene relay wake endpoint for due Follow thread and conversation checks.
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Timeout: 60
+      MemorySize: 128
+      Role: !GetAtt WakeFunctionRole.Arn
+      Environment:
+        Variables:
+          RELAY_URL: !Ref RelayUrl
+          WAKE_TOKEN: !Ref WakeToken
+      Code:
+        ZipFile: |
+          // A thread check can call the model, so allow most of the Lambda timeout.
+          exports.handler = async () => {
+            const res = await fetch(`${process.env.RELAY_URL}/api/wake`, {
+              method: 'POST', headers: {authorization: `Bearer ${process.env.WAKE_TOKEN}`},
+              signal: AbortSignal.timeout(55000)});
+            const body = await res.text();
+            console.log(JSON.stringify({status: res.status, body}));
+            if (!res.ok) throw new Error(`wake failed: HTTP ${res.status}`);
+            return JSON.parse(body);
+          };
+
+  WakeLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/selene-wake
+      RetentionInDays: 7
+
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: scheduler.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: {aws:SourceAccount: !Ref AWS::AccountId}
+      Policies:
+        - PolicyName: invoke-selene-wake
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt WakeFunction.Arn
+
+  WakeSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: selene-wake
+      Description: Sweep the Selene relay for due Follow thread and conversation checks.
+      ScheduleExpression: !Ref ScheduleExpression
+      FlexibleTimeWindow: {Mode: 'OFF'}
+      State: ENABLED
+      Target:
+        Arn: !GetAtt WakeFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        RetryPolicy: {MaximumRetryAttempts: 0, MaximumEventAgeInSeconds: 60}
+
+Outputs:
+  FunctionName: {Value: !Ref WakeFunction}
+  ScheduleName: {Value: !Ref WakeSchedule}

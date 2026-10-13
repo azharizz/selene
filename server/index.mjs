@@ -21,6 +21,7 @@ import {listRequesters, createRequester, deleteRequester} from './requesters.mjs
 import {processVoice, voiceAvailable} from './voice.mjs';
 import {requesterContext} from './requester-context.mjs';
 import {updateConversationSchedule, closeConversationSchedule, interruptConversation, currentConversation} from './conversation-scheduler.mjs';
+import {wakeAuthorized, wakeSessions} from './wake.mjs';
 
 const root = fileURLToPath(new URL('../assets/', import.meta.url));
 const port = Number(process.env.SELENE_PORT ?? 4519);
@@ -126,7 +127,7 @@ export const server = createServer(async (req, res) => {
   res.setHeader('Permissions-Policy', 'camera=(), geolocation=(), microphone=(self)');
   res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; img-src 'self'; media-src 'self' ${mediaOrigin}; connect-src 'self'; frame-src 'self' about:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`);
   const host = req.headers.host;
-  if (!allowedHosts.has(host) && !(req.method === 'GET' && req.url === '/api/health')) return send(res, 403, {error: 'Unrecognized host'});
+  if (!allowedHosts.has(host) && !(req.method === 'GET' && req.url === '/api/health') && !(req.method === 'POST' && req.url === '/api/wake')) return send(res, 403, {error: 'Unrecognized host'});
   try {
     const url = new URL(req.url, `http://${host}`);
     if (url.pathname === '/apl-preview.html') {
@@ -136,11 +137,18 @@ export const server = createServer(async (req, res) => {
     const mcpSession = url.pathname === '/api/mcp' ? mcpAccess(req, res, sessions, send) : null;
     if (url.pathname === '/api/mcp' && !mcpSession) return;
     if (!deviceHosts.has(host) && url.pathname.startsWith('/api/')
-      && url.pathname !== '/api/health' && url.pathname !== '/api/private/join' && url.pathname !== '/api/mcp'
+      && url.pathname !== '/api/health' && url.pathname !== '/api/wake' && url.pathname !== '/api/private/join' && url.pathname !== '/api/mcp'
       && !/^\/api\/private\/[0-9a-f-]{36}(?:\/(?:captions|hold|ask|return|end|thread|thread-check|assistant|voice))?$/.test(url.pathname)) {
       return send(res, 403, {error: 'This address is for paired phones only.'});
     }
     if (url.pathname === '/api/health' && req.method === 'GET') return send(res, 200, {status: 'ok', provider_configured: Boolean(process.env.AGENT_PROVIDER_URL && process.env.AGENT_PROVIDER_MODEL && process.env.AGENT_PROVIDER_API_KEY), scene_context_configured: Boolean(process.env.SELENE_SCENE_CONTEXT_URL)});
+    if (url.pathname === '/api/wake' && req.method === 'POST') {
+      // Off unless SELENE_WAKE_TOKEN is set; called by the scheduled Lambda in infra/aws.
+      if (!process.env.SELENE_WAKE_TOKEN) return send(res, 404, {error: 'Not found'});
+      if (!wakeAuthorized(req.headers.authorization, process.env.SELENE_WAKE_TOKEN)) return send(res, 401, {error: 'Unauthorized'});
+      return send(res, 200, await wakeSessions(sessions, {snapshot: session => playbackSnapshot(session), schedule: session => scheduleConversation(session),
+        threadCheck: (session, sample) => runPrivate(session, 'thread-check', sample, null, false)}));
+    }
     if (url.pathname === '/api/examples' && req.method === 'GET') {
       const contentId = url.searchParams.get('content_id'), value = url.searchParams.get('at_seconds');
       const selected = getStory(contentId), at = value === null || value.trim() === '' ? NaN : Number(value);

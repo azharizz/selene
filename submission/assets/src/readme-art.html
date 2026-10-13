@@ -71,7 +71,7 @@ SCENES.loop = () => {
   h(`<div class="a" style="left:80px;top:96px;font-size:46px;font-weight:700;letter-spacing:-.03em">Ask. Read the moment. Draw it. <span class="serif" style="color:var(--gold);font-weight:400">Step aside.</span></div>`);
   const X = [80, 460, 840, 1220], Y = 200, W = 300, HH = 400;
   const T = [['01', 'Ask', 'Voice, D-pad, or the paired phone. One question, no chat thread.'],
-    ['02', 'Read the moment', 'Completed captions up to now, frames t−10…+10 s, the film’s own graph.'],
+    ['02', 'Read the moment', 'Completed captions up to now, frames before it (and after, on recorded video), the film’s own graph.'],
     ['03', 'Draw it', 'One Moment Response, rendered as animated SVG or as AVG for Alexa.'],
     ['04', 'Step aside', 'Placed away from the action; playback never stops unless you ask.']];
   const cards = T.map(([n, a, b], i) => h(`<div class="a card" style="left:${X[i]}px;top:${Y}px;width:${W}px;height:${HH}px;padding:26px">
@@ -144,16 +144,16 @@ SCENES.arch = () => {
       <div style="display:flex;align-items:center;gap:14px">${ico('AmazonLightsail', 46)}<div><div style="font-size:21px;font-weight:700">Amazon Lightsail · container service</div><div class="mono" style="font-size:13.5px;color:var(--muted)">selene-phone-demo-v2</div></div>
         <div style="margin-left:auto;display:flex;align-items:center;gap:10px">${logo(34)}<div style="font-size:22px;font-weight:700;letter-spacing:-.02em">Selene relay</div></div></div>
       <div class="mods" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px"></div>
-      <div class="mono" style="position:absolute;left:22px;bottom:16px;font-size:13px;color:var(--muted)">Node.js · /api/moment · /api/placement · /api/skills/mcp · /api/health</div></div>`);
+      <div class="mono" style="position:absolute;left:22px;bottom:16px;font-size:13px;color:var(--muted)">Node.js · /api/moment · /api/placement · /api/skills/mcp · /api/wake</div></div>`);
   const MODS = [['Moment agent', 'answer + animated SVG / WAAPI'], ['Rendered feedback', 'headless Chromium, ≤ 2 revisions'], ['Smart placement', 'YOLOX-Nano ONNX, local'],
     ['SVG → AVG 1.2', 'same answer for Alexa / APL'], ['Skills MCP server', 'explain · catch up · trivia · playback'], ['Alexa+ look-alike orchestrator', 'MCP client + tool-choice routing'],
     ['Thread + Catch me up', 'reviewed, spoiler-bounded'], ['Conversation agent', '“something to talk about”'], ['Voice personalization', 'consented, local ECAPA'], ['Pairing + private routes', 'token-scoped phone access']];
   const mods = MODS.map(([a, b]) => h(`<div style="padding:10px 13px;border-radius:12px;background:rgba(7,8,13,.45);border:1px solid var(--line)"><div style="font-size:16px;font-weight:700">${a}</div><div style="font-size:13px;color:#9aa0b8;margin-top:2px">${b}</div></div>`, LS.querySelector('.mods')));
-  node(480, 760, 290, 112, ico('AmazonEventBridgeScheduler'), 'EventBridge Scheduler', 'Amazon EventBridge · recurring schedule', 'rgba(231,21,123,.6)');
-  node(870, 760, 290, 112, ico('AWSLambda'), 'AWS Lambda', 'Calls the relay’s health endpoint', 'rgba(237,113,0,.6)');
+  node(480, 760, 290, 118, ico('AmazonEventBridgeScheduler'), 'EventBridge Scheduler', 'rate(1 minute) · infra/aws stack', 'rgba(231,21,123,.6)');
+  node(870, 760, 290, 118, ico('AWSLambda'), 'AWS Lambda · selene-wake', 'POST /api/wake · Follow thread + Talk together', 'rgba(237,113,0,.6)');
   h(`<div class="a label" style="left:1240px;top:116px;font-size:13px">Outside the TV</div>`);
   node(1240, 176, 300, 150, `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><circle cx="22" cy="22" r="18" fill="none" stroke="#ffc56b" stroke-width="2.5"/><path d="M14 22h16M22 14v16" stroke="#ffc56b" stroke-width="2.5"/></svg>`, 'Model provider', '<span class="mono" style="font-size:13px">AGENT_PROVIDER_MODEL</span><br>HTTPS · structured outputs · function calls', 'rgba(255,197,107,.6)');
-  node(1240, 400, 300, 170, `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><rect x="5" y="9" width="34" height="26" rx="4" fill="none" stroke="#7fe0b0" stroke-width="2.5"/><path d="M5 17h34M13 9v26" stroke="#7fe0b0" stroke-width="2"/></svg>`, 'Film evidence', 'Completed captions ≤ now · per-film graph · frames t−10…+10 s · prepared examples');
+  node(1240, 400, 300, 170, `<svg width="44" height="44" viewBox="0 0 44 44" style="flex:none"><rect x="5" y="9" width="34" height="26" rx="4" fill="none" stroke="#7fe0b0" stroke-width="2.5"/><path d="M5 17h34M13 9v26" stroke="#7fe0b0" stroke-width="2"/></svg>`, 'Film evidence', 'Completed captions ≤ now · per-film graph · frames before now (and after, recorded only) · prepared examples');
   // edges (ids double as pulse tracks)
   const E = h(`<svg class="a" width="1600" height="1000" style="left:0;top:0">
       <path id="e0" d="M390 199 C430 199 440 300 480 300" stroke="#ff9900"/>
@@ -171,7 +171,7 @@ SCENES.arch = () => {
   const pA = pulse('#ff9900'), pB = pulse('#e7157b');
   const at = (i, u) => { const p = paths[i], L = p.getTotalLength(); return p.getPointAtLength(clamp(u) * L); };
   // ① ask → ② read only this moment → ③ generate + render check → ④ answer back
-  const STEPS = [['1', 'Ask', '#ff9900'], ['2', 'Read only this moment', '#e8ecf6'], ['3', 'Generate + render check', '#ffc56b'], ['4', 'Answer, placed or on the phone', '#ff9900'], ['5', 'Scheduled health check', '#e7157b']];
+  const STEPS = [['1', 'Ask', '#ff9900'], ['2', 'Read only this moment', '#e8ecf6'], ['3', 'Generate + render check', '#ffc56b'], ['4', 'Answer, placed or on the phone', '#ff9900'], ['5', 'Scheduled wake-up: thread + talk together', '#e7157b']];
   const leg = h(`<div class="a" style="left:60px;top:930px;width:1480px;display:flex;gap:14px;flex-wrap:nowrap"></div>`);
   const chips = STEPS.map(([n, s, c]) => h(`<div class="chip" style="font-size:16px;padding:7px 15px"><span style="width:24px;height:24px;border-radius:50%;background:${c};color:#07080d;font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-size:13px">${n}</span>${s}</div>`, leg));
   const L = 4;
@@ -203,6 +203,8 @@ SCENES.evidence = () => {
   h(`<div class="a" style="left:${X0}px;top:400px;width:${X1 - X0}px;height:3px;background:rgba(232,236,246,.2)"></div>`);
   h(`<div class="a" style="left:${CX - 1.5}px;top:190px;width:3px;height:360px;background:var(--orange);box-shadow:0 0 18px var(--orange)"></div>`);
   h(`<div class="a mono" style="left:${CX - 80}px;top:556px;width:160px;text-align:center;font-size:15px;color:var(--orange)">now · 0:17</div>`);
+  h(`<div class="a mono" style="left:${CX + 18}px;top:192px;font-size:13px;color:var(--mint);opacity:.85">after now · recorded video only (a live stream has none)</div>`);
+  h(`<div class="a mono" style="left:${X0}px;top:192px;width:${CX - X0 - 18}px;text-align:right;font-size:13px;color:var(--mint);opacity:.85">before now · always</div>`);
   const D = [-10, -8, -6, -4, -2, 2, 4, 6, 8, 10], TT = [7, 9, 11, 13, 15, 19, 21, 23, 25, 27];
   const thumbs = D.map((d, i) => h(`<div class="a" style="left:${sx(d) - 46}px;top:${i % 2 ? 300 : 222}px;width:92px;text-align:center">
       <img src="frames/t${TT[i]}.jpg" style="width:92px;height:52px;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1.5px rgba(127,224,176,.55)">
@@ -214,7 +216,7 @@ SCENES.evidence = () => {
   const caps = CAPS.map(([a, b, s]) => { const past = b <= 17.4;
     return h(`<div style="height:36px;border-radius:10px;padding:0 12px;display:flex;align-items:center;font-size:15px;white-space:nowrap;
       ${past ? 'background:rgba(255,197,107,.16);border:1.5px solid rgba(255,197,107,.6);color:#ffe3a6' : 'background:rgba(232,236,246,.05);border:1.5px dashed rgba(232,236,246,.2);color:rgba(232,236,246,.4)'}">${past ? s : 'not sent'}</div>`, past ? colL : colR); });
-  h(`<div class="a" style="left:${X0}px;top:590px;display:flex;gap:26px;font-size:16px;color:var(--muted)"><span><b style="color:var(--mint)">■</b> source frames t−10…+10 s (pixels only)</span><span><b style="color:var(--gold)">■</b> completed captions ≤ now</span><span>┄ future dialogue is never sent</span></div>`);
+  h(`<div class="a" style="left:${X0}px;top:590px;display:flex;gap:26px;font-size:16px;color:var(--muted)"><span><b style="color:var(--mint)">■</b> frames t−10…−2 s always · +2…+10 s recorded video only, never live</span><span><b style="color:var(--gold)">■</b> completed captions ≤ now</span><span>┄ future dialogue is never sent</span></div>`);
   const graph = h(`<div class="a chip" style="left:${X0}px;top:650px;font-size:16px">Film graph: <b>striker</b> · <b>last defender</b> · <b>assistant</b> · <b>number ten</b></div>`);
   const out = h(`<div class="a card" style="left:1200px;top:200px;width:330px;height:470px;padding:24px">
       <div style="display:flex;align-items:center;gap:10px">${logo(22)}<span class="label" style="font-size:13px">Moment Response</span></div>
