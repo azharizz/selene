@@ -10,6 +10,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, 'src')
 # scene, output, size, loop seconds (None = still), fps, GIF width
 ART = [('banner', 'selene-readme-banner.png', (2400, 760), None, 0, 0),
+       ('thumb', 'selene-thumbnail.png', (1500, 1000), None, 0, 0),  # Devpost project thumbnail, 3:2
+       ('g1', 'selene-gallery-1.png', (1500, 1000), None, 0, 0),
+       ('g2', 'selene-gallery-2.png', (1500, 1000), None, 0, 0),
+       ('g3', 'selene-gallery-3.png', (1500, 1000), None, 0, 0),
+       ('g4', 'selene-gallery-4.png', (1500, 1000), None, 0, 0),
        ('loop', 'selene-moment-loop.gif', (1600, 760), 6, 15, 1200),
        ('arch', 'selene-architecture.gif', (1600, 1000), 4, 15, 1200),
        ('evidence', 'selene-evidence-window.gif', (1600, 760), 6, 15, 1200)]

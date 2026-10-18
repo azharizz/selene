@@ -6,7 +6,7 @@
 
 ## Ask about the moment. Selene explains it, then steps aside.
 
-**SELENE** (*See & Learn through Narrative Explanation*) is an AI viewing companion for Fire TV. Anyone in the room can ask about the moment on screen, by voice, by remote, or from a paired phone. Selene reads only that moment, answers in plain words with a diagram drawn live for it, places the answer where nothing important is happening, and gets out of the way. The film never stops.
+**SELENE** (***Se***e & ***Le***arn through ***N***arrative ***E***xplanation) is an AI viewing companion for Fire TV. Anyone in the room can ask about the moment on screen, by voice, by remote, or from a paired phone. Selene reads only that moment, answers in plain words with a diagram drawn live for it, places the answer where nothing important is happening, and gets out of the way. The film never stops.
 
 In Greek myth, Selene drove the moon across the night sky so no one watching would be lost in the dark. That is the whole product in one sentence.
 
@@ -20,7 +20,7 @@ In Greek myth, Selene drove the moon across the night sky so no one watching wou
 
 One TV. Many viewers. Different needs.
 
-In our living room, Grandpa asks why a goal was ruled offside. A child asks who the man in the hood is. Mum comes back from the kitchen and asks what she missed. Every one of those questions costs the whole room the moment: someone pauses, someone rewinds, someone vanishes into a phone search while the scene plays on.
+In our living room, Grandma asks why a goal was ruled offside. A child asks who the man in the hood is. Mum comes back from the kitchen and asks what she missed. Every one of those questions costs the whole room the moment: someone pauses, someone rewinds, someone vanishes into a phone search while the scene plays on.
 
 Chat assistants did not fix it. They answer in paragraphs, they know nothing about *this* frame, and they happily spoil the ending. We wanted the opposite: an answer that understands exactly what is on screen, shows it instead of describing it, and respects that the film is the main event.
 
